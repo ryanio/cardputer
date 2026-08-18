@@ -17,7 +17,7 @@ pio run -t upload       # flash
 pio device monitor      # serial
 ```
 
-Green as of 2026-08-18: RAM 16.7%, flash 35.4% of the 3.3MB app slot.
+Green as of 2026-08-18: RAM 17.4%, flash 35.7% of the 3.3MB app slot.
 
 `tools/fmt.sh` applies the house style and `--check` enforces it.
 `tools/apicheck/check.py` asks all five sources whether they still answer the

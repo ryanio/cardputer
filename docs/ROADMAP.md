@@ -37,6 +37,11 @@ Smallest payload, so it proves HTTPS + JSON before anything depends on them.
   base fee drops under it. A real speaker, so use it: a short rising arpeggio,
   not a beep.
 
+Built, except for the part only hardware can settle: the arpeggio has never
+been heard. Congestion is a percentile of the day rather than four constants,
+because the API publishes no bands and base fees have moved by two orders of
+magnitude inside a year.
+
 Done when: it sits on the desk showing live gas and wakes you when gas is cheap.
 
 ## Phase 2: OTA, before the phases that need iterating
