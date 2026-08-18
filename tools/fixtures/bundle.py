@@ -70,10 +70,13 @@ def render():
         with open(path) as handle:
             body = handle.read().strip()
         json.loads(body)  # a fixture that is not JSON is a bug, not a payload
-        total += len(body)
+        # Size is in bytes, not characters. A payload with any non ASCII in it
+        # is longer than it looks, and a short count truncates the parse.
+        size = len(body.encode("utf-8"))
+        total += size
         mark = delimiter(body)
         parts.append('\t{"%s", "%s",\n\t R"%s(%s)%s",\n\t %d},\n'
-                     % (route["match"], name, mark, body, mark, len(body)))
+                     % (route["match"], name, mark, body, mark, size))
     parts.append("};\n")
     parts.append(FOOTER)
     return "".join(parts), len(manifest["routes"]), total

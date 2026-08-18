@@ -72,9 +72,9 @@ uint32_t tourStarted = 0;
 int tourNext = 0;
 const char *lastHint = nullptr;
 
-std::string script;       // keys to play, one every SCRIPT_GAP
-std::string shotPrefix;   // where frames go, empty for none
-uint32_t quitAfter = 0;   // ms, 0 for never
+std::string script;      // keys to play, one every SCRIPT_GAP
+std::string shotPrefix;  // where frames go, empty for none
+uint32_t quitAfter = 0;  // ms, 0 for never
 size_t scriptNext = 0;
 int shotIndex = 0;
 uint32_t scriptAt = 700;
@@ -103,9 +103,8 @@ void runScript()
 void hint()
 {
 	const view::View *v = view::active();
-	const char *text = v == nullptr
-	                       ? "menu: arrows move, 1 to 5 jump, enter opens"
-	                       : "in a view: escape or the backtick goes back to the menu";
+	const char *text = v == nullptr ? "menu: arrows move, 1 to 5 jump, enter opens"
+	                                : "in a view: escape or the backtick goes back to the menu";
 	if (text != lastHint) {
 		lastHint = text;
 		Serial.printf("\n  hint  %s\n", text);
@@ -160,7 +159,6 @@ void simLoop()
 		exit(0);
 	}
 }
-
 
 void simArgs(int argc, char **argv)
 {

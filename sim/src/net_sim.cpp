@@ -32,9 +32,8 @@ struct FakeNetwork {
 };
 
 const FakeNetwork NETWORKS[] = {
-    {"parcel-of-rogues", -41, false}, {"Voxels Guest", -58, true},
-    {"reef", -63, false},             {"BT-HUB-8891", -71, false},
-    {"eduroam", -77, false},          {"nowhere-fast", -84, false},
+    {"parcel-of-rogues", -41, false}, {"Voxels Guest", -58, true}, {"reef", -63, false},
+    {"BT-HUB-8891", -71, false},      {"eduroam", -77, false},     {"nowhere-fast", -84, false},
 };
 constexpr int NETWORK_COUNT = sizeof(NETWORKS) / sizeof(NETWORKS[0]);
 
@@ -119,7 +118,8 @@ void spend(Result &r, uint32_t started)
 // The sink in net::get wants a Stream, and a fixture is already in memory.
 class MemStream : public Stream {
 public:
-	MemStream(const char *data, size_t size) : data_(data), size_(size) {}
+	MemStream(const char *data, size_t size) : data_(data), size_(size)
+	{}
 
 	int available() override
 	{
@@ -351,15 +351,24 @@ const char *caBundle()
 const char *statusText(int status)
 {
 	switch (status) {
-		case 200: return "ok";
-		case ERR_NO_WIFI: return "no wifi";
-		case ERR_NO_CREDENTIALS: return "no network set";
-		case ERR_URL: return "bad url";
-		case ERR_CONNECT: return "no connection";
-		case ERR_TRANSPORT: return "no fixture";
-		case ERR_PARSE: return "bad json";
-		case ERR_ABORTED: return "aborted";
-		default: return "http error";
+		case 200:
+			return "ok";
+		case ERR_NO_WIFI:
+			return "no wifi";
+		case ERR_NO_CREDENTIALS:
+			return "no network set";
+		case ERR_URL:
+			return "bad url";
+		case ERR_CONNECT:
+			return "no connection";
+		case ERR_TRANSPORT:
+			return "no fixture";
+		case ERR_PARSE:
+			return "bad json";
+		case ERR_ABORTED:
+			return "aborted";
+		default:
+			return "http error";
 	}
 }
 
