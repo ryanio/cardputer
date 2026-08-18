@@ -1,7 +1,6 @@
-#include <SDL2/SDL.h>
+#include "app.h"
 
 #include <M5Cardputer.h>
-#include <lgfx/v1/platforms/sdl/Panel_sdl.hpp>
 
 #include <string>
 #include <vector>
@@ -128,7 +127,7 @@ void runTour()
 
 }  // namespace
 
-void setup()
+void simSetup()
 {
 	auto cfg = M5.config();
 	M5Cardputer.begin(cfg, true);
@@ -145,7 +144,7 @@ void setup()
 	view::repaint();
 }
 
-void loop()
+void simLoop()
 {
 	M5Cardputer.update();
 	net::loop();
@@ -161,16 +160,8 @@ void loop()
 	}
 }
 
-int userFunction(bool *running)
-{
-	setup();
-	while (*running) {
-		loop();
-	}
-	return 0;
-}
 
-int main(int argc, char **argv)
+void simArgs(int argc, char **argv)
 {
 	for (int i = 1; i < argc; i++) {
 		const bool more = i + 1 < argc;
@@ -195,8 +186,9 @@ int main(int argc, char **argv)
 		}
 	}
 	tourStarted = millis();
-#if defined(__APPLE__)
-	SDL_SetHint(SDL_HINT_MAC_BACKGROUND_APP, "0");
-#endif
-	return lgfx::Panel_sdl::main(userFunction, 128);
+}
+
+extern "C" void simPress(int key)
+{
+	M5Cardputer.Keyboard.queue((char)key);
 }

@@ -87,6 +87,25 @@
   }
   .shots { display: grid; gap: 18px; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); margin-top: 8px; }
 
+  .stage { position: relative; background: #000; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
+  .stage canvas { display: block; width: 100%; height: auto; image-rendering: pixelated; }
+  .boot {
+    position: absolute; inset: 0; width: 100%; height: 100%;
+    background: rgba(8, 8, 10, 0.82); color: var(--text);
+    border: 0; cursor: pointer;
+    font: 600 15px/1 system-ui, sans-serif;
+  }
+  .boot:hover { background: rgba(8, 8, 10, 0.7); }
+  .keys { display: flex; flex-wrap: wrap; gap: 8px; margin: 14px 0 6px; align-items: center; }
+  .keys button {
+    background: var(--panel); color: var(--text);
+    border: 1px solid var(--line); border-radius: 7px;
+    padding: 8px 12px; cursor: pointer;
+    font: 500 13px/1 var(--mono);
+  }
+  .keys button:hover { border-color: var(--coral); color: var(--coral); }
+  .keys-gap { flex-basis: 100%; height: 0; }
+
   pre {
     background: var(--panel);
     border: 1px solid var(--line);
@@ -190,39 +209,44 @@
 </section>
 
 <section id="simulator">
-  <h2>Try it without hardware</h2>
+  <h2>Run it here</h2>
   <p class="lede">
-    The simulator is not a mockup and not a reimplementation. M5GFX ships a desktop
-    panel and knows this board, so the firmware's own view and drawing code runs on
-    your machine through the real graphics library at the real 240x135, with the
-    real fonts.
+    This is the firmware, not a demo of it. The same view and drawing code the
+    device runs, compiled to WebAssembly and drawn through the same graphics
+    library at the same 240x135. Click a key or use your keyboard.
+  </p>
+
+  <div class="stage">
+    <canvas id="screen" width="240" height="135"></canvas>
+    <button id="boot" class="boot">Start the simulator</button>
+  </div>
+
+  <div class="keys" id="keys" hidden>
+    <button data-key="1">1 Reef</button>
+    <button data-key="2">2 Bankr</button>
+    <button data-key="3">3 Bot</button>
+    <button data-key="4">4 Womp</button>
+    <button data-key="5">5 Gas</button>
+    <button data-key="6">6 Setup</button>
+    <span class="keys-gap"></span>
+    <button data-key=",">&larr;</button>
+    <button data-key=";">&uarr;</button>
+    <button data-key=".">&darr;</button>
+    <button data-key="/">&rarr;</button>
+    <button data-key="\n">enter</button>
+    <button data-key="`">esc</button>
+  </div>
+  <p class="caption" id="hint">Nothing here is talking to a real network: the WiFi list is invented, so you can walk through Setup without joining anything.</p>
+
+  <h3 style="margin-top:40px">On your own machine</h3>
+  <p class="lede">
+    The desktop build is the same thing without the browser, and it takes its own
+    screenshots: scripted keys in, one image per press out, which is how a change
+    to a screen gets checked without anyone watching a window.
   </p>
 <pre>git clone https://github.com/ryanio/cardputer
 brew install sdl2
 pio run -e sim -t exec -a --tour</pre>
-  <p class="lede">
-    The tour drives itself and prints what it is pressing, so nothing has to be
-    guessed. Interactively, Escape is the backtick, so it always backs out.
-  </p>
-  <div class="shots">
-    <div>
-      <img class="screen" src="img/setup.png" alt="Setup showing no network saved and three actions.">
-      <p class="caption">Setup, with nothing saved yet</p>
-    </div>
-    <div>
-      <img class="screen" src="img/networks.png" alt="Six networks listed with signal strength.">
-      <p class="caption">Networks, strongest first</p>
-    </div>
-    <div>
-      <img class="screen" src="img/passphrase.png" alt="The passphrase entry screen.">
-      <p class="caption">The passphrase, typed on the device</p>
-    </div>
-  </div>
-  <p class="lede" style="margin-top:24px">
-    It takes its own screenshots too, one per scripted keypress, which is how a
-    change to a screen gets checked without anyone watching a window. It found two
-    real bugs the first time it ran.
-  </p>
 </section>
 
 <section>
@@ -292,5 +316,50 @@ pio run -e sim -t exec -a --tour</pre>
 </footer>
 
 </div>
+<script>
+  // The panel is 240x135 and the canvas is too. CSS scales it, so the pixels
+  // stay square instead of being smoothed into mush.
+  var screenCanvas = document.getElementById('screen');
+  var paint = screenCanvas.getContext('2d');
+  var frame = paint.createImageData(240, 135);
+  var sim = null;
+
+  window.coralBlit = function (heap, pointer, width, height) {
+    var rgb = heap.subarray(pointer, pointer + width * height * 3);
+    var rgba = frame.data;
+    for (var i = 0, j = 0; i < width * height; i++, j += 3) {
+      rgba[i * 4] = rgb[j];
+      rgba[i * 4 + 1] = rgb[j + 1];
+      rgba[i * 4 + 2] = rgb[j + 2];
+      rgba[i * 4 + 3] = 255;
+    }
+    paint.putImageData(frame, 0, 0);
+  };
+
+  // Close to a megabyte of wasm, so it only loads when someone asks for it.
+  document.getElementById('boot').addEventListener('click', function (event) {
+    var button = event.currentTarget;
+    button.textContent = 'loading';
+    var script = document.createElement('script');
+    script.src = 'sim/coral.js';
+    script.onload = function () {
+      // SDL wants a canvas of its own for the window it insists on making.
+      // Ours is the one that gets painted.
+      CoralSim({ canvas: document.createElement('canvas') }).then(function (module) {
+        sim = module;
+        button.remove();
+        document.getElementById('keys').hidden = false;
+      });
+    };
+    script.onerror = function () { button.textContent = 'could not load the simulator'; };
+    document.head.appendChild(script);
+  });
+
+  document.getElementById('keys').addEventListener('click', function (event) {
+    var key = event.target.getAttribute('data-key');
+    if (!key || !sim) { return; }
+    sim.ccall('simPress', null, ['number'], [key === '\\n' ? 10 : key.charCodeAt(0)]);
+  });
+</script>
 </body>
 </html>

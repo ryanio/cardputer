@@ -89,7 +89,12 @@ uint32_t micros()
 
 void delay(uint32_t ms)
 {
+#if defined(__EMSCRIPTEN__)
+	// The browser paces the frames. Sleeping here would just stall one.
+	(void)ms;
+#else
 	SDL_Delay(ms);
+#endif
 }
 
 void Keyboard_Class::begin()
