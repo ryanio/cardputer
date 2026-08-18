@@ -3,8 +3,9 @@
 Firmware for three M5Stack Cardputers reading the public APIs of coral,
 glyphbots and gwei. `AGENTS.md` is a symlink to this file.
 
-Stack and endpoint shapes live in [README.md](README.md). Build order lives in
-[plans/ROADMAP.md](plans/ROADMAP.md). Read both before editing.
+Stack and setup live in [README.md](README.md). Endpoint shapes and rate limits
+live in [docs/API.md](docs/API.md). Build order lives in
+[docs/ROADMAP.md](docs/ROADMAP.md). Read them before editing.
 
 ## Operating Contract
 

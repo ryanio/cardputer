@@ -1,0 +1,101 @@
+# The three sources
+
+Every endpoint below was probed live on 2026-08-17. Response bodies are trimmed
+to the fields the firmware reads.
+
+All three are public, unauthenticated JSON over HTTPS. No API key ever reaches
+the device, so there is nothing to leak in a flashed binary and nothing to
+rotate.
+
+All three hosts also present certificates from the same issuer, Google Trust
+Services WE1, so a single bundled root CA covers every request the firmware
+makes.
+
+## gwei
+
+```
+GET https://gwei.ryanio.com/api/gas
+{"baseFeeGwei":0.046545,
+ "speeds":[{"speed":"fast","label":"Fast","eta":"~15 sec","totalGwei":0.110062,"usdPerTransfer":0.004412}, ...],
+ "ethPriceUsd":1908.99,"blockNumber":25778316,"updatedAt":1787011995508}
+
+GET https://gwei.ryanio.com/api/gas/history
+{"points":[{"t":1786925698787,"gwei":0.03506,"tip":0.005396}, ...],"low24h":...,"high24h":...}
+```
+
+Exactly three speeds, always ordered fast, normal, cheap. `ethPriceUsd` is
+`null` when no price could be fetched, never a placeholder, so the UI needs a
+no-price state. History points are already thinned to one a minute, which is a
+240px sparkline with no client-side downsampling.
+
+The server refreshes its snapshot at most once per 30s and does it lazily on
+request. Polling faster returns the same bytes.
+
+## glyphbots
+
+```
+GET https://www.glyphbots.com/api/bot/1
+{"bot":{"tokenId":1,"name":"Vector the Kind","rarityRank":1259,
+  "unicode":{"textContent":["■▲▼▲▼▲","╱ ◎◎ ╱","╪","◈"],
+             "colors":{"background":"hsl(98,20%,8%)","text":"hsl(278,85%,85%)"}},
+  "traits":[{"trait_type":"Head","value":"▲▼▲▼▲"}, ...],
+  "burnedAt":null,"burnedBy":null,
+  "royalties":{"totalWei":"0","mintCount":0}}}
+
+GET https://www.glyphbots.com/api/bots/facets       trait values, and the glyph alphabet
+GET https://www.glyphbots.com/api/artifacts/recent  collection-wide mint activity
+```
+
+A GlyphBot is not an image. It is four short lines of Unicode plus a foreground
+and background color, which is already a display format for a 240x135 screen.
+
+The collection's full alphabet is 105 distinct non-ASCII glyphs across all
+11,111 bots, counted from `/api/bots/facets`. Stock ESP32 fonts carry none of
+them, so the firmware ships a generated bitmap atlas of those 105. See the
+atlas rule in [../CLAUDE.md](../CLAUDE.md).
+
+`royalties.mintCount` and `burnedAt` are the only per-bot fields that change
+over time on this endpoint. They are what drives the pet.
+
+Mints are infrequent. The most recent across the whole collection was
+2026-08-11, six days before this was written, which is why the pet is not fed
+by them. See [ROADMAP.md](ROADMAP.md).
+
+## coral
+
+```
+GET https://api.0xcoral.com/api/v1/resolve?q=MEME
+{"query":"MEME","resolved":{"address":"0xb131f4A5...","chain":"ethereum","symbol":"MEME"}}
+
+GET https://api.0xcoral.com/api/v1/tokens/{chain}/{address}
+{"symbol":"MEME","market":{"marketCapUsd":31447771,"liquidityUsd":205368.53,
+   "volume24hUsd":4207.44,"priceChange24hPct":-0.0101, ...},
+ "holders":{"count":741291,"topHoldersExInfraPct":51.62, ...},"links":{...}}
+
+GET https://api.0xcoral.com/api/v1/score/{chain}/{address}
+{"score":61,"verdict":"unknown","confidence":0.649,"confidenceLabel":"medium",
+ "explanation":{"headline":"Not enough corroborating signal for a confident read.",
+   "bullets":["741305 holders · very deep base","top-10 hold 65% · moderately concentrated", ...],
+   "caveats":["Not a price target, audit, or trading recommendation."]}}
+
+GET https://api.0xcoral.com/api/v1/tokens/index?limit=3     corpus of graded tokens
+GET https://api.0xcoral.com/api/v1/traction                 network aggregates
+GET https://api.0xcoral.com/api/v1/dashboard                latest reef pulse, prose
+GET https://api.0xcoral.com/api/v1/og/token/{chain}/{address}  302 to a rendered card
+```
+
+`resolve` is what makes a 56-key thumb keyboard usable here. Typing a 42
+character contract address is miserable; typing `MEME` is not.
+
+`tokens/{chain}/{address}` and `score/{chain}/{address}` split the game in half.
+The first returns the market facts a person would reason from, the second
+returns the answer. Show one, hide the other.
+
+`explanation.bullets` come back as five short lines already sized for a narrow
+column. The `caveats` array is not decoration, and the API sets an
+`x-coral-attribution` header stating the same thing. Both get screen space.
+
+Score is a heavy full lookup that self-rate-limits and took several seconds when
+probed. It is request-response with a spinner, never a poll, and the game
+prefetches rather than blocking a round on it. Token metadata is on the looser
+general limiter.
