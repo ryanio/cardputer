@@ -49,6 +49,8 @@ away.
 
 ## Layout
 
+The planned shape, not what is on disk. Right now this repo is docs.
+
 ```
 src/
   main.cpp            boot, WiFi, launcher
