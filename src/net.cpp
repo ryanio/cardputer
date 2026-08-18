@@ -6,11 +6,12 @@
 #include <time.h>
 
 #include "ca_roots.h"
+#include "store.h"
 #include "version.h"
 
-// WiFi is the only local config and it is gitignored, so a fresh clone has to
-// compile without it. Without credentials the radio stays off and the views
-// show their offline state, which is worth having anyway.
+// A dev unit can compile its network in. Nothing else should: credentials
+// typed on the device win over these, and a unit meant to be given away
+// carries none of them. A fresh clone has to build without the file at all.
 #if __has_include("secrets.h")
 #include "secrets.h"
 #endif
@@ -45,9 +46,24 @@ uint32_t joinStarted = 0;
 uint32_t retryAt = 0;
 bool clockOk = false;
 
-bool haveSecrets()
+// Keys in NVS. store.h reserves the sys prefix for the spine.
+constexpr const char *SSID_KEY = "sys.ssid";
+constexpr const char *PASS_KEY = "sys.pass";
+
+String netSsid;
+String netPass;
+bool fromStore = false;
+
+// NVS first, so a unit answers to whoever set it up last.
+void loadCredentials()
 {
-	return strlen(WIFI_SSID) > 0;
+	netSsid = store::getString(SSID_KEY, "");
+	netPass = store::getString(PASS_KEY, "");
+	fromStore = netSsid.length() > 0;
+	if (!fromStore) {
+		netSsid = WIFI_SSID;
+		netPass = WIFI_PASSWORD;
+	}
 }
 
 // Counts what the parser or the sink actually pulled, so a Result reports real
@@ -114,8 +130,9 @@ void join()
 {
 	st = Wifi::Joining;
 	joinStarted = millis();
-	WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
-	Serial.printf("net: joining \"%s\"\n", WIFI_SSID);
+	WiFi.begin(netSsid.c_str(), netPass.c_str());
+	Serial.printf("net: joining \"%s\" (%s)\n", netSsid.c_str(),
+	              fromStore ? "typed on the device" : "built in");
 }
 
 void onOnline()
@@ -165,8 +182,8 @@ bool prepare(HTTPClient &http, WiFiClientSecure &client, const char *url, const 
 
 bool ready(Result &r)
 {
-	if (!haveSecrets()) {
-		r.status = ERR_NO_SECRETS;
+	if (netSsid.isEmpty()) {
+		r.status = ERR_NO_CREDENTIALS;
 		return false;
 	}
 	if (st != Wifi::Online) {
@@ -187,15 +204,20 @@ void report(const char *url, const Result &r)
 
 void begin()
 {
-	if (!haveSecrets()) {
-		st = Wifi::Off;
-		Serial.println("net: no include/secrets.h, so the radio stays off");
-		return;
-	}
+	loadCredentials();
+
+	// The radio comes up either way. Scanning has to work on a device that has
+	// never been told a network, because that is the one that needs Setup.
 	WiFi.persistent(false);
 	WiFi.mode(WIFI_STA);
 	WiFi.setAutoReconnect(true);
 	WiFi.setSleep(true);
+
+	if (netSsid.isEmpty()) {
+		st = Wifi::Off;
+		Serial.println("net: no network set, waiting for one from Setup");
+		return;
+	}
 	join();
 }
 
@@ -246,7 +268,7 @@ void loop()
 
 void reconnect()
 {
-	if (!haveSecrets()) {
+	if (netSsid.isEmpty()) {
 		return;
 	}
 	WiFi.disconnect();
@@ -265,7 +287,79 @@ bool online()
 
 const char *ssid()
 {
-	return WIFI_SSID;
+	return netSsid.c_str();
+}
+
+bool haveCredentials()
+{
+	return !netSsid.isEmpty();
+}
+
+bool credentialsAreStored()
+{
+	return fromStore;
+}
+
+bool saveCredentials(const char *ssid, const char *password)
+{
+	if (ssid == nullptr || strlen(ssid) == 0) {
+		return false;
+	}
+	const bool ok = store::setString(SSID_KEY, String(ssid)) &&
+	                store::setString(PASS_KEY, String(password == nullptr ? "" : password));
+	loadCredentials();
+	WiFi.disconnect();
+	join();
+	return ok;
+}
+
+void forgetCredentials()
+{
+	store::remove(SSID_KEY);
+	store::remove(PASS_KEY);
+	loadCredentials();
+	WiFi.disconnect(true);
+	if (netSsid.isEmpty()) {
+		st = Wifi::Off;
+		Serial.println("net: network forgotten");
+	} else {
+		Serial.println("net: network forgotten, falling back to the built in one");
+		join();
+	}
+}
+
+bool scanStart()
+{
+	if (WiFi.scanComplete() == WIFI_SCAN_RUNNING) {
+		return false;
+	}
+	WiFi.scanDelete();
+	return WiFi.scanNetworks(true, true) == WIFI_SCAN_RUNNING;
+}
+
+int scanCount()
+{
+	return WiFi.scanComplete();
+}
+
+String scanSsid(int index)
+{
+	return WiFi.SSID(index);
+}
+
+int32_t scanRssi(int index)
+{
+	return WiFi.RSSI(index);
+}
+
+bool scanOpen(int index)
+{
+	return WiFi.encryptionType(index) == WIFI_AUTH_OPEN;
+}
+
+void scanClear()
+{
+	WiFi.scanDelete();
 }
 
 int8_t rssi()
@@ -380,8 +474,8 @@ const char *statusText(int status)
 			return "ok";
 		case ERR_NO_WIFI:
 			return "no wifi";
-		case ERR_NO_SECRETS:
-			return "no secrets.h";
+		case ERR_NO_CREDENTIALS:
+			return "no network set";
 		case ERR_URL:
 			return "bad url";
 		case ERR_CONNECT:

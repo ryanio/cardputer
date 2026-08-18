@@ -10,7 +10,8 @@
 //
 // The exit convention is enforced here, not in the views: the loop takes the
 // backtick and the G0 button before a view sees them and returns to the menu.
-// A view cannot trap anyone by forgetting to handle a key.
+// A view cannot trap anyone by forgetting to handle a key. Fn and backtick
+// together reach the view as a plain character, for text entry.
 //
 // The loop also draws the status bar, using the active view's source name. A
 // view never draws over the bottom 13 pixels.

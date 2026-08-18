@@ -9,11 +9,18 @@ built around those rather than around the screen.
 
 ## Phase 0: skeleton
 
-- `pio run -t upload`, boot, WiFi from `include/secrets.h`, clock via SNTP.
-- Four-item menu (Gas / Bot / Reef / Womp). Every view exits with `` ` `` (Esc).
+- `pio run -t upload`, boot, clock via SNTP.
+- Five-item menu (Gas / Bot / Reef / Womp / Setup). Every view exits with
+  `` ` `` (Esc).
 - Battery percentage in a corner, always.
+- **WiFi is typed on the device.** Scan, pick, type the passphrase, and it goes
+  to NVS. A compiled network only ever belongs to a dev unit: these get given
+  away, and a gifted unit should join its new owner's network rather than carry
+  the last owner's. It also keeps the passphrase out of the binary, which
+  anyone can read back off the flash with a cable.
 
-Done when: it boots, you can move between four empty views and back out.
+Done when: it boots, joins a network nobody compiled in, and you can move
+between four empty views and back out.
 
 ## Phase 1: gas, which is really the network stack
 

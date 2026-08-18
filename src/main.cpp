@@ -58,7 +58,7 @@ void bootCard()
 	ui::line(1, text, psramFound() ? ui::GOOD : ui::WARN);
 	snprintf(text, sizeof(text), "flash %u KB", (unsigned)(ESP.getFlashChipSize() / 1024));
 	ui::line(2, text);
-	ui::line(4, net::state() == net::Wifi::Off ? "no wifi credentials" : "joining wifi", ui::DIM);
+	ui::line(4, net::haveCredentials() ? "joining wifi" : "wifi: open Setup", ui::DIM);
 	ui::statusBar("coral " FW_VERSION);
 }
 

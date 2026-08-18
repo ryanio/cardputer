@@ -16,7 +16,7 @@ pio run -t upload       # flash
 pio device monitor      # serial
 ```
 
-Green as of 2026-08-17: RAM 14.9%, flash 27.9% of the 3.3MB app slot.
+Green as of 2026-08-17: RAM 15.3%, flash 33.2% of the 3.3MB app slot.
 
 ## Traps
 
@@ -25,8 +25,9 @@ Green as of 2026-08-17: RAM 14.9%, flash 27.9% of the 3.3MB app slot.
 - **Nobody in the build loop can flash.** Agents compile. Only Ryan verifies.
   "Compiles" is never "works", and a phase is not done until he has looked.
 - **No secrets on the device.** All four APIs are public and unauthenticated. If
-  something seems to need a key, the design is wrong. WiFi lives in gitignored
-  `include/secrets.h`.
+  something seems to need a key, the design is wrong. WiFi is typed on the unit
+  and kept in NVS. Gitignored `include/secrets.h` is a fallback for a dev unit
+  only, and a unit you hand to someone else has none compiled in.
 - **Never enable USB HID.** The ESP32-S3 can present as a keyboard. These units
   get given away and may come back. Serial only.
 - **Give every view an exit.** A screen you cannot leave is the bug that annoys

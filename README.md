@@ -29,10 +29,14 @@ GPS and LoRa are Grove/EXT modules, not onboard.
 ## Build
 
 ```bash
-cp include/secrets.h.example include/secrets.h   # WiFi SSID and password
 pio run -t upload
 pio device monitor
 ```
+
+WiFi is typed on the device, under Setup in the menu, and kept in NVS. That is
+what makes a unit usable by whoever you give it to. For a dev unit that joins
+on first boot, `cp include/secrets.h.example include/secrets.h` and fill it in;
+anything typed on the device wins over it.
 
 M5Cardputer 1.1.1 is the first release that drives the ADV's TCA8418 keyboard.
 Older versions read no keys on this board.

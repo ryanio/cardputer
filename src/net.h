@@ -25,7 +25,7 @@ enum class Wifi : uint8_t {
 // Result::status carries an HTTP status when the request reached a server, or
 // one of these when it did not.
 constexpr int ERR_NO_WIFI = -1;
-constexpr int ERR_NO_SECRETS = -2;
+constexpr int ERR_NO_CREDENTIALS = -2;
 constexpr int ERR_URL = -3;
 constexpr int ERR_CONNECT = -4;
 constexpr int ERR_TRANSPORT = -5;
@@ -42,8 +42,8 @@ struct Result {
 	}
 };
 
-// Starts the join. Returns immediately: the radio comes up in the background
-// and the menu stays usable while it does.
+// Brings the radio up and starts the join if there is a network to join.
+// Returns immediately: the menu stays usable while it associates.
 void begin();
 
 // Pumps the join state machine and the clock. Call every loop.
@@ -54,7 +54,27 @@ void reconnect();
 
 Wifi state();
 bool online();
+
+// The network the device joins, empty when none is set yet.
 const char *ssid();
+
+// Credentials live in NVS, typed on the device, so a unit can be handed to
+// someone else without a rebuild and without carrying the last owner's
+// network. include/secrets.h is only a fallback for a dev unit, and a unit you
+// give away should have none compiled in at all.
+bool haveCredentials();
+bool credentialsAreStored();  // false means they came from secrets.h
+bool saveCredentials(const char *ssid, const char *password);
+void forgetCredentials();
+
+// Async scan, so the view keeps drawing while it runs. scanCount returns -1
+// while the scan is running, -2 when it failed, otherwise the number found.
+bool scanStart();
+int scanCount();
+String scanSsid(int index);
+int32_t scanRssi(int index);
+bool scanOpen(int index);  // no passphrase needed
+void scanClear();
 int8_t rssi();
 IPAddress ip();
 

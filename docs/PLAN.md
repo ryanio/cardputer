@@ -26,6 +26,7 @@ src/store.{h,cpp}  NVS settings
 src/ca_roots.h     the two roots, and the commands to refresh them
 src/version.h      one string, compared against the release tag
 src/views/*.cpp    a placeholder per view, so the menu is walkable now
+src/views/setup.cpp  scan, pick, type: the network lives in NVS, not the binary
 ```
 
 Headers are frozen at the end of this stage. Stage 2 cannot start before that,
@@ -59,7 +60,7 @@ two minutes, not a debugging session.
 
 | After | You check |
 |-------|-----------|
-| Stage 1 | Menu appears, four entries, every one exits. Serial prints free heap, whether PSRAM exists, and whether one TLS fetch lands. |
+| Stage 1 | Setup joins a network you type on the device. Menu appears, five entries, every one exits. Serial prints free heap, whether PSRAM exists, and whether one TLS fetch lands. |
 | Agent A | Live gas, correct banding, alarm fires at a typed threshold. |
 | Agent C | A pushed release installs itself, and a deliberately broken build rolls back. |
 | Agent B | A womp draws without an allocation failure. |

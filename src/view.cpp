@@ -220,8 +220,9 @@ void loop()
 	Key k;
 	if (readKey(k)) {
 		// The exit convention. Taken before any view sees it, so no screen can
-		// hold anyone.
-		if (k.ch == '`') {
+		// hold anyone. Fn and backtick together type the character instead,
+		// which a passphrase is allowed to contain.
+		if (k.ch == '`' && !k.fn) {
 			back();
 		} else if (inMenu()) {
 			menuKey(k);
