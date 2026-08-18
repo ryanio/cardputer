@@ -19,10 +19,11 @@ namespace view {
 
 // Frozen so parallel work agrees on menu order without coordinating.
 enum Order : int {
-	ORDER_GAS = 10,
-	ORDER_BOT = 20,
-	ORDER_REEF = 30,
+	ORDER_REEF = 10,
+	ORDER_BANKR = 20,
+	ORDER_BOT = 30,
 	ORDER_WOMP = 40,
+	ORDER_GAS = 50,
 	ORDER_LAST = 90,
 };
 

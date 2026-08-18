@@ -10,8 +10,8 @@ namespace view {
 
 namespace {
 
-constexpr int LIST_TOP = 4;
-constexpr int ENTRY_H = 21;
+constexpr int LIST_TOP = 2;
+constexpr int ENTRY_H = 18;
 constexpr int HINT_Y = 113;
 constexpr int VISIBLE = (HINT_Y - LIST_TOP) / ENTRY_H;
 constexpr uint32_t STATUS_MS = 2000;
@@ -75,7 +75,7 @@ void drawMenu()
 		const bool on = i == selected;
 
 		if (on) {
-			g.fillRoundRect(2, y, ui::W - 4, ENTRY_H - 2, 4, ui::CORAL);
+			g.fillRoundRect(2, y, ui::W - 4, ENTRY_H - 1, 4, ui::CORAL);
 		}
 		const uint16_t background = on ? ui::CORAL : ui::BG;
 		const uint16_t label = on ? ui::BG : ui::FG;
@@ -85,15 +85,15 @@ void drawMenu()
 		g.setFont(&fonts::Font2);
 		g.setTextColor(on ? ui::BG : ui::DIM, background);
 		g.setTextDatum(textdatum_t::top_left);
-		g.drawString(number, 8, y + 2);
+		g.drawString(number, 8, y + 1);
 
 		g.setTextColor(label, background);
-		g.drawString(v->name, 26, y + 2);
+		g.drawString(v->name, 26, y + 1);
 
 		g.setFont(&fonts::Font0);
 		g.setTextColor(on ? ui::BG : ui::DIM, background);
 		g.setTextDatum(textdatum_t::top_right);
-		g.drawString(v->source, ui::W - 8, y + 7);
+		g.drawString(v->source, ui::W - 8, y + 5);
 	}
 
 	g.setFont(&fonts::Font0);

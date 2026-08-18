@@ -1,0 +1,296 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>coral on a Cardputer</title>
+<meta name="description" content="A handheld for the daily Coral round, the Bankr agent leaderboard, a GlyphBot, the newest Voxels photo and live gas. 240x135, no secrets on the device, and a simulator so you can try it without one.">
+<meta property="og:title" content="coral on a Cardputer">
+<meta property="og:description" content="Five public APIs on a 240x135 screen. Try it in the simulator without hardware.">
+<meta property="og:type" content="website">
+<style>
+  :root {
+    --bg: #0b0b0d;
+    --panel: #121216;
+    --line: #26262c;
+    --text: #e8e8ea;
+    --dim: #9a9aa2;
+    --coral: #ff7f50;
+    --good: #3ddc84;
+    --warn: #ffb020;
+    --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font: 16px/1.65 system-ui, -apple-system, "Segoe UI", sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 940px; margin: 0 auto; padding: 0 24px; }
+  a { color: var(--coral); }
+  h1, h2, h3 { line-height: 1.2; letter-spacing: -0.01em; }
+  h2 { font-size: 1.5rem; margin: 0 0 8px; }
+  h3 { font-size: 1rem; margin: 0 0 4px; }
+  p { margin: 0 0 16px; }
+  section { padding: 56px 0; border-top: 1px solid var(--line); }
+  .lede { color: var(--dim); max-width: 62ch; }
+
+  header { padding: 72px 0 8px; }
+  .kicker {
+    font: 600 12px/1 var(--mono);
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--coral);
+    margin-bottom: 20px;
+  }
+  header h1 { font-size: clamp(2rem, 6vw, 3.2rem); margin: 0 0 16px; }
+  header .lede { font-size: 1.12rem; }
+
+  /* Panels are 240x135. Scale by whole numbers and keep the pixels square. */
+  .screen {
+    display: block;
+    width: 100%;
+    height: auto;
+    image-rendering: pixelated;
+    background: #000;
+    border: 1px solid var(--line);
+    border-radius: 6px;
+  }
+  .hero { display: grid; grid-template-columns: 1fr 1fr; gap: 32px; align-items: center; margin: 32px 0 8px; }
+  .hero .screen { border-radius: 10px; }
+  .caption { font: 12px/1.5 var(--mono); color: var(--dim); margin-top: 10px; }
+
+  .actions { display: flex; flex-wrap: wrap; gap: 12px; margin: 24px 0 8px; }
+  .btn {
+    display: inline-block;
+    padding: 10px 18px;
+    border-radius: 8px;
+    font: 600 14px/1 system-ui, sans-serif;
+    text-decoration: none;
+    border: 1px solid var(--line);
+    color: var(--text);
+  }
+  .btn.primary { background: var(--coral); border-color: var(--coral); color: #17110d; }
+
+  .grid { display: grid; gap: 24px; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 18px; }
+  .card p { margin: 0; color: var(--dim); font-size: 0.94rem; }
+  .src {
+    font: 600 11px/1 var(--mono);
+    letter-spacing: 0.1em;
+    color: var(--coral);
+    text-transform: uppercase;
+    display: block;
+    margin-bottom: 8px;
+  }
+  .shots { display: grid; gap: 18px; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); margin-top: 8px; }
+
+  pre {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 14px 16px;
+    overflow-x: auto;
+    font: 13px/1.6 var(--mono);
+    color: var(--text);
+    margin: 0 0 12px;
+  }
+  code { font-family: var(--mono); font-size: 0.92em; }
+
+  ul.rules { list-style: none; padding: 0; margin: 0; display: grid; gap: 18px; }
+  ul.rules li { padding-left: 18px; border-left: 2px solid var(--line); }
+  ul.rules strong { display: block; margin-bottom: 2px; }
+  ul.rules span { color: var(--dim); font-size: 0.94rem; }
+
+  table { width: 100%; border-collapse: collapse; font-size: 0.94rem; }
+  td { padding: 9px 0; border-bottom: 1px solid var(--line); vertical-align: top; color: var(--dim); }
+  td:first-child { color: var(--text); width: 34%; padding-right: 16px; }
+
+  .status li { margin-bottom: 10px; color: var(--dim); }
+  .status b { color: var(--text); font-weight: 600; }
+  .done { color: var(--good); font: 600 11px/1 var(--mono); letter-spacing: 0.08em; }
+  .next { color: var(--warn); font: 600 11px/1 var(--mono); letter-spacing: 0.08em; }
+
+  footer { padding: 48px 0 72px; border-top: 1px solid var(--line); color: var(--dim); font-size: 0.9rem; }
+  footer a { color: var(--dim); }
+  .fine { font-size: 0.84rem; margin-top: 20px; }
+
+  @media (max-width: 700px) {
+    .hero { grid-template-columns: 1fr; }
+    section { padding: 40px 0; }
+  }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+
+<header>
+  <div class="kicker">M5Stack Cardputer ADV</div>
+  <h1>A handheld for five APIs that were already public.</h1>
+  <p class="lede">
+    The daily Coral round, the Bankr agent leaderboard, a GlyphBot raised as a
+    pet, the newest photo taken inside Voxels, and what gas costs right now. On a
+    240x135 screen with 56 keys, an ESP32-S3, and no secrets compiled into it.
+  </p>
+  <div class="actions">
+    <a class="btn primary" href="https://github.com/ryanio/cardputer">Source on GitHub</a>
+    <a class="btn" href="#simulator">Try it without hardware</a>
+  </div>
+</header>
+
+<div class="hero">
+  <div>
+    <img class="screen" src="img/menu.png" alt="The menu: Reef, Bankr, Bot, Womp, Gas and Setup.">
+    <p class="caption">Every screenshot here is the real firmware, captured by the simulator.</p>
+  </div>
+  <div>
+    <img class="screen" src="img/bot.png" alt="A view with its source named in the status bar.">
+    <p class="caption">The status bar names the source, never the app.</p>
+  </div>
+</div>
+
+<section id="views">
+  <h2>Six screens</h2>
+  <p class="lede">Five sources and the setup that makes a unit yours. Every one of them exits with the same key.</p>
+  <div class="grid">
+    <div class="card">
+      <span class="src">coral</span>
+      <h3>Reef</h3>
+      <p>One anonymous token a day, the same for everybody. Guess its Coral score from holders, liquidity and the buyer split, then see what it actually was.</p>
+    </div>
+    <div class="card">
+      <span class="src">bankr</span>
+      <h3>Bankr</h3>
+      <p>The agent leaderboard by market cap and weekly revenue. Every profile carries a token on Base, so the device can score one through Coral and show both together.</p>
+    </div>
+    <div class="card">
+      <span class="src">glyphbots</span>
+      <h3>Bot</h3>
+      <p>A GlyphBot is four lines of Unicode and two colors, not an image. It gets rendered from its genome and raised as a pet that can really die.</p>
+    </div>
+    <div class="card">
+      <span class="src">voxels</span>
+      <h3>Womp</h3>
+      <p>The newest in-world photo as a desk frame. About 128KB of JPEG decoded straight to the panel, because it will not fit any other way.</p>
+    </div>
+    <div class="card">
+      <span class="src">gwei</span>
+      <h3>Gas</h3>
+      <p>Base fee large, three speed tiers under it, a 24 hour sparkline, and a tone when gas drops under a number you typed.</p>
+    </div>
+    <div class="card">
+      <span class="src">setup</span>
+      <h3>Setup</h3>
+      <p>Scan, pick, type the passphrase. The network lives on the unit, so one you were given joins your WiFi without a rebuild.</p>
+    </div>
+  </div>
+</section>
+
+<section id="simulator">
+  <h2>Try it without hardware</h2>
+  <p class="lede">
+    The simulator is not a mockup and not a reimplementation. M5GFX ships a desktop
+    panel and knows this board, so the firmware's own view and drawing code runs on
+    your machine through the real graphics library at the real 240x135, with the
+    real fonts.
+  </p>
+<pre>git clone https://github.com/ryanio/cardputer
+brew install sdl2
+pio run -e sim -t exec -a --tour</pre>
+  <p class="lede">
+    The tour drives itself and prints what it is pressing, so nothing has to be
+    guessed. Interactively, Escape is the backtick, so it always backs out.
+  </p>
+  <div class="shots">
+    <div>
+      <img class="screen" src="img/setup.png" alt="Setup showing no network saved and three actions.">
+      <p class="caption">Setup, with nothing saved yet</p>
+    </div>
+    <div>
+      <img class="screen" src="img/networks.png" alt="Six networks listed with signal strength.">
+      <p class="caption">Networks, strongest first</p>
+    </div>
+    <div>
+      <img class="screen" src="img/passphrase.png" alt="The passphrase entry screen.">
+      <p class="caption">The passphrase, typed on the device</p>
+    </div>
+  </div>
+  <p class="lede" style="margin-top:24px">
+    It takes its own screenshots too, one per scripted keypress, which is how a
+    change to a screen gets checked without anyone watching a window. It found two
+    real bugs the first time it ran.
+  </p>
+</section>
+
+<section>
+  <h2>How it behaves</h2>
+  <ul class="rules">
+    <li>
+      <strong>Every screen has a way out.</strong>
+      <span>The input loop takes the backtick before any view sees it, so no screen can trap you by forgetting to handle a key.</span>
+    </li>
+    <li>
+      <strong>No secrets on the device.</strong>
+      <span>Every source it reads is public and unauthenticated, including the Bankr agent leaderboard. Nothing needs a key, so there is nothing to leak in a flashed binary and nothing to rotate.</span>
+    </li>
+    <li>
+      <strong>WiFi is typed on the unit.</strong>
+      <span>Credentials live in NVS rather than the build, so a unit you hand to someone joins their network and does not carry yours.</span>
+    </li>
+    <li>
+      <strong>Poll windows are respected.</strong>
+      <span>Gas refreshes every 30 seconds because that is what the server does. The daily round is fetched once and then played with the radio off.</span>
+    </li>
+    <li>
+      <strong>A score always carries its caveats.</strong>
+      <span>Anything showing a Coral score shows what it is not, alongside the Coral name.</span>
+    </li>
+  </ul>
+</section>
+
+<section>
+  <h2>The hardware</h2>
+  <table>
+    <tr><td>Board</td><td>M5Stack Cardputer ADV (K132-ADV), Stamp-S3A, ESP32-S3FN8, 8MB flash</td></tr>
+    <tr><td>Screen</td><td>240x135 ST7789V2. Four lines of large text, or eight small</td></tr>
+    <tr><td>Keyboard</td><td>56 keys over a TCA8418, which needs M5Cardputer 1.1.1 or newer</td></tr>
+    <tr><td>Also on board</td><td>BMI270 IMU, ES8311 codec and a 1W speaker, MEMS mic, IR emitter, microSD, 1750mAh</td></tr>
+    <tr><td>Firmware</td><td>Arduino under PlatformIO. Serial only, never USB HID</td></tr>
+  </table>
+</section>
+
+<section>
+  <h2>Where it is</h2>
+  <ul class="status">
+    <li><span class="done">shipped</span> &nbsp;<b>The spine.</b> WiFi, HTTPS with bundled roots, the view registry, the menu, NVS settings.</li>
+    <li><span class="done">shipped</span> &nbsp;<b>Setup on the device.</b> Scan, pick, type, forget.</li>
+    <li><span class="done">shipped</span> &nbsp;<b>The simulator.</b> Real code on a desktop, with screenshots.</li>
+    <li><span class="next">next</span> &nbsp;<b>Reef and Bankr.</b> The daily round, and the agent leaderboard with a Coral score beside it.</li>
+    <li><span class="next">next</span> &nbsp;<b>Gas.</b> Two endpoints, the sparkline, congestion banding, and the alarm tone.</li>
+    <li><span class="next">next</span> &nbsp;<b>Updates over the air.</b> Signed images checked against a key compiled into the firmware, because TLS only proves the bytes came from GitHub.</li>
+    <li><span class="next">next</span> &nbsp;<b>The womp frame, the glyph atlas, the pet, and the Coral round.</b></li>
+  </ul>
+</section>
+
+<footer>
+  <p>
+    <a href="https://github.com/ryanio/cardputer">github.com/ryanio/cardputer</a> &nbsp;·&nbsp;
+    <a href="https://0xcoral.com">Coral</a> &nbsp;·&nbsp;
+    <a href="https://gwei.ryanio.com">gwei</a> &nbsp;·&nbsp;
+    <a href="https://www.glyphbots.com">GlyphBots</a> &nbsp;·&nbsp;
+    <a href="https://www.voxels.com">Voxels</a> &nbsp;·&nbsp;
+    <a href="https://bankr.bot">Bankr</a>
+  </p>
+  <p class="fine">
+    GlyphBots, Voxels and Bankr are other people's projects and this is an
+    unaffiliated client for their public APIs. A Coral score is not a price target, an audit,
+    or a trading recommendation.
+  </p>
+</footer>
+
+</div>
+</body>
+</html>
