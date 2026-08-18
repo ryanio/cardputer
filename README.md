@@ -1,69 +1,83 @@
 # cardputer
 
-Firmware for three M5Stack Cardputers that display and play with data from
+A Coral app for the M5Stack Cardputer ADV, showing data from
 [coral](https://0xcoral.com), [glyphbots](https://www.glyphbots.com) and
 [gwei](https://gwei.ryanio.com).
 
-Three apps in one firmware, picked from an on-device launcher:
+Not a firmware from scratch. This is a fork of M5Stack's own
+[M5Cardputer-UserDemo](https://github.com/m5stack/M5Cardputer-UserDemo)
+(MIT, `CardputerADV` branch) with one app added to its launcher. That app has
+its own sub-menu:
 
-| App | Source | What it does |
-|-----|--------|--------------|
-| `gas` | gwei | Live Ethereum base fee, three speed tiers, 24h sparkline, threshold alarm |
-| `bot` | glyphbots | A GlyphBot rendered from its Unicode genome, raised as a pet |
-| `reef` | coral | Guess-the-Coral-Score game, single player or head to head |
+| View | Source | What it does |
+|------|--------|--------------|
+| Gas | gwei | Live Ethereum base fee, three speed tiers, 24h sparkline, threshold alarm |
+| Bot | glyphbots | A GlyphBot rendered from its Unicode genome, raised as a pet |
+| Reef | coral | The daily Coral Score guessing round |
 
-All three sources are public, unauthenticated JSON over HTTPS, so no API key
-ever reaches the device.
+Forking buys the launcher, the keyboard driver, the display stack, the audio
+codec, WiFi provisioning and the home-button convention. All three sources are
+public, unauthenticated JSON over HTTPS, so no API key ever reaches the device.
 
 ## Docs
 
 - [docs/API.md](docs/API.md) covers the three sources, with verified response
   shapes and the rate limits worth respecting.
-- [docs/ROADMAP.md](docs/ROADMAP.md) sequences the build, from plumbing through
-  multiplayer.
+- [docs/ROADMAP.md](docs/ROADMAP.md) sequences the build.
 - [CLAUDE.md](CLAUDE.md) holds the operating rules. `AGENTS.md` symlinks to it.
 
 ## Hardware
 
-M5Stack Cardputer (StampS3): ESP32-S3, 8MB flash, 8MB PSRAM, 240x135 ST7789
-TFT, 56-key keyboard, speaker, microphone, IR transmitter, microSD, Grove port,
-WiFi and BLE. Three units, which is what makes the multiplayer modes worth
-building.
+M5Stack **Cardputer ADV** (SKU K132-Adv), three units.
+
+- ESP32-S3FN8, Xtensa LX7 dual core at 240MHz, 8MB flash
+- 1.14" ST7789V2, 240x135
+- 56-key keyboard (4 x 14) on a TCA8418 controller
+- BMI270 6-axis IMU
+- ES8311 audio codec, NS4150B amp, 8R 1W speaker, 3.5mm jack
+- MEMS microphone, 65dB SNR
+- IR emitter, microSD, Grove HY2.0-4P, EXT 2.54-14P
+- 1750mAh battery
+- WiFi and BLE
+
+Not the original Cardputer v1.1. The ADV has the IMU, the better audio path and
+the bigger battery, and it runs a different firmware branch. GPS and LoRa appear
+as apps in the stock firmware but are **not** onboard; those drive Grove and EXT
+modules.
+
+**Home is the G0 button on the top edge**, not a key. Every app polls it and
+closes. Ours must too.
 
 ## Stack
 
-PlatformIO, Arduino framework, board `m5stack-stamps3`. Libraries: `M5Cardputer`
-(which pulls M5Unified and M5GFX) and `ArduinoJson`.
+ESP-IDF **v5.4.2**. No Arduino, no PlatformIO. JSON is cJSON and TLS is esp-tls
+with the built-in certificate bundle, both already in ESP-IDF, so there are no
+third-party libraries to add.
 
 ## Setup
 
 ```bash
-cp include/secrets.h.example include/secrets.h   # WiFi SSID and password
-pio run -t upload
-pio device monitor
+git clone https://github.com/m5stack/M5Cardputer-UserDemo.git
+cd M5Cardputer-UserDemo
+git checkout CardputerADV
+python3 ./fetch_repos.py
+idf.py build
 ```
 
-`include/secrets.h` is gitignored. WiFi credentials are the only local config,
-and once the on-device setup screen lands they move to NVS and the file goes
-away.
+Flash with the power switch off, holding G0, then powering on from the rear to
+enter download mode:
 
-## Layout
-
-The planned shape, not what is on disk. Right now this repo is docs.
-
+```bash
+idf.py flash monitor
 ```
-src/
-  main.cpp            boot, WiFi, launcher
-  apps/gas/           gwei app
-  apps/bot/           glyphbots app
-  apps/reef/          coral app
-lib/
-  net/                TLS client, root CA, fetch-and-parse helpers
-  ui/                 screen primitives, fonts, colors, sparkline
-  store/              NVS and SD persistence
-  link/               ESP-NOW peering between units
-tools/
-  glyph-atlas/        generates the 105-glyph bitmap header
-include/
-  secrets.h.example
-```
+
+## Adding the app
+
+Three edits, following `app_dummy` as the template:
+
+1. Copy `main/apps/app_dummy/` to `main/apps/app_coral/` and rename the class.
+2. Add its header to `main/apps/apps.h`.
+3. Register it in `main/main.cpp`:
+   `GetMooncake().installApp(std::make_unique<AppCoral>());`
+
+Menu order follows registration order in `main.cpp`.

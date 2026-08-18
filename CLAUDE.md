@@ -1,75 +1,79 @@
 # cardputer
 
-Firmware for three M5Stack Cardputers reading the public APIs of coral,
-glyphbots and gwei. `AGENTS.md` is a symlink to this file.
+A Coral app for the M5Stack Cardputer ADV, built as a fork of M5Stack's
+[M5Cardputer-UserDemo](https://github.com/m5stack/M5Cardputer-UserDemo)
+(MIT, `CardputerADV` branch). `AGENTS.md` is a symlink to this file.
 
-Stack and setup live in [README.md](README.md). Endpoint shapes and rate limits
-live in [docs/API.md](docs/API.md). Build order lives in
+Hardware and setup live in [README.md](README.md). Endpoint shapes and rate
+limits live in [docs/API.md](docs/API.md). Build order lives in
 [docs/ROADMAP.md](docs/ROADMAP.md). Read them before editing.
 
 ## Operating Contract
 
 1. **Think before coding.** Read the closest doc first. State assumptions when
    they matter.
-2. **Simplicity first.** Smallest change that solves the request. This is an
-   embedded target with one screen and three apps; no abstraction unless it
-   removes real complexity now.
-3. **Surgical changes.** Every changed line traces to the ask. Do not churn
-   unrelated files.
+2. **Simplicity first.** Smallest change that solves the request. One screen,
+   one app, three views.
+3. **Surgical changes.** Every changed line traces to the ask. In a fork, that
+   also means: do not reformat, restructure or "improve" upstream code. A diff
+   against upstream that touches only our app is a diff we can rebase.
 4. **Verify on hardware.** A change that compiles is not a change that works.
    Flash it and look at the screen before calling it done.
 
 ## Don't re-derive these
 
+- **This is a fork, so upstream is a dependency, not our code.** Our work lives
+  in `main/apps/app_coral/` plus three lines elsewhere: an include in
+  `main/apps/apps.h`, a `GetMooncake().installApp(...)` in `main/main.cpp`, and
+  whatever CMake needs. Anything beyond that is a change we have to carry
+  forward every time upstream releases.
+- **ESP-IDF v5.4.2, not Arduino.** JSON is cJSON, HTTP is `esp_http_client`,
+  TLS is esp-tls with `esp_crt_bundle`. All three ship with ESP-IDF. Do not add
+  ArduinoJson, M5Unified or M5Cardputer; this codebase has its own HAL, reached
+  through `GetHAL()`.
+- **`python3 ./fetch_repos.py` before the first build.** Dependencies are not
+  submodules and a fresh clone will not build without it.
+- **Home is the G0 button on the top edge, and it is a convention we honor.**
+  Every upstream app polls `GetHAL().homeButton.wasClicked()` and calls
+  `close()`. Ours does the same, in every view including sub-menus, or the
+  device traps the user in our app. This is not a keyboard key.
 - **No secrets ever reach the device.** All three APIs are public and
   unauthenticated. If a task seems to need a key, the design is wrong. WiFi
-  credentials are the sole exception and they live in gitignored
-  `include/secrets.h`, then in NVS once the setup screen exists. Never commit
-  an SSID or password, and never log one.
-- **One root CA covers every host.** gwei.ryanio.com, www.glyphbots.com and
-  api.0xcoral.com all present Google Trust Services WE1 certificates. Bundle
-  the GTS root and pin nothing else. Never ship `setInsecure()`; use it while
-  bringing a host up, and delete it in the same session.
-- **Respect the upstream cache windows.** gwei refreshes its snapshot at most
-  once per 30s, so poll no faster. Coral's `/api/v1/score` is a heavy full
-  lookup with its own stricter rate limiter; call it on demand or on prefetch,
-  never in a loop, and cache every result to SD. A firmware that hammers a
-  rate-limited endpoint gets three devices blocked at once.
-- **The glyph atlas is generated, never hand-edited.** `tools/glyph-atlas/`
-  reads the live alphabet from `GET https://www.glyphbots.com/api/bots/facets`
-  and emits the C header. Editing the header directly means the next
-  regeneration silently drops the edit. Regenerate and commit both.
-- **Coral output carries its caveats.** The `/api/v1/score` response includes
-  an `explanation.caveats` array and the API sets an `x-coral-attribution`
-  header. Any screen showing a score shows the caveat and the Coral name too.
-  This is a display contract, not a nicety, and it applies to the game screens
-  and the shareable card equally.
+  credentials come from the stock `app_set_wifi` provisioning, so we do not
+  handle them at all.
+- **Respect the upstream cache windows.** gwei refreshes at most once per 30s,
+  so poll no faster. Coral's `/api/v1/guess/daily` is one precomputed round per
+  ET day: fetch it once and play offline. Never poll `/api/v1/score` in a loop;
+  it is a heavy lookup with its own stricter limiter, and three devices hammering
+  it get all three blocked.
+- **The glyph atlas is generated, never hand-edited.** The tooling reads the
+  live alphabet from `GET https://www.glyphbots.com/api/bots/facets` and emits
+  the header. Editing the header directly means the next regeneration silently
+  drops the edit. Regenerate and commit both.
+- **Coral output carries its caveats.** The round's `answer.explanation.caveats`
+  and the Coral name appear on any screen showing a score. A display contract,
+  not a nicety.
 - **A GlyphBot is text, not an image.** Render from `unicode.textContent` and
   `unicode.colors`. Never fetch or decode a PNG for a bot.
 
 ## Hardware constraints worth remembering
 
-- 240x135. Four lines of large text, or roughly eight of small. Design for the
+- 240x135. Four lines of large text, or roughly eight small. Design for the
   smaller number.
 - `hsl(...)` strings come from the API and the display wants RGB565. Convert in
-  `lib/ui`, not at each call site.
-- The keyboard has 56 keys and no comfortable way to type 42 hex characters.
-  Any flow needing a contract address goes through coral's `/api/v1/resolve`
-  with a ticker instead.
-- ESP-NOW and WiFi share one radio and one channel. A unit that is peered and
-  a unit that is fetching are doing incompatible things unless the channel is
-  managed deliberately. Pick one per app state.
-- Wall-clock time survives deep sleep only if it was set. Fetch time once from
-  a response header or SNTP at boot; pet decay depends on it.
+  one place, not at each call site.
+- 56 keys and no comfortable way to type 42 hex characters. Any flow needing a
+  contract address goes through coral's `/api/v1/resolve` with a ticker.
+- ESP-NOW and WiFi share one radio and one channel. A peered unit and a fetching
+  unit want different things. Pick one per app state.
+- The ADV has a BMI270 IMU the original lacks. Tilt and shake are available as
+  input, and `app_imu` upstream is the working reference.
 
 ## Verification
 
-Use the narrowest check that covers the change.
-
 ```bash
-pio run                 # compile
-pio run -t upload       # flash the connected unit
-pio device monitor      # serial log
+idf.py build            # compile
+idf.py flash monitor    # flash the connected unit and watch serial
 ```
 
 Docs-only changes need neither. Anything touching rendering, timing or the
@@ -78,8 +82,7 @@ network path gets flashed and looked at.
 ## Commits
 
 Commit at meaningful checkpoints, not only when asked. Scope each commit to its
-own ask. Commit onto `main` directly, no branches. `[no-deploy]` is meaningless
-here; there is no deploy.
+own ask. Commit onto `main` directly, no branches.
 
-Open a PR instead when the change touches the TLS path, the secrets handling,
-or anything that would put load on a rate-limited upstream.
+Keep our commits separable from upstream's history, so a rebase onto a new
+upstream release stays a rebase rather than an archaeology exercise.
