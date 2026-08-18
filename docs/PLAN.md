@@ -23,6 +23,9 @@ src/net.{h,cpp}    WiFi join, HTTPS GET with the CA bundle, fetch-and-parse JSON
 src/ui.{h,cpp}     title, big number, status bar, battery, hsl -> RGB565
 src/view.{h,cpp}   view registry, menu, input loop, the exit convention
 src/store.{h,cpp}  NVS settings
+src/ca_roots.h     the two roots, and the commands to refresh them
+src/version.h      one string, compared against the release tag
+src/views/*.cpp    a placeholder per view, so the menu is walkable now
 ```
 
 Headers are frozen at the end of this stage. Stage 2 cannot start before that,
@@ -40,6 +43,9 @@ spine's headers.
 | B | `src/views/womp.*` | womps.json, streaming JPEG decode, caption |
 | C | `src/ota.*` | Version check against a GitHub release, download, rollback, version on the menu |
 
+Agents A and B replace a placeholder that is already there, and a view reaches
+the menu through `VIEW_REGISTER` rather than through a shared list.
+
 Each agent runs `pio run` and stops. No agent flashes, and no agent edits the
 spine; a spine change is a request back to the manager.
 
@@ -53,7 +59,7 @@ two minutes, not a debugging session.
 
 | After | You check |
 |-------|-----------|
-| Stage 1 | Menu appears, four entries, every one exits. Serial prints free heap and whether PSRAM exists. |
+| Stage 1 | Menu appears, four entries, every one exits. Serial prints free heap, whether PSRAM exists, and whether one TLS fetch lands. |
 | Agent A | Live gas, correct banding, alarm fires at a typed threshold. |
 | Agent C | A pushed release installs itself, and a deliberately broken build rolls back. |
 | Agent B | A womp draws without an allocation failure. |
@@ -66,8 +72,9 @@ two minutes, not a debugging session.
 2. **Does TLS fit** beside the display buffer in 320KB? The Phase 1 risk.
 3. **Does streaming JPEG decode hold** at ~128KB per image? Phase 3's core bet.
 
-The Stage 1 gate answers 1, which is why it prints the heap on an otherwise
-empty skeleton. Sequence 1 before 3 for that reason.
+The Stage 1 gate answers 1 and 2. It prints the heap on an otherwise empty
+skeleton, then makes one fetch when WiFi lands, which costs a boot and saves
+agent A a cycle. Sequence 1 before 3 for that reason.
 
 ## Not in this plan
 

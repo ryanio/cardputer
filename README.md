@@ -11,7 +11,7 @@ Coral app for the M5Stack Cardputer ADV. Four views over
 | Reef | coral | The daily Coral Score guessing round |
 | Womp | voxels | The latest in-world photo, as a desk frame |
 
-- [docs/API.md](docs/API.md) the three APIs, verified shapes, rate limits
+- [docs/API.md](docs/API.md) the four APIs, verified shapes, rate limits
 - [docs/ROADMAP.md](docs/ROADMAP.md) build order
 - [CLAUDE.md](CLAUDE.md) rules
 

@@ -207,7 +207,9 @@ const View *at(int index)
 
 void begin()
 {
-	selected = constrain(store::getInt(SELECTED_KEY, 0), 0, max(0, count() - 1));
+	const int last = count() - 1;
+	const int saved = store::getInt(SELECTED_KEY, 0);
+	selected = last < 0 ? 0 : constrain(saved, 0, last);
 	activeIndex = -1;
 	dirty = true;
 	Serial.printf("view: %d views registered\n", count());

@@ -10,10 +10,10 @@ built around those rather than around the screen.
 ## Phase 0: skeleton
 
 - `pio run -t upload`, boot, WiFi from `include/secrets.h`, clock via SNTP.
-- Three-item menu (Gas / Bot / Reef). Every view exits with `` ` `` (Esc).
+- Four-item menu (Gas / Bot / Reef / Womp). Every view exits with `` ` `` (Esc).
 - Battery percentage in a corner, always.
 
-Done when: it boots, you can move between three empty views and back out.
+Done when: it boots, you can move between four empty views and back out.
 
 ## Phase 1: gas, which is really the network stack
 

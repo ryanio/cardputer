@@ -1,15 +1,14 @@
-# The three sources
+# The four sources
 
 Every endpoint below was probed live on 2026-08-17. Response bodies are trimmed
 to the fields the firmware reads.
 
-All three are public, unauthenticated JSON over HTTPS. No API key ever reaches
+All four are public, unauthenticated JSON over HTTPS. No API key ever reaches
 the device, so there is nothing to leak in a flashed binary and nothing to
 rotate.
 
-All three hosts also present certificates from the same issuer, Google Trust
-Services WE1, so a single bundled root CA covers every request the firmware
-makes.
+Two roots cover every host between them, including the CDN the womp images come
+from. See [TLS roots](#tls-roots) at the end.
 
 ## gwei
 
@@ -166,11 +165,13 @@ described. Do not scrape it.
 
 ## TLS roots
 
-Two are enough for every host here, checked 2026-08-17:
+Two are enough for every host here, checked against the live chains 2026-08-17:
 
-- **Google Trust Services (WE1)**: gwei.ryanio.com, www.glyphbots.com,
-  api.0xcoral.com, www.voxels.com
-- **Let's Encrypt (YR2)**: media.crvox.com, which serves the womp images
+- GTS Root R4 anchors Google Trust Services WE1: gwei.ryanio.com,
+  www.glyphbots.com, api.0xcoral.com, www.voxels.com
+- ISRG Root YR anchors Let's Encrypt YR2: media.crvox.com, which serves the
+  womp images
 
-`WiFiClientSecure` has `setCACertBundle`, so bundle both rather than pinning one
-per host. Never ship `setInsecure()`.
+Both ship in `src/ca_roots.h`, which carries the fetch and verify commands for
+refreshing them. mbedtls parses concatenated PEM, so one `setCACert` call takes
+the pair and no host is pinned. Never ship `setInsecure()`.
