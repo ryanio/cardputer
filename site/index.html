@@ -3,19 +3,25 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>coral on a Cardputer</title>
+<title>Cardputer firmware: open APIs, crypto and toys</title>
 <meta name="description" content="A handheld for Coral, Bankr, GlyphBots, Voxels and gwei. 240x135, nothing to sign in to, and the real firmware runs in your browser.">
 <meta property="og:title" content="coral on a Cardputer">
 <meta property="og:description" content="Five public APIs on a 240x135 screen. The real firmware runs in your browser.">
 <meta property="og:type" content="website">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
 <style>
   :root {
-    --bg: #0b0b0d;
-    --panel: #121216;
-    --line: #26262c;
-    --text: #e8e8ea;
-    --dim: #9a9aa2;
-    --coral: #ff7f50;
+    /* One accent, three surfaces, two text weights. Everything else on the
+       page is the device's own colours, which are the exception on purpose.
+       Lightness is in OKLCH so the ramp stays even to the eye. */
+    --bg:      oklch(0.145 0.006 285);
+    --surface: oklch(0.205 0.008 285);
+    --line:    oklch(0.30 0.008 285);
+    --text:    oklch(0.96 0.003 285);   /* 16:1 on --bg */
+    --dim:     oklch(0.76 0.008 285);   /* 8.4:1 on --bg, still quiet */
+    --accent:      oklch(0.76 0.15 45);
+    --accent-soft: oklch(0.62 0.13 45);
+    --on-accent:   oklch(0.22 0.06 45);
     --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
   }
   * { box-sizing: border-box; }
@@ -23,29 +29,37 @@
     margin: 0;
     background: var(--bg);
     color: var(--text);
-    font: 16px/1.6 system-ui, -apple-system, "Segoe UI", sans-serif;
+    font: 17px/1.65 system-ui, -apple-system, "Segoe UI", sans-serif;
     -webkit-font-smoothing: antialiased;
   }
   .wrap { max-width: 900px; margin: 0 auto; padding: 0 24px; }
-  a { color: var(--coral); }
+  a { color: var(--accent); }
   h1, h2 { line-height: 1.15; letter-spacing: -0.02em; margin: 0 0 12px; }
   h2 { font-size: 1.35rem; }
   p { margin: 0 0 14px; }
   .dim { color: var(--dim); }
   section { padding: 48px 0; border-top: 1px solid var(--line); }
 
-  header { position: relative; padding: 64px 0 28px; overflow: hidden; }
-  header svg.art { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 0; }
+  header { position: relative; padding: 68px 0 30px; }
+  /* Full viewport width, so there is no seam beside the first character, and
+     masked at both edges so the art fades out instead of ending. */
+  header svg.art {
+    position: absolute; top: 0; left: 50%; transform: translateX(-50%);
+    width: 100vw; height: 100%; z-index: 0; pointer-events: none;
+    -webkit-mask-image: radial-gradient(120% 100% at 68% 40%, #000 30%, transparent 78%);
+    mask-image: radial-gradient(120% 100% at 68% 40%, #000 30%, transparent 78%);
+  }
   header > *:not(svg) { position: relative; z-index: 1; }
+  header h1 mark { background: none; color: var(--accent); }
   .kicker {
     font: 600 11px/1 var(--mono);
     letter-spacing: 0.18em;
     text-transform: uppercase;
-    color: var(--coral);
+    color: var(--accent);
     margin-bottom: 18px;
   }
-  header h1 { font-size: clamp(1.9rem, 5.4vw, 2.9rem); max-width: 19ch; }
-  header p { color: var(--dim); max-width: 48ch; }
+  header h1 { font-size: clamp(2rem, 5.6vw, 3rem); max-width: 24ch; }
+  header p { color: var(--dim); max-width: 52ch; font-size: 1.05rem; }
 
   .actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 20px; }
   .btn {
@@ -53,7 +67,7 @@
     font: 600 14px/1 system-ui, sans-serif; text-decoration: none;
     border: 1px solid var(--line); color: var(--text);
   }
-  .btn.primary { background: var(--coral); border-color: var(--coral); color: #17110d; }
+  .btn.primary { background: var(--accent); border-color: var(--accent); color: #17110d; }
 
   /* The device, drawn after the real ADV: light shell, dark base, and a
      keyboard whose keycaps are coloured the way the unit's are. */
@@ -73,7 +87,7 @@
   .brand::before {
     content: ""; display: inline-block; vertical-align: middle;
     width: 7px; height: 7px; margin-right: 5px;
-    border-left: 2px solid var(--coral); border-top: 2px solid var(--coral);
+    border-left: 2px solid var(--accent); border-top: 2px solid var(--accent);
   }
   .module {
     margin-left: auto; display: flex; gap: 2px; align-items: center;
@@ -102,27 +116,43 @@
   .keyboard { display: grid; grid-template-rows: repeat(4, 1fr); gap: 3px; margin-top: 10px; }
   .krow { display: grid; grid-template-columns: repeat(14, 1fr); gap: 3px; }
   .keyboard button {
-    aspect-ratio: 1 / 0.82;
+    aspect-ratio: 1 / 0.86;
     border: 0; border-radius: 3px;
-    font: 600 8px/1 var(--mono);
+    font: 700 11px/1 var(--mono);
     cursor: pointer; padding: 0; overflow: hidden;
-    background: #f4f4f0; color: #2a2a2e;
+    background: #f6f6f2; color: #1d1d20;
     box-shadow: 0 1.5px 0 #8f8f89, inset 0 1px 0 rgba(255, 255, 255, 0.9);
   }
-  .keyboard button[data-tone="dark"] { background: #26262a; color: #d8d8d4; box-shadow: 0 1.5px 0 #101012; }
-  .keyboard button[data-tone="orange"] { background: var(--coral); color: #24140c; box-shadow: 0 1.5px 0 #b5522e; }
+  /* The four arrows and enter are how anything gets driven, so they read from
+     across the room rather than being one grey key among fifty six. */
+  .keyboard button[data-role="nav"] {
+    background: #ffd9c8; color: #6d2f14; font-size: 14px;
+    box-shadow: 0 1.5px 0 #c98f6e, inset 0 1px 0 rgba(255, 255, 255, 0.9);
+  }
+  .keyboard button[data-role="enter"] {
+    background: var(--accent); color: var(--on-accent); font-size: 12px;
+    box-shadow: 0 1.5px 0 var(--accent-soft), inset 0 1px 0 rgba(255, 255, 255, 0.45);
+  }
+  .keyboard button[data-tone="dark"] { background: #26262a; color: #eaeae6; box-shadow: 0 1.5px 0 #101012; }
+  .keyboard button[data-tone="orange"] { background: var(--accent); color: #24140c; box-shadow: 0 1.5px 0 #b5522e; }
   .keyboard button[data-tone="blue"] { background: #4f7fe0; color: #0e1626; box-shadow: 0 1.5px 0 #33549a; }
   .keyboard button[data-tone="green"] { background: #43b96a; color: #0d2415; box-shadow: 0 1.5px 0 #2c7a46; }
   .keyboard button:active { transform: translateY(1px); box-shadow: none; }
-  .keyboard button:hover { outline: 2px solid var(--coral); outline-offset: 1px; }
+  .keyboard button:hover { outline: 2px solid var(--accent); outline-offset: 1px; }
 
   .legend { font: 12px/1.7 var(--mono); color: var(--dim); margin-top: 12px; }
 
-  .sources { display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); }
-  .source { display: flex; gap: 12px; align-items: flex-start; }
-  .source img { width: 30px; height: 30px; border-radius: 7px; flex: none; }
-  .source b { display: block; font-size: 0.95rem; }
-  .source span { color: var(--dim); font-size: 0.88rem; }
+  .sources { display: grid; gap: 18px; grid-template-columns: repeat(auto-fit, minmax(255px, 1fr)); }
+  .source { display: flex; gap: 13px; align-items: flex-start; }
+  .source .mark {
+    width: 34px; height: 34px; border-radius: 9px; flex: none;
+    background: var(--surface); border: 1px solid var(--line);
+    display: grid; place-items: center;
+  }
+  .source .mark img { width: 19px; height: 19px; }
+  .source .mark img.brand { width: 22px; height: 22px; border-radius: 5px; }
+  .source b { display: block; font-size: 1rem; }
+  .source span { color: var(--dim); font-size: 0.92rem; }
 
   ul.rules { list-style: none; padding: 0; margin: 0; display: grid; gap: 10px; }
   ul.rules li { color: var(--dim); font-size: 0.95rem; padding-left: 16px; border-left: 2px solid var(--line); }
@@ -133,7 +163,7 @@
   td:first-child { color: var(--text); width: 30%; padding-right: 14px; }
 
   pre {
-    background: var(--panel); border: 1px solid var(--line); border-radius: 8px;
+    background: var(--surface); border: 1px solid var(--line); border-radius: 8px;
     padding: 12px 14px; overflow-x: auto; font: 13px/1.6 var(--mono); margin: 0;
   }
 
@@ -142,7 +172,8 @@
   footer .fine { font-size: 0.8rem; margin-top: 14px; }
 
   @media (max-width: 640px) {
-    .keyboard button { font-size: 7px; }
+    .keyboard button { font-size: 9px; }
+    .keyboard button[data-role="nav"] { font-size: 11px; }
     section { padding: 36px 0; }
   }
 </style>
@@ -184,8 +215,10 @@
   </svg>
 
   <div class="kicker">M5Stack Cardputer ADV</div>
-  <h1>Five APIs in your hand, none of them asking for a key.</h1>
-  <p>Coral, Bankr, GlyphBots, Voxels and gwei on a 240x135 screen. The firmware below is the one that runs on the device.</p>
+  <h1>Custom firmware for a pocket computer, wired to <mark>open APIs</mark>.</h1>
+  <p>Coral scores, Bankr agents, GlyphBots, Voxels photos and live gas, plus a drum
+  machine and something to breathe with. Eight apps on a 240x135 screen, no
+  accounts and no keys. The one below is the real firmware.</p>
   <div class="actions">
     <a class="btn primary" href="#run">Run it</a>
     <a class="btn" href="https://github.com/ryanio/cardputer">GitHub</a>
@@ -214,32 +247,45 @@
   </div>
 
   <p class="legend">
-    1 to 6 open a view &nbsp;·&nbsp; ; . , / are the arrows &nbsp;·&nbsp; ` backs out of anything
+    <b>1</b> to <b>8</b> open an app &nbsp;·&nbsp; the four tinted keys are the arrows
+    &nbsp;·&nbsp; <b>enter</b> chooses &nbsp;·&nbsp; <b>esc</b> backs out of anything
   </p>
 </section>
 
 <section>
-  <h2>What it reads</h2>
+  <h2>Eight apps</h2>
   <div class="sources">
     <div class="source">
-      <img src="img/src/coral.svg" alt="">
-      <div><b>Reef</b><span>The daily Coral round. One anonymous token, the same for everyone.</span></div>
+      <div class="mark"><img src="img/icons/waves.svg" alt=""></div>
+      <div><b>Reef</b><span>Guess a token's Coral score from holders, liquidity and the buyer split. A fresh anonymous one each day, or type any ticker and score it live.</span></div>
     </div>
     <div class="source">
-      <img src="img/src/bankr.svg" alt="">
-      <div><b>Bankr</b><span>Agents by market cap and weekly revenue, scored through Coral.</span></div>
+      <div class="mark"><img src="img/icons/landmark.svg" alt=""></div>
+      <div><b>Bankr</b><span>The agent leaderboard by market cap and weekly revenue. Every agent has a token on Base, so Coral scores it right beside the name.</span></div>
     </div>
     <div class="source">
-      <img src="img/src/glyphbots.png" alt="">
-      <div><b>Bot</b><span>A GlyphBot drawn from its Unicode genome, raised as a pet.</span></div>
+      <div class="mark"><img src="img/icons/bot.svg" alt=""></div>
+      <div><b>Bot</b><span>A GlyphBot is four lines of Unicode, not a picture. Yours gets drawn from its genome and raised as a pet that can really die.</span></div>
     </div>
     <div class="source">
-      <img src="img/src/voxels.png" alt="">
-      <div><b>Womp</b><span>The newest in-world photo, decoded straight to the panel.</span></div>
+      <div class="mark"><img src="img/icons/camera.svg" alt=""></div>
+      <div><b>Womp</b><span>Photos taken inside Voxels, newest first, walk back through them one at a time. 128KB of JPEG decoded straight to the panel.</span></div>
     </div>
     <div class="source">
-      <img src="img/src/gwei.png" alt="">
-      <div><b>Gas</b><span>Base fee, three tiers, a sparkline, and a tone when gas gets cheap.</span></div>
+      <div class="mark"><img src="img/icons/fuel.svg" alt=""></div>
+      <div><b>Gas</b><span>Base fee big, three tiers under it, a 24 hour sparkline, and a rising arpeggio when gas drops under a number you typed.</span></div>
+    </div>
+    <div class="source">
+      <div class="mark"><img src="img/icons/music.svg" alt=""></div>
+      <div><b>Beat</b><span>An eight step drum machine that starts with a beat already in it. Keys 1 to 8 are the steps, space plays, no musical training required.</span></div>
+    </div>
+    <div class="source">
+      <div class="mark"><img src="img/icons/wind.svg" alt=""></div>
+      <div><b>Calm</b><span>Box, 4-7-8, coherent and belly breathing, paced by a ring you watch instead of a number you count, with a soft tone on the turns.</span></div>
+    </div>
+    <div class="source">
+      <div class="mark"><img src="img/icons/settings.svg" alt=""></div>
+      <div><b>Setup</b><span>Scan, pick, type the passphrase. The network lives on the unit, so one you were handed joins yours and never carried the last owner's.</span></div>
     </div>
   </div>
 </section>
@@ -316,9 +362,9 @@ pio run -e sim -t exec -a --tour</pre>
      ['0', '', 'dark'], ['-', '', 'dark'], ['=', '', 'dark'], ['\b', 'del', 'dark']],
     [['\t', 'tab'], ['q'], ['w'], ['e'], ['r'], ['t'], ['y'], ['u'], ['i'], ['o'], ['p'], ['['], [']'], ['\\']],
     [['', 'fn', 'orange'], ['', 'Aa', 'blue'], ['a'], ['s'], ['d'], ['f'], ['g'], ['h'], ['j'], ['k'],
-     ['l'], [';', '\u2191'], ["'"], ['\n', 'ok', 'dark']],
+     ['l'], [';', '\u2191', 'nav'], ["'"], ['\n', '\u21b5', 'enter']],
     [['', 'ctrl'], ['', 'opt', 'green'], ['', 'alt'], ['z'], ['x'], ['c'], ['v'], ['b'], ['n'], ['m'],
-     [',', '\u2190'], ['.', '\u2193'], ['/', '\u2192'], [' ', '', 'dark']]
+     [',', '\u2190', 'nav'], ['.', '\u2193', 'nav'], ['/', '\u2192', 'nav'], [' ', '', 'dark']]
   ];
 
   var keyboard = document.getElementById('keyboard');
@@ -329,7 +375,11 @@ pio run -e sim -t exec -a --tour</pre>
       var button = document.createElement('button');
       button.textContent = key[1] || key[0];
       if (key[0]) { button.setAttribute('data-key', key[0]); }
-      if (key[2]) { button.setAttribute('data-tone', key[2]); }
+      if (key[2] === 'nav' || key[2] === 'enter') {
+        button.setAttribute('data-role', key[2]);
+      } else if (key[2]) {
+        button.setAttribute('data-tone', key[2]);
+      }
       line.appendChild(button);
     });
     keyboard.appendChild(line);

@@ -213,7 +213,11 @@ void M5Unified::update()
 }
 
 M5_CARDPUTER::M5_CARDPUTER()
-    : Display(M5.Display), Lcd(M5.Display), Power(M5.Power), BtnA(M5.getButton(0))
+    : Display(M5.Display),
+      Lcd(M5.Display),
+      Power(M5.Power),
+      Speaker(M5.Speaker),
+      BtnA(M5.getButton(0))
 {
 }
 

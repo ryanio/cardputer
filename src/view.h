@@ -26,6 +26,8 @@ enum Order : int {
 	ORDER_BOT = 30,
 	ORDER_WOMP = 40,
 	ORDER_GAS = 50,
+	ORDER_BEAT = 60,
+	ORDER_CALM = 70,
 	ORDER_LAST = 90,
 };
 

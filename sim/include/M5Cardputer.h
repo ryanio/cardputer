@@ -68,6 +68,31 @@ private:
 
 namespace m5 {
 
+class Speaker_Class {
+public:
+	bool begin()
+	{
+		return true;
+	}
+	void end()
+	{
+	}
+	void setVolume(uint8_t)
+	{
+	}
+	bool tone(float, uint32_t = 0)
+	{
+		return true;
+	}
+	void stop()
+	{
+	}
+	bool isEnabled() const
+	{
+		return false;
+	}
+};
+
 class Power_Class {
 public:
 	enum is_charging_t { is_discharging = 0, is_charging, charge_unknown };
@@ -123,6 +148,7 @@ public:
 	M5GFX Display;
 	M5GFX &Lcd = Display;
 	Power_Class Power;
+	Speaker_Class Speaker;
 
 	Button_Class &getButton(size_t)
 	{
@@ -143,6 +169,7 @@ public:
 	M5GFX &Display;
 	M5GFX &Lcd;
 	Power_Class &Power;
+	Speaker_Class &Speaker;
 	Button_Class &BtnA;
 	Keyboard_Class Keyboard;
 

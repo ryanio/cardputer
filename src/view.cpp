@@ -12,13 +12,13 @@ namespace {
 
 // The menu is a grid of cards rather than a list. On 240x135 a list spends
 // most of its width on nothing, and six cards read at arm's length.
-constexpr int COLS = 3;
+constexpr int COLS = 4;
 constexpr int GRID_ROWS = 2;
-constexpr int MARGIN = 5;
-constexpr int GAP = 5;
+constexpr int MARGIN = 4;
+constexpr int GAP = 4;
 constexpr int CARD_W = (ui::W - MARGIN * 2 - GAP * (COLS - 1)) / COLS;
 constexpr int CARD_H = 50;
-constexpr int HINT_Y = 115;
+constexpr int HINT_Y = 113;
 constexpr int VISIBLE = COLS * GRID_ROWS;
 constexpr uint32_t STATUS_MS = 2000;
 constexpr const char *MENU_SOURCE = "coral " FW_VERSION;
@@ -95,7 +95,7 @@ void drawMenu()
 		g.setTextDatum(textdatum_t::top_left);
 		g.drawString(number, x + 4, y + 3);
 
-		ui::icon(v->icon, x + (CARD_W - 16) / 2, y + 3, on ? ui::BG : ui::CORAL);
+		ui::icon(v->icon, x + (CARD_W - 16) / 2, y + 4, on ? ui::BG : ui::CORAL);
 
 		g.setFont(&fonts::Font2);
 		g.setTextColor(on ? ui::BG : ui::FG, background);
