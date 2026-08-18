@@ -1,0 +1,50 @@
+# The style the firmware was already written in, written down so it stops being
+# a matter of memory. tools/fmt.sh applies it and --check enforces it.
+#
+# Tabs indent and spaces align, which is what lets someone read this at any tab
+# width without the continuation lines drifting.
+Language: Cpp
+BasedOnStyle: Google
+
+ColumnLimit: 100
+IndentWidth: 4
+TabWidth: 4
+UseTab: ForIndentation
+ContinuationIndentWidth: 4
+
+# A function body opens on its own line. Everything else keeps its brace.
+BreakBeforeBraces: Custom
+BraceWrapping:
+  AfterFunction: true
+  AfterClass: false
+  AfterStruct: false
+  AfterEnum: false
+  AfterNamespace: false
+  AfterUnion: false
+  AfterControlStatement: Never
+  AfterCaseLabel: false
+  BeforeElse: false
+  BeforeCatch: false
+  BeforeWhile: false
+  SplitEmptyFunction: false
+
+AccessModifierOffset: -4
+NamespaceIndentation: None
+IndentCaseLabels: true
+PointerAlignment: Right
+DerivePointerAlignment: false
+AlignAfterOpenBracket: Align
+AllowShortFunctionsOnASingleLine: Empty
+AllowShortIfStatementsOnASingleLine: false
+AllowShortLoopsOnASingleLine: false
+AllowShortCaseLabelsOnASingleLine: false
+AllowShortBlocksOnASingleLine: Never
+InsertBraces: true
+
+# Includes stay in the groups they were written in: the framework, then the
+# spine. Sorting across a blank line would mix them.
+SortIncludes: CaseSensitive
+IncludeBlocks: Preserve
+
+ReflowComments: false
+SpacesBeforeTrailingComments: 2

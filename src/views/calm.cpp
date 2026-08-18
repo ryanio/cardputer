@@ -28,12 +28,8 @@ constexpr int PATTERN_COUNT = sizeof(PATTERNS) / sizeof(PATTERNS[0]);
 
 // One line at a time between cycles. Written for this, not quoted.
 const char *LINES[] = {
-    "nothing here needs you yet",
-    "the out breath is the long one",
-    "shoulders down, jaw loose",
-    "you are allowed to be slow",
-    "let the next one arrive",
-    "this is the whole task",
+    "nothing here needs you yet", "the out breath is the long one", "shoulders down, jaw loose",
+    "you are allowed to be slow", "let the next one arrive",        "this is the whole task",
 };
 constexpr int LINE_COUNT = sizeof(LINES) / sizeof(LINES[0]);
 
@@ -65,20 +61,28 @@ uint16_t phaseMs(Phase p)
 const char *phaseName(Phase p)
 {
 	switch (p) {
-		case IN: return "breathe in";
-		case HOLD_IN: return "hold";
-		case OUT: return "breathe out";
-		default: return "rest";
+		case IN:
+			return "breathe in";
+		case HOLD_IN:
+			return "hold";
+		case OUT:
+			return "breathe out";
+		default:
+			return "rest";
 	}
 }
 
 uint16_t phaseColor(Phase p)
 {
 	switch (p) {
-		case IN: return ui::hsl(180.0f, 0.55f, 0.62f);   // cool, filling
-		case HOLD_IN: return ui::hsl(210.0f, 0.35f, 0.55f);
-		case OUT: return ui::CORAL;                      // warm, emptying
-		default: return ui::hsl(255.0f, 0.25f, 0.45f);
+		case IN:
+			return ui::hsl(180.0f, 0.55f, 0.62f);  // cool, filling
+		case HOLD_IN:
+			return ui::hsl(210.0f, 0.35f, 0.55f);
+		case OUT:
+			return ui::CORAL;  // warm, emptying
+		default:
+			return ui::hsl(255.0f, 0.25f, 0.45f);
 	}
 }
 
@@ -98,10 +102,18 @@ int radiusNow()
 	const float t = progress();
 	float fill = 0.0f;
 	switch (phase) {
-		case IN: fill = t; break;
-		case HOLD_IN: fill = 1.0f; break;
-		case OUT: fill = 1.0f - t; break;
-		default: fill = 0.0f; break;
+		case IN:
+			fill = t;
+			break;
+		case HOLD_IN:
+			fill = 1.0f;
+			break;
+		case OUT:
+			fill = 1.0f - t;
+			break;
+		default:
+			fill = 0.0f;
+			break;
 	}
 	// Ease so the turns feel like breath rather than a metronome.
 	const float eased = fill * fill * (3.0f - 2.0f * fill);
@@ -257,8 +269,8 @@ bool key(const view::Key &k)
 		return true;
 	}
 	if (k.up || k.down) {
-		pattern = k.up ? (pattern + PATTERN_COUNT - 1) % PATTERN_COUNT
-		                : (pattern + 1) % PATTERN_COUNT;
+		pattern =
+		    k.up ? (pattern + PATTERN_COUNT - 1) % PATTERN_COUNT : (pattern + 1) % PATTERN_COUNT;
 		if (running) {
 			start();
 		}

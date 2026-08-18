@@ -204,7 +204,8 @@ void lineAt(int y, const char *text, uint16_t color, textdatum_t datum)
 {
 	M5GFX &g = gfx();
 	g.setFont(&fonts::Font2);
-	const int x = datum == textdatum_t::top_center ? W / 2 : (datum == textdatum_t::top_right ? W - 3 : 3);
+	const int x =
+	    datum == textdatum_t::top_center ? W / 2 : (datum == textdatum_t::top_right ? W - 3 : 3);
 	drawClipped(text, x, y, W - 6, color, BG, datum);
 }
 
@@ -279,8 +280,8 @@ void message(const char *headline, const char *detail, uint16_t color)
 	M5GFX &g = gfx();
 	clearBody();
 	g.setFont(&fonts::Font2);
-	drawClipped(headline, W / 2, contentBottom_ / 2 - (detail == nullptr ? 8 : 16), W - 8, color, BG,
-	            textdatum_t::top_center);
+	drawClipped(headline, W / 2, contentBottom_ / 2 - (detail == nullptr ? 8 : 16), W - 8, color,
+	            BG, textdatum_t::top_center);
 	if (detail != nullptr) {
 		g.setFont(&fonts::Font0);
 		drawClipped(detail, W / 2, contentBottom_ / 2 + 6, W - 8, DIM, BG, textdatum_t::top_center);
@@ -328,7 +329,8 @@ void statusBar(const char *source, const char *note)
 		snprintf(battery, sizeof(battery), "%s%d%%", charging ? "+" : "",
 		         (int)constrain(level, 0, 100));
 	}
-	const uint16_t batteryColor = charging ? GOOD : (level < 0 ? DIM : (level > 40 ? FG : (level > 15 ? WARN : BAD)));
+	const uint16_t batteryColor =
+	    charging ? GOOD : (level < 0 ? DIM : (level > 40 ? FG : (level > 15 ? WARN : BAD)));
 	g.setTextColor(batteryColor, BAR);
 	g.setTextDatum(textdatum_t::top_right);
 	g.drawString(battery, W - 3, top + 3);

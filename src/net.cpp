@@ -412,9 +412,8 @@ Result getJson(const char *url, JsonDocument &doc, JsonDocument *filter)
 
 	CountingStream body(http.getStream());
 	DeserializationError err =
-	    filter == nullptr
-	        ? deserializeJson(doc, body)
-	        : deserializeJson(doc, body, DeserializationOption::Filter(*filter));
+	    filter == nullptr ? deserializeJson(doc, body)
+	                      : deserializeJson(doc, body, DeserializationOption::Filter(*filter));
 	r.bytes = body.count();
 	r.status = err ? ERR_PARSE : 200;
 	r.ms = millis() - t0;

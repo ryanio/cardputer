@@ -74,19 +74,13 @@ public:
 	{
 		return true;
 	}
-	void end()
-	{
-	}
-	void setVolume(uint8_t)
-	{
-	}
+	void end() {}
+	void setVolume(uint8_t) {}
 	bool tone(float, uint32_t = 0)
 	{
 		return true;
 	}
-	void stop()
-	{
-	}
+	void stop() {}
 	bool isEnabled() const
 	{
 		return false;

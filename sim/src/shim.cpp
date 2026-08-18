@@ -19,6 +19,7 @@ uint8_t previous[SDL_NUM_SCANCODES] = {0};
 bool buttonPending = false;
 
 // US layout, the row a Cardputer prints on its keycaps.
+// clang-format off
 char shifted(char c)
 {
 	switch (c) {
@@ -61,6 +62,7 @@ char character(SDL_Scancode code, bool shift)
 		case SDL_SCANCODE_ESCAPE: return '`';
 		default: break;
 	}
+	// clang-format on
 	const SDL_Keycode key = SDL_GetKeyFromScancode(code);
 	if (key >= 'a' && key <= 'z') {
 		return shift ? (char)(key - 32) : (char)key;
@@ -208,9 +210,7 @@ void M5Unified::begin(config_t)
 	Display.begin();
 }
 
-void M5Unified::update()
-{
-}
+void M5Unified::update() {}
 
 M5_CARDPUTER::M5_CARDPUTER()
     : Display(M5.Display),
@@ -218,8 +218,7 @@ M5_CARDPUTER::M5_CARDPUTER()
       Power(M5.Power),
       Speaker(M5.Speaker),
       BtnA(M5.getButton(0))
-{
-}
+{}
 
 void M5_CARDPUTER::begin(bool enableKeyboard)
 {

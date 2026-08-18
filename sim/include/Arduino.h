@@ -95,9 +95,7 @@ private:
 
 class SerialShim {
 public:
-	void begin(unsigned long)
-	{
-	}
+	void begin(unsigned long) {}
 	void printf(const char *format, ...)
 	{
 		va_list args;
@@ -124,7 +122,9 @@ uint32_t millis();
 uint32_t micros();
 void delay(uint32_t ms);
 
+// clang-format off
 #define log_e(format, ...) Serial.printf("[E] " format "\n", ##__VA_ARGS__)
 #define log_w(format, ...) Serial.printf("[W] " format "\n", ##__VA_ARGS__)
 #define log_i(format, ...) Serial.printf("[I] " format "\n", ##__VA_ARGS__)
 #define log_d(format, ...) do { } while (0)
+// clang-format on

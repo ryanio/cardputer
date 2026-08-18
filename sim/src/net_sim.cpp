@@ -118,8 +118,7 @@ void spend(Result &r, uint32_t started)
 // The sink in net::get wants a Stream, and a fixture is already in memory.
 class MemStream : public Stream {
 public:
-	MemStream(const char *data, size_t size) : data_(data), size_(size)
-	{}
+	MemStream(const char *data, size_t size) : data_(data), size_(size) {}
 
 	int available() override
 	{

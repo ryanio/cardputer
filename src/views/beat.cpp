@@ -12,7 +12,7 @@ constexpr int TRACKS = 4;
 
 struct Track {
 	const char *name;
-	float hz;         // the speaker only does tones, so a drum is a short one
+	float hz;  // the speaker only does tones, so a drum is a short one
 	uint16_t ms;
 	uint16_t color;
 };
@@ -51,10 +51,14 @@ constexpr int GAP = 2;
 uint16_t trackColor(int i)
 {
 	switch (i) {
-		case 0: return ui::CORAL;
-		case 1: return ui::hsl(48.0f, 0.9f, 0.6f);
-		case 2: return ui::hsl(180.0f, 0.6f, 0.62f);
-		default: return ui::hsl(280.0f, 0.55f, 0.66f);
+		case 0:
+			return ui::CORAL;
+		case 1:
+			return ui::hsl(48.0f, 0.9f, 0.6f);
+		case 2:
+			return ui::hsl(180.0f, 0.6f, 0.62f);
+		default:
+			return ui::hsl(280.0f, 0.55f, 0.66f);
 	}
 }
 

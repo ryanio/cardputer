@@ -140,7 +140,7 @@ void drawStatus()
 		snprintf(text, sizeof(text), "%s  %s  %d dBm", stateText(), net::ip().toString().c_str(),
 		         (int)net::rssi());
 	} else {
-		const char *where = !net::haveCredentials() ? "no network saved yet"
+		const char *where = !net::haveCredentials()       ? "no network saved yet"
 		                    : net::credentialsAreStored() ? "saved on this unit"
 		                                                  : "built into this build";
 		snprintf(text, sizeof(text), "%s  %s", stateText(), where);

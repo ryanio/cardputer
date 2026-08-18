@@ -16,12 +16,12 @@ namespace ui {
 constexpr int W = 240;
 constexpr int H = 135;
 
-constexpr int STATUS_H = 12;         // the bottom bar, drawn by view::loop
-constexpr int BODY_H = H - STATUS_H; // 123
-constexpr int TITLE_H = 18;          // title band, when a view draws one
+constexpr int STATUS_H = 12;          // the bottom bar, drawn by view::loop
+constexpr int BODY_H = H - STATUS_H;  // 123
+constexpr int TITLE_H = 18;           // title band, when a view draws one
 constexpr int LINE_H = 15;
-constexpr int LINES = 7;             // body rows under a title
-constexpr int LINES_FULL = 8;        // body rows when a view skips the title
+constexpr int LINES = 7;       // body rows under a title
+constexpr int LINES_FULL = 8;  // body rows when a view skips the title
 
 constexpr uint16_t rgb565(uint8_t r, uint8_t g, uint8_t b)
 {
