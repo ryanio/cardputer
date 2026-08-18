@@ -1,5 +1,6 @@
 #include <ArduinoJson.h>
 
+#include "../coral.h"
 #include "../net.h"
 #include "../ui.h"
 #include "../view.h"
@@ -19,11 +20,9 @@
 namespace {
 
 constexpr const char *PROFILES_URL = "https://api.bankr.bot/agent-profiles?limit=20";
-constexpr const char *SCORE_URL = "https://api.0xcoral.com/api/v1/score/%s/%s";
 
 constexpr int MAX_AGENTS = 20;
 constexpr int LIST_ROWS = 7;  // row 0 says what the ranking is
-constexpr int MAX_BULLETS = 5;
 constexpr uint32_t STALE_MS = 10 * 60 * 1000;
 
 struct Agent {
@@ -36,18 +35,6 @@ struct Agent {
 	float revenue;  // weekly, in WETH. The API sends it as a decimal string.
 	int products;
 	bool hasToken;
-};
-
-struct Score {
-	char address[45];
-	int value;
-	float confidence;
-	char verdict[16];
-	char confidenceLabel[12];
-	char headline[128];
-	char bullets[MAX_BULLETS][64];
-	int bulletCount;
-	char caveat[128];
 };
 
 enum class Screen : uint8_t { List, Detail, Score };
@@ -75,50 +62,13 @@ int pick = 0;
 int pickTop = 0;
 int page = 0;  // the score screen: 0 is the read, 1 is why
 
-Score score;
+coral::Score score;
 
 // ------------------------------------------------------------------ helpers
 
-// The panel's fonts are ASCII. Coral writes its bullets with a middle dot and
-// occasionally a curly quote, which arrive as UTF-8 and would otherwise draw as
-// rubble, so anything above ASCII is folded down or dropped.
-void asciify(const char *src, char *out, size_t n)
-{
-	size_t at = 0;
-	while (*src != '\0' && at + 1 < n) {
-		const uint8_t c = (uint8_t)*src;
-		if (c < 0x80) {
-			out[at++] = *src++;
-			continue;
-		}
-		const uint8_t next = (uint8_t)src[1];
-		if (c == 0xC2 && next == 0xB7) {  // a middle dot separates the two halves
-			out[at++] = '|';
-			src += 2;
-			continue;
-		}
-		if (c == 0xE2 && next == 0x80) {
-			const uint8_t last = (uint8_t)src[2];
-			if (last == 0x99 || last == 0x98) {
-				out[at++] = '\'';
-			} else if (last == 0x9C || last == 0x9D) {
-				out[at++] = '"';
-			}
-			src += 3;
-			continue;
-		}
-		// Some other multibyte run: step over its continuation bytes.
-		src++;
-		while (((uint8_t)*src & 0xC0) == 0x80) {
-			src++;
-		}
-	}
-	out[at] = '\0';
-}
-
 void copyField(JsonVariantConst value, char *out, size_t n, const char *fallback = "")
 {
-	asciify(value.is<const char *>() ? value.as<const char *>() : fallback, out, n);
+	ui::asciify(value.is<const char *>() ? value.as<const char *>() : fallback, out, n);
 }
 
 // Dollars in the width a 240px row can spare.
@@ -142,87 +92,6 @@ void usd(float v, char *out, size_t n)
 void weth(float v, char *out, size_t n)
 {
 	snprintf(out, n, v >= 1.0f ? "%.2f WETH" : "%.4f WETH", v);
-}
-
-// Trim to a pixel budget in Font2, so a long agent name cannot run underneath
-// the market cap sitting on its right.
-void fit(const char *text, int budget, char *out, size_t n)
-{
-	M5GFX &g = ui::gfx();
-	g.setFont(&fonts::Font2);
-	snprintf(out, n, "%s", text);
-	while (out[0] != '\0' && g.textWidth(out) > budget) {
-		out[strlen(out) - 1] = '\0';
-	}
-}
-
-// Font0 is fixed at six pixels a character, which is what makes a caveat or a
-// headline fit at all. Wrapping is on whitespace, and a word longer than the
-// line is left to run off rather than being broken.
-int wrapSmall(const char *text, int chars, char lines[][44], int maxLines)
-{
-	int count = 0;
-	int at = 0;
-	const int len = (int)strlen(text);
-	while (at < len && count < maxLines) {
-		int take = len - at;
-		if (take > chars) {
-			take = chars;
-			int space = take;
-			while (space > 0 && text[at + space] != ' ') {
-				space--;
-			}
-			if (space > 0) {
-				take = space;
-			}
-		}
-		if (take > 43) {
-			take = 43;
-		}
-		memcpy(lines[count], text + at, take);
-		lines[count][take] = '\0';
-		count++;
-		at += take;
-		while (at < len && text[at] == ' ') {
-			at++;
-		}
-	}
-	return count;
-}
-
-// Font0 draws six pixels a character, so what fits is arithmetic. Anything
-// past the right edge is cut and marked, the way the rest of the UI cuts.
-void smallText(int y, const char *text, uint16_t color, int x = 3)
-{
-	const int room = (ui::W - 3 - x) / 6;
-	if (room <= 0) {
-		return;
-	}
-	char cut[48];
-	if ((int)strlen(text) > room) {
-		const int keep = room - 1 < (int)sizeof(cut) - 1 ? room - 1 : (int)sizeof(cut) - 2;
-		memcpy(cut, text, keep);
-		cut[keep] = '.';
-		cut[keep + 1] = '\0';
-		text = cut;
-	}
-
-	M5GFX &g = ui::gfx();
-	g.setFont(&fonts::Font0);
-	g.setTextColor(color, ui::BG);
-	g.setTextDatum(textdatum_t::top_left);
-	g.drawString(text, x, y);
-}
-
-uint16_t verdictColor(const char *verdict)
-{
-	if (strcmp(verdict, "organic") == 0) {
-		return ui::GOOD;
-	}
-	if (strcmp(verdict, "manufactured") == 0 || strcmp(verdict, "suspicious") == 0) {
-		return ui::BAD;
-	}
-	return ui::WARN;  // unknown, and anything Coral adds later
 }
 
 // --------------------------------------------------------------------- fetch
@@ -294,50 +163,8 @@ void fetchProfiles()
 void fetchScore()
 {
 	const Agent &a = agents[pick];
-	char url[128];
-	snprintf(url, sizeof(url), SCORE_URL, a.chain, a.address);
-
-	JsonDocument filter;
-	filter["score"] = true;
-	filter["verdict"] = true;
-	filter["confidence"] = true;
-	filter["confidenceLabel"] = true;
-	JsonObject explanation = filter["explanation"].to<JsonObject>();
-	explanation["headline"] = true;
-	explanation["bullets"] = true;
-	explanation["caveats"] = true;
-
-	JsonDocument doc;
-	const net::Result r = net::getJson(url, doc, &filter);
-	scoreStatus = r.status;
-	if (!r.ok()) {
-		scoreState = State::Failed;
-		return;
-	}
-
-	snprintf(score.address, sizeof(score.address), "%s", a.address);
-	score.value = doc["score"] | 0;
-	score.confidence = doc["confidence"] | 0.0f;
-	copyField(doc["verdict"], score.verdict, sizeof(score.verdict), "unknown");
-	copyField(doc["confidenceLabel"], score.confidenceLabel, sizeof(score.confidenceLabel), "");
-	copyField(doc["explanation"]["headline"], score.headline, sizeof(score.headline));
-
-	score.bulletCount = 0;
-	for (JsonVariantConst b : doc["explanation"]["bullets"].as<JsonArrayConst>()) {
-		if (score.bulletCount >= MAX_BULLETS) {
-			break;
-		}
-		copyField(b, score.bullets[score.bulletCount], sizeof(score.bullets[0]));
-		score.bulletCount++;
-	}
-
-	// Coral sends its caveats as an array and the API repeats them in a header.
-	// They are not decoration, so one of them is on screen behind every score.
-	JsonArrayConst caveats = doc["explanation"]["caveats"].as<JsonArrayConst>();
-	copyField(caveats.isNull() ? JsonVariantConst() : caveats[0], score.caveat,
-	          sizeof(score.caveat), "Not a price target, audit, or trading recommendation.");
-
-	scoreState = State::Ready;
+	scoreStatus = coral::fetch(a.chain, a.address, score);
+	scoreState = scoreStatus == 200 ? State::Ready : State::Failed;
 }
 
 // ---------------------------------------------------------------------- draw
@@ -391,7 +218,7 @@ void drawList()
 		const int reserved = (int)g.textWidth(text) + 10;
 		char label[56];
 		snprintf(label, sizeof(label), "%s%d %s", on ? "> " : "  ", i + 1, a.name);
-		fit(label, ui::W - 6 - reserved, name, sizeof(name));
+		ui::fit(label, ui::W - 6 - reserved, name, sizeof(name));
 
 		ui::line(row + 1, name, on ? ui::CORAL : ui::FG);
 		ui::lineAt(y, text, on ? ui::CORAL : ui::DIM, textdatum_t::top_right);
@@ -430,41 +257,8 @@ void drawDetail()
 	}
 }
 
-// One line of a Coral bullet. They arrive as a fact and a reading of it split
-// by a middle dot, so the fact keeps full contrast and the reading steps back.
-void drawBullet(int y, const char *bullet)
-{
-	const char *split = strchr(bullet, '|');
-	if (split == nullptr) {
-		smallText(y, bullet, ui::FG);
-		return;
-	}
-	char head[64];
-	size_t n = (size_t)(split - bullet);
-	if (n >= sizeof(head)) {
-		n = sizeof(head) - 1;
-	}
-	memcpy(head, bullet, n);
-	head[n] = '\0';
-	smallText(y, head, ui::FG);
-	smallText(y, split + 1, ui::DIM, 3 + (int)n * 6);
-}
-
-// Both score pages end with a caveat. CLAUDE.md makes that a rule rather than
-// a nicety: a number this confident looking does not go on screen alone.
-void drawCaveat()
-{
-	char lines[2][44];
-	const int count = wrapSmall(score.caveat, 39, lines, 2);
-	ui::gfx().drawFastHLine(0, 96, ui::W, ui::RULE);
-	for (int i = 0; i < count; i++) {
-		smallText(101 + i * 10, lines[i], ui::DIM);
-	}
-}
-
 void drawScore()
 {
-	char text[64];
 	const Agent &a = agents[pick];
 
 	if (scoreState == State::Waiting) {
@@ -480,31 +274,11 @@ void drawScore()
 	}
 
 	ui::clearBody();
-
 	if (page == 0) {
-		snprintf(text, sizeof(text), "Coral on %s", a.symbol[0] == '\0' ? a.name : a.symbol);
-		ui::title(text, ui::CORAL);
-
-		snprintf(text, sizeof(text), "%d", score.value);
-		ui::bigNumber(text, verdictColor(score.verdict), score.verdict, ui::TITLE_H + 2);
-
-		snprintf(text, sizeof(text), "confidence %s, %.2f", score.confidenceLabel,
-		         score.confidence);
-		smallText(64, text, ui::DIM);
-
-		char lines[2][44];
-		const int count = wrapSmall(score.headline, 39, lines, 2);
-		for (int i = 0; i < count; i++) {
-			smallText(76 + i * 10, lines[i], ui::FG);
-		}
+		coral::drawRead(score, a.symbol[0] == ' ' ? a.name : a.symbol);
 	} else {
-		ui::title("what Coral read", ui::CORAL);
-		for (int i = 0; i < score.bulletCount; i++) {
-			drawBullet(ui::TITLE_H + 3 + i * 14, score.bullets[i]);
-		}
+		coral::drawWhy(score);
 	}
-
-	drawCaveat();
 }
 
 void draw()
@@ -618,7 +392,7 @@ bool detailKey(const view::Key &k)
 		page = 0;
 		// A score already in hand for this token is worth keeping: the lookup
 		// is slow and the answer is good for ten minutes at the source.
-		if (scoreState == State::Ready && strcmp(score.address, agents[pick].address) == 0) {
+		if (scoreState == State::Ready && score.holds(agents[pick].chain, agents[pick].address)) {
 			view::repaint();
 			return true;
 		}

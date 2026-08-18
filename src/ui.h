@@ -93,6 +93,26 @@ void card(int x, int y, int w, int h, bool selected);
 // Centered headline with an optional second line. For empty and error states.
 void message(const char *headline, const char *detail = nullptr, uint16_t color = FG);
 
+// Font0, six pixels a character, for what the row grid is too coarse to hold:
+// a caveat, a headline, a bullet. Cut and marked at the right edge like every
+// other string this file draws.
+void small(int x, int y, const char *text, uint16_t color);
+
+// Break text into lines of at most `chars`, on whitespace, and return how many
+// were written. A word longer than the line runs off rather than being broken.
+constexpr int WRAP_MAX = 44;
+int wrap(const char *text, int chars, char lines[][WRAP_MAX], int maxLines);
+
+// Trim to a pixel budget in Font2, so a name cannot run underneath the number
+// sitting to its right.
+void fit(const char *text, int budget, char *out, size_t n);
+
+// The panel's fonts are ASCII. Sources write middle dots and curly quotes,
+// which arrive as UTF-8 and would draw as rubble, so anything above ASCII is
+// folded down or dropped. A middle dot becomes a bar, because it is a
+// separator and the views that draw one read it as such.
+void asciify(const char *src, char *out, size_t n);
+
 // Advances one frame per call. For a request that is slow by design, like a
 // Coral score.
 void spinner(int x, int y, uint16_t color = CORAL);

@@ -355,4 +355,101 @@ void statusBar(const char *source, const char *note)
 	}
 }
 
+void small(int x, int y, const char *text, uint16_t color)
+{
+	const int room = (W - 3 - x) / 6;
+	if (room <= 0) {
+		return;
+	}
+	char cut[48];
+	if ((int)strlen(text) > room) {
+		const int keep = room - 1 < (int)sizeof(cut) - 2 ? room - 1 : (int)sizeof(cut) - 2;
+		memcpy(cut, text, keep);
+		cut[keep] = '.';
+		cut[keep + 1] = '\0';
+		text = cut;
+	}
+
+	M5GFX &g = gfx();
+	g.setFont(&fonts::Font0);
+	g.setTextColor(color, BG);
+	g.setTextDatum(textdatum_t::top_left);
+	g.drawString(text, x, y);
+}
+
+int wrap(const char *text, int chars, char lines[][WRAP_MAX], int maxLines)
+{
+	if (chars > WRAP_MAX - 1) {
+		chars = WRAP_MAX - 1;
+	}
+	int count = 0;
+	int at = 0;
+	const int len = (int)strlen(text);
+	while (at < len && count < maxLines) {
+		int take = len - at;
+		if (take > chars) {
+			take = chars;
+			int space = take;
+			while (space > 0 && text[at + space] != ' ') {
+				space--;
+			}
+			if (space > 0) {
+				take = space;
+			}
+		}
+		memcpy(lines[count], text + at, take);
+		lines[count][take] = '\0';
+		count++;
+		at += take;
+		while (at < len && text[at] == ' ') {
+			at++;
+		}
+	}
+	return count;
+}
+
+void fit(const char *text, int budget, char *out, size_t n)
+{
+	M5GFX &g = gfx();
+	g.setFont(&fonts::Font2);
+	snprintf(out, n, "%s", text);
+	while (out[0] != '\0' && (int)g.textWidth(out) > budget) {
+		out[strlen(out) - 1] = '\0';
+	}
+}
+
+void asciify(const char *src, char *out, size_t n)
+{
+	size_t at = 0;
+	while (*src != '\0' && at + 1 < n) {
+		const uint8_t c = (uint8_t)*src;
+		if (c < 0x80) {
+			out[at++] = *src++;
+			continue;
+		}
+		const uint8_t next = (uint8_t)src[1];
+		if (c == 0xC2 && next == 0xB7) {  // a middle dot, which separates two halves
+			out[at++] = '|';
+			src += 2;
+			continue;
+		}
+		if (c == 0xE2 && next == 0x80) {
+			const uint8_t last = (uint8_t)src[2];
+			if (last == 0x99 || last == 0x98) {
+				out[at++] = '\'';
+			} else if (last == 0x9C || last == 0x9D) {
+				out[at++] = '"';
+			}
+			src += 3;
+			continue;
+		}
+		// Some other multibyte run: step over its continuation bytes.
+		src++;
+		while (((uint8_t)*src & 0xC0) == 0x80) {
+			src++;
+		}
+	}
+	out[at] = '\0';
+}
+
 }  // namespace ui
