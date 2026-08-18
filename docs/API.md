@@ -42,9 +42,22 @@ GET https://www.glyphbots.com/api/bot/1
   "burnedAt":null,"burnedBy":null,
   "royalties":{"totalWei":"0","mintCount":0}}}
 
+GET https://www.glyphbots.com/api/bot/1/story
+{"story":{"arc":{"id":"shadow_stalker","title":"Stealth Infiltration Specialist",
+   "role":"Security Bypass Expert","faction":"Void Syndicate",
+   "mission":{"objective":"Bypass 8 security scanners to reach central data vault",
+     "threat":"Patrol algorithms sweeping for intruders every 5 seconds", ...},
+   "abilities":[{"name":"Shadow Merge","effect":"Become invisible in dark zones",
+     "cooldown":"6 seconds"}, ...]}}}
+
 GET https://www.glyphbots.com/api/bots/facets       trait values, and the glyph alphabet
 GET https://www.glyphbots.com/api/artifacts/recent  collection-wide mint activity
 ```
+
+The story is a separate endpoint from the bot, which is easy to miss: `/api/bot/1`
+does not carry any of it. Every bot has an arc with a faction, a role, a mission
+with an objective and a threat, and named abilities with cooldowns. That is a
+character sheet, and it is what the pet is built on rather than a bare hunger bar.
 
 A GlyphBot is not an image. It is four short lines of Unicode plus a foreground
 and background color, which is already a display format for a 240x135 screen.
@@ -78,6 +91,15 @@ GET https://api.0xcoral.com/api/v1/score/{chain}/{address}
    "bullets":["741305 holders · very deep base","top-10 hold 65% · moderately concentrated", ...],
    "caveats":["Not a price target, audit, or trading recommendation."]}}
 
+GET https://api.0xcoral.com/api/v1/guess/daily
+{"date":"2026-08-17",
+ "clues":{"holderCount":741291,"liquidityUsd":205368.53,"marketCapUsd":31447771,
+   "top10HolderShare":0.516,"uniqueBuyers24h":12,"uniqueSellers24h":9},
+ "answer":{"score":61,"verdict":"unknown","confidenceLabel":"medium",
+   "explanation":{"headline":"...","bullets":[...],"caveats":[...]}},
+ "token":{"chain":"ethereum","address":"0xb131f4a5..."}}
+
+GET https://api.0xcoral.com/api/v1/og/guess/{date}/{guess}  302 to the result card
 GET https://api.0xcoral.com/api/v1/tokens/index?limit=3     corpus of graded tokens
 GET https://api.0xcoral.com/api/v1/traction                 network aggregates
 GET https://api.0xcoral.com/api/v1/dashboard                latest reef pulse, prose
@@ -96,6 +118,16 @@ column. The `caveats` array is not decoration, and the API sets an
 `x-coral-attribution` header stating the same thing. Both get screen space.
 
 Score is a heavy full lookup that self-rate-limits and took several seconds when
-probed. It is request-response with a spinner, never a poll, and the game
-prefetches rather than blocking a round on it. Token metadata is on the looser
-general limiter.
+probed. It is request-response with a spinner, never a poll. Typing a ticker into
+`/resolve` and scoring the result is the on-demand path.
+
+`guess/daily` is the game path and it sidesteps all of that. One token a day, the
+same for everybody, precomputed once into KV, so it answers from the edge instead
+of waking the container. The clues are the market facts the score was computed
+over; the answer ships in the same payload, so a device fetches one round and can
+then play with the radio off. The token is deliberately unnamed.
+
+`og/guess/{date}/{guess}` renders that result as a 1200x630 card. The guess is
+the only value the URL supplies; the real score is read server-side from the
+stored round, so a crafted URL cannot fake one. This is what the QR on the result
+screen points at.

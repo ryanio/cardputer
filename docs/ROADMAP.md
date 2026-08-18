@@ -51,6 +51,10 @@ this was written. A pet fed only by onchain events starves for a week at a time.
 So the loop is inverted. Attention is the food, and real activity is the rare
 event that matters.
 
+- Identity from `GET /api/bot/{tokenId}/story`, fetched once and cached to SD:
+  faction, role, mission and named abilities with cooldowns. The pet is that
+  character, not a generic animal with the bot's face on it. The abilities are
+  the obvious hook for care actions, since they already carry cooldowns.
 - Local state in NVS: hunger, mood, energy, age, care streak. Decays against
   wall clock, so it keeps running with WiFi off and keeps running while the
   device sleeps.
@@ -74,21 +78,23 @@ mint produces a real reaction.
 
 The shareable unit here is the score, so the game is built around guessing it.
 
-`GET /api/v1/tokens/{chain}/{address}` returns symbol, market cap, liquidity,
-holder count, 24h volume and price change. `GET /api/v1/score/{chain}/{address}`
-returns the answer, 0 to 100, with an explanation. Show the first, hide the
-second, make the player guess. Those are exactly the facts a person would
-reason from, which is what makes it a real game rather than a coin flip.
+`GET /api/v1/guess/daily` is built for exactly this and does the hard part
+server-side. One token a day, the same for everybody, with the market facts as
+the clue and the score as the answer, in a single precomputed payload.
 
-- Corpus from `GET /api/v1/tokens/index`, cached to SD as a question bank.
-- A round shows the ticker and its market card. Player types a number 0 to 100.
-- Reveal the real score, the verdict, and `explanation.bullets`. Points by how
-  close, streak tracked in NVS.
-- **Prefetch one round ahead and cache every score to SD.** The score endpoint
-  is heavy and self-rate-limits. A round must never block on a live call, and
-  three units playing at once must never look like an attack.
+- One fetch a day. The whole round arrives together, so a unit can play with the
+  radio off afterwards, and three units on the same desk cost one request each.
+- The round is anonymous: no ticker. The player reasons from holder count,
+  liquidity, market cap and the buyer/seller split, which is the difference
+  between a judgment call and recognizing a name.
+- Player types 0 to 100. Reveal the real score, the verdict and
+  `explanation.bullets`. Score by how close, streak in NVS.
+- Because everyone gets the same token, two units can compare without
+  coordinating, which is what makes Phase 4's head to head trivial.
 - Every reveal screen carries `explanation.caveats` and the Coral name. Not
   optional; see the display contract in [../CLAUDE.md](../CLAUDE.md).
+- For free play beyond the daily, type a ticker into `/resolve` and score the
+  result. That path is live and slow (seconds), so it needs a spinner.
 
 Done when: a round is genuinely hard to guess and you want to play again.
 
@@ -116,9 +122,13 @@ screen worth photographing. The rest is one hop.
 
 - A result screen designed to be photographed: final score, streak, bot, big
   and legible at arm's length.
-- QR on screen pointing at `GET /api/v1/og/token/{chain}/{address}`, which 302s
-  to a rendered Coral card. Scan with a phone, share the card, and the post
-  unfurls with real Coral artwork instead of a blurry screen photo.
+- QR on screen pointing at `GET /api/v1/og/guess/{date}/{guess}`, which 302s to
+  a rendered card showing the guess against the real score. Scan with a phone,
+  share it, and the post unfurls with Coral artwork instead of a blurry screen
+  photo. The device only supplies the guess; the real score comes from the
+  stored round, so the card cannot be faked from a hand-typed URL.
+- `GET /api/v1/og/token/{chain}/{address}` is the per-token card, for sharing a
+  token rather than a result.
 - The device never posts anything. It displays a code; a human decides.
 
 Done when: playing a round produces something worth posting without editing it.
