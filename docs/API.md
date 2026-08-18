@@ -163,3 +163,14 @@ decode rather than after.
 Live presence is the one thing the API does not cover, and deliberately: the
 docs say livekit, radio, metrics and the internal `/grid/*` routes are not
 described. Do not scrape it.
+
+## TLS roots
+
+Two are enough for every host here, checked 2026-08-17:
+
+- **Google Trust Services (WE1)**: gwei.ryanio.com, www.glyphbots.com,
+  api.0xcoral.com, www.voxels.com
+- **Let's Encrypt (YR2)**: media.crvox.com, which serves the womp images
+
+`WiFiClientSecure` has `setCACertBundle`, so bundle both rather than pinning one
+per host. Never ship `setInsecure()`.

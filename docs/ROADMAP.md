@@ -37,8 +37,9 @@ Done when: it sits on the desk showing live gas and wakes you when gas is cheap.
 Small, and it pays for itself immediately: every phase after this one is edited
 far more than it is designed.
 
-- `ArduinoOTA` or `esp_https_ota` against a versioned binary. Device checks on
-  boot and on demand, never on a timer.
+- `esp_https_ota` against a binary attached to a **GitHub release**. Device
+  checks on boot and on demand, never on a timer. `gh release create` is the
+  publish step, so there is no bucket to run.
 - Keep the previous image and roll back on a failed boot. Three units and no
   cable means a bad push is otherwise three walks to the desk.
 - Show the running version on the menu, so "did it take" is answerable by
@@ -80,7 +81,10 @@ The only part with real unknowns.
 Done when: three units each hold a different bot and look good enough to hand
 someone.
 
-## Phase 5: the pet, which is where the ADV earns its keep
+## Phase 5: the pet
+
+Three things make it a pet: it changes while ignored, you interact by picking it
+up, and it can really die. Everything else is a later pass.
 
 Settle one thing first: **real collection activity is too slow to be the food
 supply.** The most recent mint across the whole collection was 2026-08-11. A pet
@@ -91,14 +95,8 @@ activity is the rare event.
   role, mission, named abilities with cooldowns. The pet is that character.
 - State in NVS: hunger, mood, energy, age, streak. Decays on wall clock, so it
   runs with WiFi off and through sleep.
-- **Every bot has a voice.** Derive a short signature tone from the bot's trait
-  glyphs, so #5815 always sounds like #5815 and two bots are audibly different.
-  A collection you can hear is a thing nobody has.
 - **The IMU is the interaction.** Pick it up and the pet wakes. Shake it and the
   pet objects. Tilt to pet it. Set it face down and it sleeps. No keyboard.
-- **The mic is ambient mood.** Sample the room's noise floor, not its content. A
-  bot in a loud room is livelier; one on a quiet desk gets bored. Never record,
-  never transmit, just a level.
 - Poll `GET /api/bot/{tokenId}` every few minutes for the two fields that move:
   `royalties.mintCount` and `burnedAt`.
 - A mint against your bot is a celebration: its own tone, animation, a permanent
@@ -107,8 +105,7 @@ activity is the rare event.
   device. A pet that can really die is why anyone cares about this one.
 - Magnetic back: it lives on the side of a monitor and you poke it in passing.
 
-Done when: it changes across a day of being ignored, and you can tell whose bot
-is whose with your eyes shut.
+Done when: it changes across a day of being ignored, and burnedAt ends it.
 
 ## Phase 6: the Coral round
 
@@ -189,47 +186,17 @@ unit you gave away still shares your daily puzzle.
   page.
 - A QR gets it off the device, pointing at a prefilled post.
 
-## Phase 9: Ask Coral
+## Not here: Ask Coral and a script layer
 
-The keyboard's real purpose. Type a question, get an answer.
+Both are Coral backend work that a device happens to consume: a new public
+endpoint, spend rails (per-IP bucket, hard daily ceiling, low max-tokens), and a
+model path that RETURNS instead of sending. `HandleAskCoralArgs` wants a tenant,
+channel, platform and message id and answers `{ path, sent, skippedReason }`, so
+none of it can be wrapped.
 
-Coral has no public ask endpoint today, and the existing pipeline cannot be
-wrapped: `HandleAskCoralArgs` wants a tenant, channel, platform and message id,
-and the result is `{ path, sent, skippedReason }`. It SENDS through platform
-egress and never returns text. So this needs a parallel path through the model
-that returns instead of sending.
-
-Spend rails first, because an unauthenticated public AI endpoint is an open
-wallet:
-
-- Its own tight per-IP bucket on the existing limiter.
-- A hard global answers-per-day ceiling that declines politely once hit.
-- A low max-tokens per answer, which the screen wants anyway.
-- Behind a test, per the money rule.
-
-On the device:
-
-- Terse mode. 240x135 is roughly eight short lines, so the endpoint returns a
-  short answer, not a truncated long one.
-- Carries its caveats and the Coral name, same contract as every other score
-  surface.
-- **Hand off to Telegram for the long version.** A QR or deep link continues the
-  same question in the bot, where there is room to answer properly. The device
-  gives you the gist; the phone gives you the rest.
-
-## Phase 10: a script layer
-
-Compiled C++ always needs a flash. An interpreter does not.
-
-- Embed something small (Lua is the obvious candidate) with a narrow API: draw,
-  fetch, tone, read a key. Not the whole firmware.
-- Type a script on the device and it runs immediately. This is what Phase 2's
-  OTA cannot give you.
-- The same capped Coral endpoint from Phase 8 can return a script instead of an
-  answer, so "write me a behavior" works without a model key on the device.
-- Sandbox it before it is fun: network allowlist, no filesystem writes, a
-  watchdog, and a revert-to-last-good. The first bad script otherwise wedges the
-  UI and the only fix is a cable.
+Planned in the coral repo, not here. The device consumes the endpoint when it
+exists, and the long answer hands off to Telegram because 240x135 is about eight
+lines.
 
 ## Parked
 
@@ -239,8 +206,11 @@ Ideas the hardware allows that nothing yet needs. Left here rather than built.
 - 3.5mm jack: only matters if the pet gets a soundtrack.
 - LEGO holes: a three-unit desk dock, when there are three finished units.
 - Voice input: the mic is good enough, but there is no on-device speech to text,
-  and streaming audio out is a privacy surface this does not need. Phase 8 takes
-  typing.
+  and streaming audio out is a privacy surface this does not need.
+- Per-bot signature tones, derived from trait glyphs so each bot is audibly
+  itself. The most original idea here, and the one most likely to eat a week.
+- Ambient mic mood: sample the room's noise floor, never its content. Needs
+  real-room testing, so it waits for finished units.
 
 ## Constraints worth keeping in view
 
