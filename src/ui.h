@@ -14,11 +14,11 @@ namespace ui {
 constexpr int W = 240;
 constexpr int H = 135;
 
-constexpr int STATUS_H = 13;         // the bottom bar, drawn by view::loop
-constexpr int BODY_H = H - STATUS_H; // 122
-constexpr int TITLE_H = 20;          // title band, when a view draws one
+constexpr int STATUS_H = 10;         // the bottom bar, drawn by view::loop
+constexpr int BODY_H = H - STATUS_H; // 125
+constexpr int TITLE_H = 18;          // title band, when a view draws one
 constexpr int LINE_H = 15;
-constexpr int LINES = 6;             // body rows under a title
+constexpr int LINES = 7;             // body rows under a title
 constexpr int LINES_FULL = 8;        // body rows when a view skips the title
 
 constexpr uint16_t rgb565(uint8_t r, uint8_t g, uint8_t b)
@@ -47,14 +47,25 @@ void begin();
 uint16_t hsl(float h, float s, float l);
 bool parseHsl(const char *css, uint16_t &out);
 
-// Everything above the status bar.
+// Everything above the status bar. Also puts row 0 back at the top of the
+// screen, so a view that draws no title gets LINES_FULL rows rather than LINES.
 void clearBody(uint16_t background = BG);
 
+// The whole panel, for a view that declares fullScreen. Rows and the helpers
+// below then run to the bottom edge instead of stopping above the bar.
+void clearAll(uint16_t background = BG);
+
+// Drawing a title moves row 0 down by TITLE_H. Nothing else does.
 void title(const char *text, uint16_t color = CORAL);
 
-// Row 0 is the first line under the title. Each row repaints its own strip, so
-// a view can update one line without clearing the screen.
+// Row 0 is the first line under whatever the view has drawn so far. Each row
+// repaints its own strip, so a view can update one line without clearing the
+// screen.
 void line(int row, const char *text, uint16_t color = FG);
+
+// Where row 0 sits, and how many rows are left below it.
+int contentTop();
+int rows();
 
 // Free placement inside the body, for the eight row layout and for anything
 // the row grid does not fit.

@@ -12,7 +12,7 @@ namespace {
 
 constexpr int LIST_TOP = 4;
 constexpr int ENTRY_H = 21;
-constexpr int HINT_Y = 110;
+constexpr int HINT_Y = 113;
 constexpr int VISIBLE = (HINT_Y - LIST_TOP) / ENTRY_H;
 constexpr uint32_t STATUS_MS = 2000;
 constexpr const char *MENU_SOURCE = "coral " FW_VERSION;
@@ -245,11 +245,14 @@ void loop()
 		v->tick();
 	}
 
+	const bool wantsBar = v == nullptr || !v->fullScreen;
 	if (dirty) {
 		drawActive();
 		dirty = false;
-		drawStatus();
-	} else if (millis() - statusDrawn > STATUS_MS) {
+		if (wantsBar) {
+			drawStatus();
+		}
+	} else if (wantsBar && millis() - statusDrawn > STATUS_MS) {
 		drawStatus();
 	}
 }

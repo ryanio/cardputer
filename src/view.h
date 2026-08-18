@@ -53,6 +53,11 @@ struct View {
 	const char *source;  // status bar source: GWEI, GLYPHBOTS, CORAL, VOXELS
 	int order;
 
+	// A view whose content is the whole point, a picture or a bot, takes the
+	// panel and the loop draws no status bar. It then owns the rule that a
+	// screen names its source, and paints the name over its own corner.
+	bool fullScreen = false;
+
 	void (*enter)() = nullptr;  // opened
 	void (*leave)() = nullptr;  // closed, so drop anything held
 	void (*draw)() = nullptr;   // repaint the body, never the status bar

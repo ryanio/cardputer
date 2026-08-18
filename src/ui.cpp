@@ -9,14 +9,18 @@ namespace ui {
 
 namespace {
 
-constexpr int BODY_BOTTOM = BODY_H;
 constexpr uint8_t BRIGHTNESS = 110;
 
 uint8_t spinnerFrame = 0;
 
+// Row 0 sits at the top of the screen until a title moves it down, and the
+// body stops above the status bar unless the view owns the whole panel.
+int contentTop_ = 0;
+int contentBottom_ = BODY_H;
+
 int rowY(int row)
 {
-	return TITLE_H + row * LINE_H;
+	return contentTop_ + row * LINE_H;
 }
 
 // Fits text into a width by dropping characters and ending in a period, which
@@ -146,7 +150,26 @@ bool parseHsl(const char *css, uint16_t &out)
 
 void clearBody(uint16_t background)
 {
-	gfx().fillRect(0, 0, W, BODY_BOTTOM, background);
+	contentTop_ = 0;
+	contentBottom_ = BODY_H;
+	gfx().fillRect(0, 0, W, BODY_H, background);
+}
+
+void clearAll(uint16_t background)
+{
+	contentTop_ = 0;
+	contentBottom_ = H;
+	gfx().fillScreen(background);
+}
+
+int contentTop()
+{
+	return contentTop_;
+}
+
+int rows()
+{
+	return (contentBottom_ - contentTop_) / LINE_H;
 }
 
 void title(const char *text, uint16_t color)
@@ -154,8 +177,9 @@ void title(const char *text, uint16_t color)
 	M5GFX &g = gfx();
 	g.fillRect(0, 0, W, TITLE_H, BG);
 	g.setFont(&fonts::Font2);
-	drawClipped(text, 3, 1, W - 6, color, BG, textdatum_t::top_left);
+	drawClipped(text, 3, 0, W - 6, color, BG, textdatum_t::top_left);
 	g.drawFastHLine(0, TITLE_H - 2, W, RULE);
+	contentTop_ = TITLE_H;
 }
 
 void line(int row, const char *text, uint16_t color)
@@ -164,7 +188,7 @@ void line(int row, const char *text, uint16_t color)
 		return;
 	}
 	const int y = rowY(row);
-	if (y + LINE_H > BODY_BOTTOM) {
+	if (y + LINE_H > contentBottom_) {
 		return;
 	}
 	M5GFX &g = gfx();
@@ -207,7 +231,7 @@ void bigNumber(const char *text, uint16_t color, const char *suffix, int y)
 
 	g.setFont(chosen);
 	const int height = g.fontHeight();
-	g.fillRect(0, y, W, min(height + 4, BODY_BOTTOM - y), BG);
+	g.fillRect(0, y, W, min(height + 4, contentBottom_ - y), BG);
 
 	const int left = (W - (numberWidth + suffixWidth)) / 2;
 	g.setTextColor(color, BG);
@@ -223,10 +247,10 @@ void bigNumber(const char *text, uint16_t color, const char *suffix, int y)
 
 void banner(int y, int h, uint16_t color)
 {
-	if (y >= BODY_BOTTOM) {
+	if (y >= contentBottom_) {
 		return;
 	}
-	gfx().fillRect(0, y, W, min(h, BODY_BOTTOM - y), color);
+	gfx().fillRect(0, y, W, min(h, contentBottom_ - y), color);
 }
 
 void message(const char *headline, const char *detail, uint16_t color)
@@ -234,11 +258,11 @@ void message(const char *headline, const char *detail, uint16_t color)
 	M5GFX &g = gfx();
 	clearBody();
 	g.setFont(&fonts::Font2);
-	drawClipped(headline, W / 2, BODY_BOTTOM / 2 - (detail == nullptr ? 8 : 16), W - 8, color, BG,
+	drawClipped(headline, W / 2, contentBottom_ / 2 - (detail == nullptr ? 8 : 16), W - 8, color, BG,
 	            textdatum_t::top_center);
 	if (detail != nullptr) {
 		g.setFont(&fonts::Font0);
-		drawClipped(detail, W / 2, BODY_BOTTOM / 2 + 6, W - 8, DIM, BG, textdatum_t::top_center);
+		drawClipped(detail, W / 2, contentBottom_ / 2 + 6, W - 8, DIM, BG, textdatum_t::top_center);
 	}
 }
 
@@ -269,7 +293,7 @@ void statusBar(const char *source, const char *note)
 	if (source != nullptr) {
 		g.setTextColor(DIM, BAR);
 		g.setTextDatum(textdatum_t::top_left);
-		g.drawString(source, 3, top + 3);
+		g.drawString(source, 3, top + 1);
 	}
 
 	// Battery on the right. M5Unified answers -1 on hardware it cannot read,
@@ -286,12 +310,12 @@ void statusBar(const char *source, const char *note)
 	const uint16_t batteryColor = charging ? GOOD : (level < 0 ? DIM : (level > 40 ? FG : (level > 15 ? WARN : BAD)));
 	g.setTextColor(batteryColor, BAR);
 	g.setTextDatum(textdatum_t::top_right);
-	g.drawString(battery, W - 3, top + 3);
+	g.drawString(battery, W - 3, top + 1);
 	const int batteryWidth = g.textWidth(battery);
 
 	// Radio state as one dot, left of the battery.
 	const int dotX = W - 8 - batteryWidth;
-	g.fillCircle(dotX, top + 6, 2, radioColor());
+	g.fillCircle(dotX, top + 5, 2, radioColor());
 
 	if (note != nullptr && note[0] != '\0') {
 		const int left = 3 + g.textWidth(source == nullptr ? "" : source) + 6;
@@ -303,7 +327,7 @@ void statusBar(const char *source, const char *note)
 			while (cut.length() > 1 && (int)g.textWidth(cut.c_str()) > width) {
 				cut.remove(cut.length() - 1);
 			}
-			g.drawString(cut.c_str(), left, top + 3);
+			g.drawString(cut.c_str(), left, top + 1);
 		}
 	}
 }

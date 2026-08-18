@@ -20,8 +20,8 @@
 // Refresh:
 //   curl -o - https://pki.goog/repo/certs/gtsr4.pem
 //   curl -o - https://letsencrypt.org/certs/gen-y/root-yr.pem
-//   security find-certificate -a -c "Sectigo Public Server Authentication Root E46" \
-//     -p /System/Library/Keychains/SystemRootCertificates.keychain
+//   security find-certificate -a -p -c "Sectigo Public Server Authentication Root E46"
+//     /System/Library/Keychains/SystemRootCertificates.keychain
 // then prove each host still verifies:
 //   openssl verify -CAfile this -untrusted <server chain> <leaf>
 

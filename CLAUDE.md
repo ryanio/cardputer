@@ -42,7 +42,9 @@ Green as of 2026-08-17: RAM 15.3%, flash 33.2% of the 3.3MB app slot.
   decode to the panel, scaling as you go. Never fetch-then-decode.
 - **Anything showing a Coral score shows its caveats and the Coral name.**
 - **The status bar names the source of the current view** (GLYPHBOTS, GWEI,
-  CORAL, VOXELS), not the app.
+  CORAL, VOXELS), not the app. It costs 10 rows, and a view that skips the
+  title gets the other eight lines. A full screen view has no bar and paints
+  the source name over its own corner instead.
 
 ## Screen
 

@@ -109,10 +109,13 @@ settles the layout:
 - Every bot sampled is four lines and at most seven cells wide (12 bots,
   2026-08-17).
 
-That sizes the cell against the screen rather than the font. Four lines in the
-122px body puts the pitch at 30 at most, so the advance is about 14.5 and the
-cell is roughly 14x30. A bot then occupies about 101x120 and leaves 135px for
-name and rank.
+That sizes the cell against the screen rather than the font. The bot is what
+the view is for, so it takes the whole panel and paints its own source name
+rather than leaving a status bar in the way. Four lines across 135 rows puts
+the pitch at 33, so the advance is about 16 and the cell is roughly 16x33. A
+bot then occupies about 112x135 and leaves 128px beside it for name and rank.
+Inside a normal view with the status bar, the same arithmetic over 125 rows
+gives a 15x31 cell.
 
 - Generator fetches `GET /api/bots/facets`, extracts the distinct non-ASCII
   glyphs across every trait value (105 as of 2026-08-17), renders each to a mono
