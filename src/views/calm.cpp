@@ -199,7 +199,7 @@ void drawRing()
 	if (phase != lastPhase || remaining != lastRemaining) {
 		lastPhase = phase;
 		lastRemaining = remaining;
-		g.fillRect(0, CENTRE_Y + RADIUS_MAX + 4, ui::W, 22, ui::BG);
+		g.fillRect(0, CENTRE_Y + RADIUS_MAX + 4, ui::W, 18, ui::BG);
 		char text[24];
 		g.setFont(&fonts::Font2);
 		g.setTextDatum(textdatum_t::top_center);
