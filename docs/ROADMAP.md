@@ -47,12 +47,27 @@ far more than it is designed.
 - `esp_https_ota` against a binary attached to a **GitHub release**. Device
   checks on boot and on demand, never on a timer. `gh release create` is the
   publish step, so there is no bucket to run.
+- Two hosts, two roots, both already in `src/ca_roots.h`: `api.github.com` for
+  the version check, which chains to Sectigo Public Server Authentication Root
+  E46, and `release-assets.githubusercontent.com` for the download, which
+  chains to ISRG Root YR. Checked live 2026-08-17.
+- **Verify a signature before installing.** TLS proves the bytes came from
+  GitHub, not that you built them, so an account compromise serves a malicious
+  image over a perfectly valid connection. These units live in other people's
+  houses and update themselves, which is exactly the case where that matters.
+  Sign the image at release time with ECDSA P-256, publish the signature beside
+  the binary, and check it against a public key compiled into the firmware
+  before the image is marked valid. mbedtls is already linked, so this costs a
+  hash and a verify. The private key never touches the repo or a device.
+- An image that fails the signature check is not installed, and the device says
+  which check failed rather than "update failed".
 - Keep the previous image and roll back on a failed boot. Three units and no
   cable means a bad push is otherwise three walks to the desk.
 - Show the running version on the menu, so "did it take" is answerable by
   looking.
 
-Done when: you push a build and all three units are running it without a cable.
+Done when: you push a build and all three units are running it without a cable,
+and an image signed with the wrong key is refused.
 
 ## Phase 3: the womp frame
 

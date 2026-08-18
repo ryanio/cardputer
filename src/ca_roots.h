@@ -1,20 +1,28 @@
 #pragma once
 
-// The two root CAs that cover every host the firmware talks to. Fetched from
-// the issuers on 2026-08-17 and checked against the live chains of
-// gwei.ryanio.com, www.glyphbots.com, api.0xcoral.com, www.voxels.com and
-// media.crvox.com.
+// The root CAs for every host the firmware talks to. Fetched from the issuers
+// on 2026-08-17 and checked against the live chains of gwei.ryanio.com,
+// www.glyphbots.com, api.0xcoral.com, www.voxels.com, media.crvox.com,
+// api.github.com and release-assets.githubusercontent.com.
 //
-// mbedtls parses concatenated PEM, so both roots go in as one buffer and
+// mbedtls parses concatenated PEM, so all three go in as one buffer and
 // WiFiClientSecure::setCACert covers every host with no per host pinning.
 //
 //   GTS Root R4       ECC, expires 2036 06 22, anchors Google Trust WE1
 //                     (gwei, glyphbots, coral, voxels)
-//   ISRG Root YR      ECC, expires 2045 09 02, anchors Let's Encrypt YR2
-//                     (media.crvox.com, which serves the womp JPEGs)
+//   ISRG Root YR      ECC, expires 2045 09 02, anchors Let's Encrypt YR1 and
+//                     YR2 (media.crvox.com for the womp images, and the
+//                     GitHub release assets an update downloads)
+//   Sectigo Public Server Authentication Root E46
+//                     ECC, expires 2046 03 21, anchors Sectigo DV E36
+//                     (api.github.com, which the updater asks for a version)
 //
-// Refresh: fetch https://pki.goog/repo/certs/gtsr4.pem and
-// https://letsencrypt.org/certs/gen-y/root-yr.pem, then verify with
+// Refresh:
+//   curl -o - https://pki.goog/repo/certs/gtsr4.pem
+//   curl -o - https://letsencrypt.org/certs/gen-y/root-yr.pem
+//   security find-certificate -a -c "Sectigo Public Server Authentication Root E46" \
+//     -p /System/Library/Keychains/SystemRootCertificates.keychain
+// then prove each host still verifies:
 //   openssl verify -CAfile this -untrusted <server chain> <leaf>
 
 static const char CA_ROOTS[] = R"PEM(
@@ -60,5 +68,19 @@ EiqVEa+8QZjuw8Gj0EbHXcRd1nInvGqRS1o9Is7YBdQN57X1AYveGBNNqjICSb7c
 awuw1EawTDrs13VUlJVEsbQ0/O/1aaV73mCdOQ8azqL2KTv1Ewu1xbquE2S+kdQU
 To9TUwat3wUA6cwXh1EfpS/3fJ0aGah5hdpRyoCLDlsSn8tkrjMfFFX0viC+GxHc
 sI1ANRYvqSFC2X1VRZfDg+wD6E21BccmifG4yWc=
+-----END CERTIFICATE-----
+-----BEGIN CERTIFICATE-----
+MIICOjCCAcGgAwIBAgIQQvLM2htpN0RfFf51KBC49DAKBggqhkjOPQQDAzBfMQsw
+CQYDVQQGEwJHQjEYMBYGA1UEChMPU2VjdGlnbyBMaW1pdGVkMTYwNAYDVQQDEy1T
+ZWN0aWdvIFB1YmxpYyBTZXJ2ZXIgQXV0aGVudGljYXRpb24gUm9vdCBFNDYwHhcN
+MjEwMzIyMDAwMDAwWhcNNDYwMzIxMjM1OTU5WjBfMQswCQYDVQQGEwJHQjEYMBYG
+A1UEChMPU2VjdGlnbyBMaW1pdGVkMTYwNAYDVQQDEy1TZWN0aWdvIFB1YmxpYyBT
+ZXJ2ZXIgQXV0aGVudGljYXRpb24gUm9vdCBFNDYwdjAQBgcqhkjOPQIBBgUrgQQA
+IgNiAAR2+pmpbiDt+dd34wc7qNs9Xzjoq1WmVk/WSOrsfy2qw7LFeeyZYX8QeccC
+WvkEN/U0NSt3zn8gj1KjAIns1aeibVvjS5KToID1AZTc8GgHHs3u/iVStSBDHBv+
+6xnOQ6OjQjBAMB0GA1UdDgQWBBTRItpMWfFLXyY4qp3W7usNw/upYTAOBgNVHQ8B
+Af8EBAMCAYYwDwYDVR0TAQH/BAUwAwEB/zAKBggqhkjOPQQDAwNnADBkAjAn7qRa
+qCG76UeXlImldCBteU/IvZNeWBj7LRoAasm4PdCkT0RHlAFWovgzJQxC36oCMB3q
+4S6ILuH5px0CMk7yn2xVdOOurvulGu7t0vzCAxHrRVxgED1cf5kDW21USAGKcw==
 -----END CERTIFICATE-----
 )PEM";

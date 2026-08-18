@@ -181,4 +181,9 @@ Two are enough for every host here, checked against the live chains 2026-08-17:
 
 Both ship in `src/ca_roots.h`, which carries the fetch and verify commands for
 refreshing them. mbedtls parses concatenated PEM, so one `setCACert` call takes
-the pair and no host is pinned. Never ship `setInsecure()`.
+the set and no host is pinned. Never ship `setInsecure()`.
+
+A third root rides along for the updater rather than for any source here:
+`api.github.com` chains to Sectigo Public Server Authentication Root E46, so a
+version check would fail TLS without it. The release download itself lands on
+ISRG Root YR, which the womp images already needed.
