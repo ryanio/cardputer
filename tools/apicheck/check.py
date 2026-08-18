@@ -201,23 +201,30 @@ def history_ordered(data):
         return "out of order, and the sparkline plots them along a time axis, so it would zigzag"
 
 
-@rule("colors are the hsl(h,s%,l%) form ui::parseHsl takes")
-def hsl_shape(data):
+@rule("colors are a form ui::parseColor takes")
+def color_shape(data):
+    # Both forms are real and hex is the more common of the two: a check
+    # written from one bot said hsl, and two of every three bots sampled came
+    # back as #rrggbb. The device takes either now.
+    hsl = r"^hsl\(\s*-?[\d.]+\s*,\s*[\d.]+%\s*,\s*[\d.]+%\s*\)$"
+    hexed = r"^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})$"
     colors = data.get("bot", {}).get("unicode", {}).get("colors", {})
     for key in ("background", "text"):
-        value = colors.get(key, "")
-        if not re.match(r"^hsl\(\s*-?[\d.]+\s*,\s*[\d.]+%\s*,\s*[\d.]+%\s*\)$", str(value)):
-            return "%s is %r" % (key, value)
+        value = str(colors.get(key, ""))
+        if not re.match(hsl, value) and not re.match(hexed, value):
+            return "%s is %r, which is neither hsl() nor #rrggbb" % (key, value)
 
 
-@rule("every glyph line fits the panel")
-def glyph_width(data):
+@rule("the art still fits the four by seven grid the panel draws")
+def art_grid(data):
     lines = data.get("bot", {}).get("unicode", {}).get("textContent", [])
     if not lines:
         return "no lines"
+    if len(lines) > 4:
+        return "%d lines, and four cells of 32 already fill 128 of the 135 rows" % len(lines)
     widest = max(len(line) for line in lines)
-    if widest > 12:
-        return "widest line is %d glyphs, and the atlas budget assumes 12" % widest
+    if widest > 7:
+        return "widest line is %d glyphs, and seven cells of 32 already fill 224 of 240" % widest
 
 
 @rule("every ability states one cost, a cooldown or a resource")
@@ -350,7 +357,19 @@ def build_checks():
                 Field("bot.burnedAt", str, nullable=True),
                 Field("bot.royalties.mintCount", int),
             ],
-            rules=[hsl_shape, glyph_width],
+            rules=[color_shape, art_grid],
+        ),
+        Check(
+            "glyphbots", "https://www.glyphbots.com/api/bot/4242",
+            fixture="glyphbots-bot-4242",
+            fields=[
+                Field("bot.tokenId", int),
+                Field("bot.name", str),
+                Field("bot.unicode.textContent", list),
+                Field("bot.unicode.colors.background", str),
+                Field("bot.unicode.colors.text", str),
+            ],
+            rules=[color_shape, art_grid],
         ),
         Check(
             "glyphbots", "https://www.glyphbots.com/api/bot/1/story",

@@ -35,3 +35,9 @@ jobs:
       - env:
           SOURCES: ${{ inputs.sources }}
         run: tools/apicheck/check.py $SOURCES
+      # The atlas is built from the collection's own alphabet, so a trait added
+      # with a new glyph in it lands here rather than as a blank square on a
+      # unit. It needs the network too, which is why it rides along with this
+      # workflow rather than the one that runs on a push.
+      - run: pip install pillow fonttools
+      - run: tools/glyphs/generate.py --check

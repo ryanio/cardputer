@@ -70,6 +70,13 @@ character sheet, and it is what the pet is built on rather than a bare hunger ba
 
 A GlyphBot is not an image. It is four short lines of Unicode plus a foreground
 and background color, which is already a display format for a 240x135 screen.
+Always four lines, never more than seven characters wide, which is what makes a
+32 pixel cell the largest that fits the panel.
+
+**The colors come in two forms.** Sampled across the collection, two of every
+three bots state them as `#rrggbb` and the rest as `hsl()`, so a parser that
+knows only one draws a bot nobody can see. The art also contains the odd ASCII
+character, a caret or a lower case o, which the panel's own font already has.
 
 There is a rendered PNG per bot at
 `https://media.glyphbots.com/bots/pngs/{tokenId}.png`, 3000x2250, and it is
@@ -79,7 +86,9 @@ reference the glyph atlas is measured against on a host, where it pins the
 advance, the line pitch and the centering. See [ROADMAP.md](ROADMAP.md).
 
 The collection's full alphabet is 105 distinct non-ASCII glyphs across all
-11,111 bots, counted from `/api/bots/facets`. Stock ESP32 fonts carry none of
+11,111 bots, counted from `/api/bots/facets`, which
+[tools/glyphs/generate.py](../tools/glyphs/generate.py) reads directly so a
+trait added later shows up as a missing glyph rather than a blank square. Stock ESP32 fonts carry none of
 them, so the firmware ships a generated bitmap atlas of those 105. See the
 atlas rule in [../CLAUDE.md](../CLAUDE.md).
 

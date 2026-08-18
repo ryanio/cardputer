@@ -26,11 +26,51 @@
       "fixture": "gwei-gas"
     },
     {
-      "match": "www.glyphbots.com/api/bot/*/story",
+      "match": "www.glyphbots.com/api/bot/7/story",
+      "fixture": "glyphbots-story-7"
+    },
+    {
+      "match": "www.glyphbots.com/api/bot/42/story",
+      "fixture": "glyphbots-story-42"
+    },
+    {
+      "match": "www.glyphbots.com/api/bot/256/story",
+      "fixture": "glyphbots-story-256"
+    },
+    {
+      "match": "www.glyphbots.com/api/bot/4242/story",
+      "fixture": "glyphbots-story-4242"
+    },
+    {
+      "match": "www.glyphbots.com/api/bot/9999/story",
+      "fixture": "glyphbots-story-9999"
+    },
+    {
+      "match": "www.glyphbots.com/api/bot/1/story",
       "fixture": "glyphbots-story"
     },
     {
-      "match": "www.glyphbots.com/api/bot/*",
+      "match": "www.glyphbots.com/api/bot/7",
+      "fixture": "glyphbots-bot-7"
+    },
+    {
+      "match": "www.glyphbots.com/api/bot/42",
+      "fixture": "glyphbots-bot-42"
+    },
+    {
+      "match": "www.glyphbots.com/api/bot/256",
+      "fixture": "glyphbots-bot-256"
+    },
+    {
+      "match": "www.glyphbots.com/api/bot/4242",
+      "fixture": "glyphbots-bot-4242"
+    },
+    {
+      "match": "www.glyphbots.com/api/bot/9999",
+      "fixture": "glyphbots-bot-9999"
+    },
+    {
+      "match": "www.glyphbots.com/api/bot/1",
       "fixture": "glyphbots-bot"
     },
     {

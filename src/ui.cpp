@@ -3,9 +3,14 @@
 #include <ctype.h>
 #include <math.h>
 
+#include "glyphs.h"
 #include "net.h"
 
 namespace ui {
+
+static_assert(GLYPH_CELL == glyphs::CELL,
+              "ui::GLYPH_CELL and the generated atlas disagree. Regenerate with "
+              "tools/glyphs/generate.py, or change the constant to match it.");
 
 namespace {
 
@@ -257,6 +262,38 @@ void banner(int y, int h, uint16_t color)
 	gfx().fillRect(0, y, W, min(h, contentBottom_ - y), color);
 }
 
+bool parseColor(const char *css, uint16_t &out)
+{
+	if (css == nullptr || css[0] == '\0') {
+		return false;
+	}
+	if (css[0] != '#') {
+		return parseHsl(css, out);
+	}
+
+	const char *digits = css + 1;
+	const size_t length = strlen(digits);
+	if (length != 3 && length != 6) {
+		return false;
+	}
+	uint8_t channel[3] = {0, 0, 0};
+	for (int i = 0; i < 3; i++) {
+		char pair[3] = {0, 0, 0};
+		if (length == 3) {
+			pair[0] = pair[1] = digits[i];  // #0f8 is #00ff88
+		} else {
+			pair[0] = digits[i * 2];
+			pair[1] = digits[i * 2 + 1];
+		}
+		if (!isxdigit((unsigned char)pair[0]) || !isxdigit((unsigned char)pair[1])) {
+			return false;
+		}
+		channel[i] = (uint8_t)strtol(pair, nullptr, 16);
+	}
+	out = rgb565(channel[0], channel[1], channel[2]);
+	return true;
+}
+
 void icon(uint8_t id, int x, int y, uint16_t color)
 {
 	if (id >= icons::COUNT) {
@@ -264,6 +301,56 @@ void icon(uint8_t id, int x, int y, uint16_t color)
 	}
 	const icons::Icon &glyph = icons::ALL[id];
 	gfx().drawBitmap(x, y, glyph.data, glyph.width, glyph.height, color);
+}
+
+bool glyph(uint32_t codepoint, int x, int y, uint16_t color)
+{
+	// The atlas is sorted, so this is a binary search.
+	int lo = 0;
+	int hi = glyphs::COUNT - 1;
+	while (lo <= hi) {
+		const int mid = (lo + hi) / 2;
+		const uint32_t at = glyphs::CODEPOINTS[mid];
+		if (at == codepoint) {
+			gfx().drawBitmap(x, y, glyphs::BITMAPS[mid], glyphs::CELL, glyphs::CELL, color);
+			return true;
+		}
+		if (at < codepoint) {
+			lo = mid + 1;
+		} else {
+			hi = mid - 1;
+		}
+	}
+	return false;
+}
+
+uint32_t nextCodepoint(const char *&text)
+{
+	const uint8_t c = (uint8_t)*text;
+	if (c == 0) {
+		return 0;
+	}
+	int extra = 0;
+	uint32_t point = c;
+	if (c >= 0xF0) {
+		extra = 3;
+		point = c & 0x07;
+	} else if (c >= 0xE0) {
+		extra = 2;
+		point = c & 0x0F;
+	} else if (c >= 0xC0) {
+		extra = 1;
+		point = c & 0x1F;
+	}
+	text++;
+	for (int i = 0; i < extra; i++) {
+		if (((uint8_t)*text & 0xC0) != 0x80) {
+			return 0xFFFD;  // truncated, and a replacement is better than a loop
+		}
+		point = (point << 6) | ((uint8_t)*text & 0x3F);
+		text++;
+	}
+	return point;
 }
 
 void card(int x, int y, int w, int h, bool selected)

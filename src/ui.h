@@ -23,6 +23,11 @@ constexpr int LINE_H = 15;
 constexpr int LINES = 7;       // body rows under a title
 constexpr int LINES_FULL = 8;  // body rows when a view skips the title
 
+// One atlas cell. Four lines of these fill 128 of the 135 rows, which is what
+// makes a bot fit. Stated here rather than pulled from glyphs.h so that the
+// 13KB atlas lands in one translation unit; ui.cpp asserts the two agree.
+constexpr int GLYPH_CELL = 32;
+
 constexpr uint16_t rgb565(uint8_t r, uint8_t g, uint8_t b)
 {
 	return (uint16_t)(((r & 0xF8) << 8) | ((g & 0xFC) << 3) | (b >> 3));
@@ -49,6 +54,11 @@ void begin();
 // returns false on anything it does not understand.
 uint16_t hsl(float h, float s, float l);
 bool parseHsl(const char *css, uint16_t &out);
+
+// A bot's colors arrive as CSS, and the collection uses both forms: two of
+// every three bots sampled came back as #rrggbb rather than hsl(). This takes
+// either, plus the three digit hex shorthand.
+bool parseColor(const char *css, uint16_t &out);
 
 // Everything above the status bar. Also puts row 0 back at the top of the
 // screen, so a view that draws no title gets LINES_FULL rows rather than LINES.
@@ -85,6 +95,16 @@ void banner(int y, int h, uint16_t color);
 
 // One of the generated Lucide bitmaps, drawn in a single color.
 void icon(uint8_t id, int x, int y, uint16_t color);
+
+// One glyph from the generated atlas, drawn in a single color at its top left
+// corner. Returns false when the collection has a character the atlas does not,
+// which means the atlas needs regenerating rather than the view working around
+// it. See tools/glyphs/generate.py.
+bool glyph(uint32_t codepoint, int x, int y, uint16_t color);
+
+// Decodes one UTF-8 character and advances the pointer past it. Bot art is
+// UTF-8 and every character in it is one atlas cell wide.
+uint32_t nextCodepoint(const char *&text);
 
 // The unit the menu and the data views are built from. A screen this small
 // wastes less space on a grid of these than on a list with one item per row.
