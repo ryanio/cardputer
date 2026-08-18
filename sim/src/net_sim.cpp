@@ -155,6 +155,17 @@ void simLatency(uint32_t ms)
 void begin()
 {
 	loadCredentials();
+#ifdef __EMSCRIPTEN__
+	// The browser demo has no NVS to remember anything, so a visitor who
+	// pressed Bankr would meet "needs wifi" and a passphrase screen before
+	// seeing a single view work. It joins the open network in the fake list
+	// instead. Setup still shows what it joined and still lets you leave it.
+	if (netSsid.isEmpty()) {
+		netSsid = "Voxels Guest";
+		netPass = "";
+		fromStore = false;
+	}
+#endif
 	if (netSsid.isEmpty()) {
 		st = Wifi::Off;
 		Serial.println("net: no network set, waiting for one from Setup");
