@@ -16,7 +16,7 @@ pio run -t upload       # flash
 pio device monitor      # serial
 ```
 
-Green as of 2026-08-17: RAM 6.9%, flash 14.4%.
+Green as of 2026-08-17: RAM 14.9%, flash 27.9% of the 3.3MB app slot.
 
 ## Traps
 

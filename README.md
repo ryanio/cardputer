@@ -37,6 +37,21 @@ pio device monitor
 M5Cardputer 1.1.1 is the first release that drives the ADV's TCA8418 keyboard.
 Older versions read no keys on this board.
 
+## Layout
+
+| Path | Holds |
+|------|-------|
+| `src/main.cpp` | boot report, the loop |
+| `src/net.*` | WiFi, HTTPS with the bundled roots, JSON and streaming fetches |
+| `src/ui.*` | the 240x135 layout, colors, status bar |
+| `src/view.*` | view registry, menu, input, the exit convention |
+| `src/store.*` | NVS settings |
+| `src/views/*.cpp` | one file per view, each registering itself |
+| `src/ca_roots.h` | the two root CAs every host chains to |
+
+The four spine headers are frozen. A view adds itself with `VIEW_REGISTER`
+and never edits them.
+
 ## Stock firmware
 
 The device ships with M5Stack's
