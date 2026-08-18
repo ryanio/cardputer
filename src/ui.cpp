@@ -408,6 +408,21 @@ int wrap(const char *text, int chars, char lines[][WRAP_MAX], int maxLines)
 	return count;
 }
 
+void usd(float value, char *out, size_t n)
+{
+	if (value <= 0) {
+		snprintf(out, n, "unknown");
+	} else if (value >= 1e9f) {
+		snprintf(out, n, "$%.2fB", value / 1e9f);
+	} else if (value >= 1e6f) {
+		snprintf(out, n, "$%.2fM", value / 1e6f);
+	} else if (value >= 1e3f) {
+		snprintf(out, n, "$%.1fK", value / 1e3f);
+	} else {
+		snprintf(out, n, "$%.0f", value);
+	}
+}
+
 void fit(const char *text, int budget, char *out, size_t n)
 {
 	M5GFX &g = gfx();

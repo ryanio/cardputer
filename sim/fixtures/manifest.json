@@ -5,32 +5,109 @@
     "sources, so a fixture that drifts from the API gets caught by the same",
     "run that updates it.",
     "",
-    "A match is the URL with the scheme stripped, and * stands for any run of",
-    "characters. First match wins, so put the specific route above the general",
-    "one. A URL nothing matches fails the fetch with 'no fixture', which is",
-    "the honest answer: the view then draws its own error state, and a demo",
-    "never shows one token's score under another token's name.",
+    "A match is the URL with the scheme stripped, compared without regard to",
+    "case, and * stands for any run of characters. First match wins, so put the",
+    "specific route above the general one.",
+    "",
+    "A URL nothing matches fails the fetch with 'no fixture', which is the",
+    "honest answer: the view then draws its own error state, and a demo never",
+    "shows one token's numbers under another token's name. That is why every",
+    "token here is routed by its own address rather than by one wildcard.",
     "",
     "tools/fixtures/bundle.py compiles this into sim/src/fixtures.h."
   ],
   "routes": [
-    {"match": "gwei.ryanio.com/api/gas/history*", "fixture": "gwei-history"},
-    {"match": "gwei.ryanio.com/api/gas*", "fixture": "gwei-gas"},
-
-    {"match": "www.glyphbots.com/api/bot/*/story", "fixture": "glyphbots-story"},
-    {"match": "www.glyphbots.com/api/bot/*", "fixture": "glyphbots-bot"},
-
-    {"match": "api.0xcoral.com/api/v1/resolve*", "fixture": "coral-resolve"},
-    {"match": "api.0xcoral.com/api/v1/guess/daily*", "fixture": "coral-daily"},
-    {"match": "api.0xcoral.com/api/v1/tokens/index*", "fixture": "coral-index"},
-    {"match": "api.0xcoral.com/api/v1/tokens/*", "fixture": "coral-token"},
-    {"match": "api.0xcoral.com/api/v1/score/base/0xc52aedec*", "fixture": "coral-score"},
-    {"match": "api.0xcoral.com/api/v1/score/base/0x5f980dcf*",
-     "fixture": "coral-score-0x5f980dcf"},
-
-    {"match": "api.bankr.bot/agent-profiles/*", "fixture": "bankr-profile"},
-    {"match": "api.bankr.bot/agent-profiles*", "fixture": "bankr-profiles"},
-
-    {"match": "www.voxels.com/api/womps.json*", "fixture": "voxels-womps"}
+    {
+      "match": "gwei.ryanio.com/api/gas/history*",
+      "fixture": "gwei-history"
+    },
+    {
+      "match": "gwei.ryanio.com/api/gas*",
+      "fixture": "gwei-gas"
+    },
+    {
+      "match": "www.glyphbots.com/api/bot/*/story",
+      "fixture": "glyphbots-story"
+    },
+    {
+      "match": "www.glyphbots.com/api/bot/*",
+      "fixture": "glyphbots-bot"
+    },
+    {
+      "match": "api.0xcoral.com/api/v1/resolve*",
+      "fixture": "coral-resolve"
+    },
+    {
+      "match": "api.0xcoral.com/api/v1/guess/daily*",
+      "fixture": "coral-daily"
+    },
+    {
+      "match": "api.0xcoral.com/api/v1/tokens/index*",
+      "fixture": "coral-index"
+    },
+    {
+      "match": "api.0xcoral.com/api/v1/tokens/ethereum/0xb131f4a5*",
+      "fixture": "coral-token-meme"
+    },
+    {
+      "match": "api.0xcoral.com/api/v1/tokens/base/0x9f86db9f*",
+      "fixture": "coral-token"
+    },
+    {
+      "match": "api.0xcoral.com/api/v1/tokens/solana/HywDGuEW*",
+      "fixture": "coral-token-daily"
+    },
+    {
+      "match": "api.0xcoral.com/api/v1/tokens/solana/Ft9jwPQN*",
+      "fixture": "coral-token-ft9jwpqn"
+    },
+    {
+      "match": "api.0xcoral.com/api/v1/tokens/solana/8ZkUY4EM*",
+      "fixture": "coral-token-8zkuy4em"
+    },
+    {
+      "match": "api.0xcoral.com/api/v1/tokens/robinhood/0x089a4a*",
+      "fixture": "coral-token-0x089a4a"
+    },
+    {
+      "match": "api.0xcoral.com/api/v1/tokens/solana/CcWVFqrw*",
+      "fixture": "coral-token-ccwvfqrw"
+    },
+    {
+      "match": "api.0xcoral.com/api/v1/tokens/bsc/0x218acf*",
+      "fixture": "coral-token-0x218acf"
+    },
+    {
+      "match": "api.0xcoral.com/api/v1/tokens/robinhood/0xa1a2f9*",
+      "fixture": "coral-token-0xa1a2f9"
+    },
+    {
+      "match": "api.0xcoral.com/api/v1/tokens/solana/HKUVEQu3*",
+      "fixture": "coral-token-hkuvequ3"
+    },
+    {
+      "match": "api.0xcoral.com/api/v1/tokens/solana/a756QqTk*",
+      "fixture": "coral-token-a756qqtk"
+    },
+    {
+      "match": "api.0xcoral.com/api/v1/score/base/0xc52aedec*",
+      "fixture": "coral-score"
+    },
+    {
+      "match": "api.0xcoral.com/api/v1/score/base/0x5f980dcf*",
+      "fixture": "coral-score-0x5f980dcf"
+    },
+    {
+      "match": "api.bankr.bot/agent-profiles/*",
+      "fixture": "bankr-profile"
+    },
+    {
+      "match": "api.bankr.bot/agent-profiles*",
+      "fixture": "bankr-profiles"
+    },
+    {
+      "match": "www.voxels.com/api/womps.json*",
+      "fixture": "voxels-womps"
+    }
   ]
 }

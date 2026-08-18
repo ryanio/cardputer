@@ -489,8 +489,10 @@ const char *statusText(int status)
 			return "unchanged";
 		case 404:
 			return "not found";
+		// A player who hears "wait a minute" will. One who hears "rate
+		// limited" presses again and makes it worse.
 		case 429:
-			return "rate limited";
+			return "asked too often, wait a minute";
 		case 500:
 		case 502:
 		case 503:

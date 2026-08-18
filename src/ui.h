@@ -103,6 +103,10 @@ void small(int x, int y, const char *text, uint16_t color);
 constexpr int WRAP_MAX = 44;
 int wrap(const char *text, int chars, char lines[][WRAP_MAX], int maxLines);
 
+// Dollars in the width a row can spare: $2.66M, $997.2K, $412. Zero and
+// negative read as unknown, because that is what a missing number means here.
+void usd(float value, char *out, size_t n);
+
 // Trim to a pixel budget in Font2, so a name cannot run underneath the number
 // sitting to its right.
 void fit(const char *text, int budget, char *out, size_t n);

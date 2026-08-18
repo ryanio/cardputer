@@ -238,6 +238,22 @@ def daily_playable(data):
         return "date is %r" % data.get("date")
 
 
+@rule("the daily round states top 10 concentration as a share of one")
+def daily_share_scale(data):
+    share = data.get("clues", {}).get("top10HolderShare")
+    if share is not None and not 0 <= share <= 1:
+        return ("top10HolderShare is %s, and the round view multiplies it by 100, so this would "
+                "draw a concentration in the thousands of percent" % share)
+
+
+@rule("the token endpoint states the same thing as a percent")
+def token_share_scale(data):
+    pct = data.get("holders", {}).get("topHoldersExInfraPct")
+    if pct is not None and not 0 <= pct <= 100:
+        return ("topHoldersExInfraPct is %s. The two endpoints disagree about scale on purpose "
+                "and the views correct for it, so a change here draws a wrong number" % pct)
+
+
 @rule("profiles come back ordered by market cap, descending")
 def bankr_ordered(data):
     caps = [p.get("marketCapUsd") for p in data.get("profiles", [])]
@@ -372,6 +388,7 @@ def build_checks():
                 Field("holders.count", int, nullable=True),
                 Field("holders.topHoldersExInfraPct", NUM, nullable=True),
             ],
+            rules=[token_share_scale],
         ),
         Check(
             "coral",
@@ -412,7 +429,7 @@ def build_checks():
                 Field("token.chain", str),
                 Field("token.address", str),
             ],
-            rules=[daily_playable],
+            rules=[daily_playable, daily_share_scale],
         ),
         Check(
             "coral", "https://api.0xcoral.com/api/v1/tokens/index?limit=8",

@@ -1,5 +1,6 @@
 #include <Arduino.h>
 
+#include <cctype>
 #include <cstring>
 
 #include "fixtures.h"
@@ -68,6 +69,12 @@ bool passphraseWorks()
 
 // The manifest's * stands for any run of characters, and nothing else is
 // special. Small enough to read, which matters more here than speed.
+//
+// Case is ignored, because Coral's /resolve answers with a checksummed address
+// and its /tokens echoes the same one in lower case, so a route written either
+// way has to match a URL written the other. Base58 addresses are case
+// sensitive in principle, and two of them differing only in case would have to
+// collide inside this one small table for that to matter.
 bool matches(const char *pattern, const char *text)
 {
 	if (*pattern == '\0') {
@@ -83,7 +90,8 @@ bool matches(const char *pattern, const char *text)
 			}
 		}
 	}
-	return *text != '\0' && *pattern == *text && matches(pattern + 1, text + 1);
+	return *text != '\0' && tolower((unsigned char)*pattern) == tolower((unsigned char)*text) &&
+	       matches(pattern + 1, text + 1);
 }
 
 // Fixtures are keyed without a scheme, the way the manifest reads.
@@ -363,6 +371,11 @@ const char *statusText(int status)
 	switch (status) {
 		case 200:
 			return "ok";
+		// Kept in step with the device's own table in src/net.cpp.
+		case 429:
+			return "asked too often, wait a minute";
+		case 404:
+			return "not found";
 		case ERR_NO_WIFI:
 			return "no wifi";
 		case ERR_NO_CREDENTIALS:
