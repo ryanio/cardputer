@@ -131,3 +131,35 @@ keep when someone shares a link and the unfurl needs a raster preview, which is
 what `og/token` is for. A game result is not a page, so the share is text the
 device composes itself from the round's `date` and `answer.score` plus the
 player's own guess. That needs nothing from the API.
+
+## voxels
+
+```
+GET https://www.voxels.com/api/womps.json?limit=1
+{"success":true,"womps":[{
+  "id":81301,
+  "author":{"name":"The_Philosopher","owner":"0xe330..."},
+  "image_url":"https://media.crvox.com/womps/0xe330.../womp_1787011729176_3a6d....jpg",
+  "coords":"NE@3575E,1963S,3U",
+  "parcel_address":"3 Snowman Palace",
+  "parcel_island":"Chronos",
+  "created_at":"2026-08-18T00:08:46.530Z"}]}
+```
+
+A womp is an in-world photo. The whole read API is unauthenticated GET and
+well documented at [voxels.com/api](https://www.voxels.com/api): 6 womp routes,
+7 wearable, 13 avatar, 20 parcel. Answers come wrapped as
+`{"success":true,"<field>":...}`, and a failed lookup returns `success:false`
+sometimes with status 200, so check the flag rather than the status.
+
+`/api/womps/{id}.jpg` does not exist. The picture is whatever `image_url`
+points at on `media.crvox.com`.
+
+Those images are around 128KB. The device has 320KB of RAM in total with the
+TLS stack already inside it, so this has to be a streaming block decode
+straight to the display, never a fetch-then-decode. Scale down during the
+decode rather than after.
+
+Live presence is the one thing the API does not cover, and deliberately: the
+docs say livekit, radio, metrics and the internal `/grid/*` routes are not
+described. Do not scrape it.

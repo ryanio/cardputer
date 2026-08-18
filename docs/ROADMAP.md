@@ -46,7 +46,26 @@ far more than it is designed.
 
 Done when: you push a build and all three units are running it without a cable.
 
-## Phase 3: the glyph atlas
+## Phase 3: the womp frame
+
+The cheapest fun in the whole plan. It reuses Phase 1's network stack and adds
+one new idea: pictures.
+
+- `GET https://www.voxels.com/api/womps.json?limit=1`, then draw whatever
+  `image_url` points at. Refresh on a slow timer; womps arrive in minutes, not
+  seconds.
+- **Stream the decode.** The JPEGs run about 128KB and the device has 320KB of
+  RAM with TLS already living in it. Decode block by block straight to the
+  panel, scaling during the decode. A fetch-then-decode will not fit.
+- Caption underneath: photographer, parcel address, island. The API gives all
+  three on the same row, so it costs nothing.
+- Check for PSRAM on the real hardware. M5 does not list any for the Stamp-S3A,
+  and the first build reported 320KB, which looks like internal SRAM alone. If
+  there is PSRAM after all, this phase gets much easier.
+
+Done when: a unit on the shelf quietly cycles the newest pictures in Voxels.
+
+## Phase 4: the glyph atlas
 
 The only part with real unknowns.
 
@@ -61,7 +80,7 @@ The only part with real unknowns.
 Done when: three units each hold a different bot and look good enough to hand
 someone.
 
-## Phase 4: the pet, which is where the ADV earns its keep
+## Phase 5: the pet, which is where the ADV earns its keep
 
 Settle one thing first: **real collection activity is too slow to be the food
 supply.** The most recent mint across the whole collection was 2026-08-11. A pet
@@ -91,7 +110,7 @@ activity is the rare event.
 Done when: it changes across a day of being ignored, and you can tell whose bot
 is whose with your eyes shut.
 
-## Phase 5: the Coral round
+## Phase 6: the Coral round
 
 `GET /api/v1/guess/daily` does the work server-side: one token a day, same for
 everyone, market facts as the clue and the score as the answer, one payload.
@@ -107,7 +126,7 @@ everyone, market facts as the clue and the score as the answer, one payload.
 
 Done when: a round is genuinely hard and you want another.
 
-## Phase 6: three of them
+## Phase 7: three of them
 
 Two tiers, because a unit you gave away is not in the room.
 
@@ -153,7 +172,7 @@ Cardputers cannot talk over it. Same on the original.
 Done when: two bots meeting produces something you would show a stranger, and a
 unit you gave away still shares your daily puzzle.
 
-## Phase 7: off the device
+## Phase 8: off the device
 
 - The share is text. The device has the date, `answer.score` and the guess.
 
@@ -170,7 +189,7 @@ unit you gave away still shares your daily puzzle.
   page.
 - A QR gets it off the device, pointing at a prefilled post.
 
-## Phase 8: Ask Coral
+## Phase 9: Ask Coral
 
 The keyboard's real purpose. Type a question, get an answer.
 
@@ -198,7 +217,7 @@ On the device:
   same question in the bot, where there is room to answer properly. The device
   gives you the gist; the phone gives you the rest.
 
-## Phase 9: a script layer
+## Phase 10: a script layer
 
 Compiled C++ always needs a flash. An interpreter does not.
 
