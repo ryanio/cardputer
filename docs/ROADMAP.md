@@ -109,17 +109,49 @@ Done when: a round is genuinely hard and you want another.
 
 ## Phase 6: three of them
 
-- ESP-NOW, no router. Mind the shared radio: a peered unit and a fetching unit
-  want different channels, so pick one per app state.
+Two tiers, because a unit you gave away is not in the room.
+
+### Same room: ESP-NOW
+
+Peer to peer on the 2.4GHz radio, no router, no internet. Payloads cap at ~250
+bytes, which a tokenId plus a few traits fits inside with room spare. Broadcast
+needs no pairing.
+
 - **Bots meet.** Bring two close, they trade tokenId, traits and rank. Shared
   traits give a compatibility, both get a mood boost, each remembers the other.
-  Bots that have met before greet each other by playing the other's tone. This
-  is the mode people film.
-- **Head to head.** Everyone already has the same daily token, so comparing
-  guesses needs no coordination at all.
-- Three units, so it is a tournament, not a duel.
+  Bots that have met before greet each other by playing the other's tone.
+- **Head to head.** Both units already hold the same daily token, so comparing
+  guesses needs no handshake at all. Three units makes it a tournament.
+- Mind the shared radio: ESP-NOW and WiFi want one channel between them, so a
+  peered unit and a fetching unit are doing incompatible things. Pick one per
+  app state.
 
-Done when: two bots meeting produces something you would show a stranger.
+### Passive: BLE advertising
+
+The sleeper feature for units that get given away. A Cardputer can notice
+another one nearby without pairing, without anyone opening a menu, without
+either person doing anything. Your bot meets a stranger's bot because both were
+in a bag at the same event. Cheap to add, and it is the encounter mechanic that
+works when neither owner is paying attention.
+
+### Anywhere: already free
+
+The daily round serves everyone the same token, so two people on different
+continents are playing the same puzzle with no server coordination. Comparing
+results needs nothing built. That is the property that makes a gifted unit still
+feel connected to yours.
+
+What is NOT free, and is a decision rather than a diff: persistence. A
+leaderboard, or bots remembering an encounter across devices, both need a write
+surface on Coral. Neither is planned.
+
+### Not available
+
+IR. The ADV has an emitter and no receiver, so it can blast a TV but two
+Cardputers cannot talk over it. Same on the original.
+
+Done when: two bots meeting produces something you would show a stranger, and a
+unit you gave away still shares your daily puzzle.
 
 ## Phase 7: off the device
 
@@ -185,7 +217,6 @@ Compiled C++ always needs a flash. An interpreter does not.
 Ideas the hardware allows that nothing yet needs. Left here rather than built.
 
 - IR emitter: no use. It is a TV blaster, and the stock firmware already has one.
-- BLE: the bot as a beacon nearby phones can see. Fun, no clear payoff.
 - 3.5mm jack: only matters if the pet gets a soundtrack.
 - LEGO holes: a three-unit desk dock, when there are three finished units.
 - Voice input: the mic is good enough, but there is no on-device speech to text,
