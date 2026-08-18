@@ -182,6 +182,10 @@ everyone, market facts as the clue and the score as the answer, one payload.
 - Free play: type a ticker into `/resolve` and score it. Live and slow, needs a
   spinner.
 
+Built, ahead of phases 1 to 5, because Coral is the story the broadcast tells.
+The streak counts from the dates the rounds carry rather than from the device
+clock, so it holds on a unit whose clock never landed.
+
 Done when: a round is genuinely hard and you want another.
 
 ## Phase 7: three of them

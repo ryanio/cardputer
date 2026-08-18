@@ -49,7 +49,11 @@ because the web build has no filesystem to read them from.
 
 A URL nothing matches fails with "no fixture" rather than inventing a body.
 That is deliberate twice over: a view's error state gets exercised, and a demo
-never shows one token's score under another token's name.
+never shows one token's score under another token's name. Every token is routed
+by its own address for the same reason, so a round shows its own numbers or
+says it has none. Coral's score endpoint rate limits hard enough that only a
+few tokens have a captured score, which is why guessing a ticker in the
+simulator reaches the reveal and then says Coral had no answer.
 
 Fixtures answer instantly, which hides the screen a view draws while it waits.
 `--latency 4000` holds every fetch for four seconds, which is roughly what a

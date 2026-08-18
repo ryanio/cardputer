@@ -17,7 +17,7 @@ pio run -t upload       # flash
 pio device monitor      # serial
 ```
 
-Green as of 2026-08-18: RAM 16.4%, flash 34.8% of the 3.3MB app slot.
+Green as of 2026-08-18: RAM 16.7%, flash 35.4% of the 3.3MB app slot.
 
 `tools/fmt.sh` applies the house style and `--check` enforces it.
 `tools/apicheck/check.py` asks all five sources whether they still answer the
@@ -47,6 +47,8 @@ Both run in CI, the second on a schedule.
 - **Womp JPEGs are ~128KB and RAM is 320KB with TLS inside it.** Stream the
   decode to the panel, scaling as you go. Never fetch-then-decode.
 - **Anything showing a Coral score shows its caveats and the Coral name.**
+  `src/coral.*` is the one place that draws one, so the rule has one
+  implementation rather than one per view.
 - **The status bar names the source of the current view** (GLYPHBOTS, GWEI,
   CORAL, VOXELS), not the app. It costs 10 rows, and a view that skips the
   title gets the other eight lines. A full screen view has no bar and paints
