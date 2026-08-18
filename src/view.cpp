@@ -110,7 +110,7 @@ void drawMenu()
 	g.setFont(&fonts::Font0);
 	g.setTextColor(ui::DIM, ui::BG);
 	g.setTextDatum(textdatum_t::top_left);
-	g.drawString("enter opens    ` backs out of anything", 4, HINT_Y);
+	g.drawString("enter opens    esc always backs out", 4, HINT_Y);
 }
 
 void drawActive()

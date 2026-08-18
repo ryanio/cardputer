@@ -1,0 +1,36 @@
+{
+  "_": [
+    "What the simulated network answers, and for which URL. Bodies are real",
+    "captures: tools/apicheck/check.py --save refreshes them from the live",
+    "sources, so a fixture that drifts from the API gets caught by the same",
+    "run that updates it.",
+    "",
+    "A match is the URL with the scheme stripped, and * stands for any run of",
+    "characters. First match wins, so put the specific route above the general",
+    "one. A URL nothing matches fails the fetch with 'no fixture', which is",
+    "the honest answer: the view then draws its own error state, and a demo",
+    "never shows one token's score under another token's name.",
+    "",
+    "tools/fixtures/bundle.py compiles this into sim/src/fixtures.h."
+  ],
+  "routes": [
+    {"match": "gwei.ryanio.com/api/gas/history*", "fixture": "gwei-history"},
+    {"match": "gwei.ryanio.com/api/gas*", "fixture": "gwei-gas"},
+
+    {"match": "www.glyphbots.com/api/bot/*/story", "fixture": "glyphbots-story"},
+    {"match": "www.glyphbots.com/api/bot/*", "fixture": "glyphbots-bot"},
+
+    {"match": "api.0xcoral.com/api/v1/resolve*", "fixture": "coral-resolve"},
+    {"match": "api.0xcoral.com/api/v1/guess/daily*", "fixture": "coral-daily"},
+    {"match": "api.0xcoral.com/api/v1/tokens/index*", "fixture": "coral-index"},
+    {"match": "api.0xcoral.com/api/v1/tokens/*", "fixture": "coral-token"},
+    {"match": "api.0xcoral.com/api/v1/score/base/0xc52aedec*", "fixture": "coral-score"},
+    {"match": "api.0xcoral.com/api/v1/score/base/0x5f980dcf*",
+     "fixture": "coral-score-0x5f980dcf"},
+
+    {"match": "api.bankr.bot/agent-profiles/*", "fixture": "bankr-profile"},
+    {"match": "api.bankr.bot/agent-profiles*", "fixture": "bankr-profiles"},
+
+    {"match": "www.voxels.com/api/womps.json*", "fixture": "voxels-womps"}
+  ]
+}

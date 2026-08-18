@@ -6,6 +6,7 @@
 #include <vector>
 
 #include "net.h"
+#include "net_sim.h"
 #include "store.h"
 #include "ui.h"
 #include "version.h"
@@ -183,6 +184,10 @@ void simArgs(int argc, char **argv)
 			shotPrefix = argv[++i];
 		} else if (strcmp(argv[i], "--quit-after") == 0 && more) {
 			quitAfter = (uint32_t)strtoul(argv[++i], nullptr, 10);
+		} else if (strcmp(argv[i], "--latency") == 0 && more) {
+			// Fixtures answer instantly, which hides the screen a view draws
+			// while it waits. Coral's score takes seconds on a real unit.
+			net::simLatency((uint32_t)strtoul(argv[++i], nullptr, 10));
 		}
 	}
 	tourStarted = millis();

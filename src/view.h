@@ -10,10 +10,13 @@
 // A view registers itself from its own file with VIEW_REGISTER, so adding one
 // never means editing a shared list. Menu position comes from the order field.
 //
-// The exit convention is enforced here, not in the views: the loop takes the
-// backtick and the G0 button before a view sees them and returns to the menu.
-// A view cannot trap anyone by forgetting to handle a key. Fn and backtick
-// together reach the view as a plain character, for text entry.
+// The exit convention is enforced here, not in the views: the loop takes esc,
+// which is the backtick key, and the G0 button before a view sees them and
+// returns to the menu. A view cannot trap anyone by forgetting to handle a
+// key. Fn and esc together reach the view as a plain backtick, for text entry.
+//
+// Hints on screen say esc rather than showing the character, because Font2
+// draws a backtick as a small raised circle that reads as a degree sign.
 //
 // The loop also draws the status bar, using the active view's source name. A
 // view never draws over the bottom 13 pixels.

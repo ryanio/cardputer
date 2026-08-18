@@ -217,9 +217,9 @@ void drawTyping()
 	ui::line(1, text);
 
 	ui::line(3, "enter saves and joins", ui::DIM);
-	ui::line(4, "del erases   ` cancels", ui::DIM);
+	ui::line(4, "del erases   esc cancels", ui::DIM);
 	if (!typingSsid) {
-		ui::line(5, "fn ` types a backtick", ui::DIM);
+		ui::line(5, "fn esc for a backtick", ui::DIM);
 	}
 }
 
