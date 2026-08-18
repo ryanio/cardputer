@@ -99,7 +99,6 @@ GET https://api.0xcoral.com/api/v1/guess/daily
    "explanation":{"headline":"...","bullets":[...],"caveats":[...]}},
  "token":{"chain":"ethereum","address":"0xb131f4a5..."}}
 
-GET https://api.0xcoral.com/api/v1/og/guess/{date}/{guess}  302 to the result card
 GET https://api.0xcoral.com/api/v1/tokens/index?limit=3     corpus of graded tokens
 GET https://api.0xcoral.com/api/v1/traction                 network aggregates
 GET https://api.0xcoral.com/api/v1/dashboard                latest reef pulse, prose
@@ -127,7 +126,8 @@ of waking the container. The clues are the market facts the score was computed
 over; the answer ships in the same payload, so a device fetches one round and can
 then play with the radio off. The token is deliberately unnamed.
 
-`og/guess/{date}/{guess}` renders that result as a 1200x630 card. The guess is
-the only value the URL supplies; the real score is read server-side from the
-stored round, so a crafted URL cannot fake one. This is what the QR on the result
-screen points at.
+There is deliberately no result-card endpoint. A rendered image only earns its
+keep when someone shares a link and the unfurl needs a raster preview, which is
+what `og/token` is for. A game result is not a page, so the share is text the
+device composes itself from the round's `date` and `answer.score` plus the
+player's own guess. That needs nothing from the API.

@@ -122,13 +122,24 @@ screen worth photographing. The rest is one hop.
 
 - A result screen designed to be photographed: final score, streak, bot, big
   and legible at arm's length.
-- QR on screen pointing at `GET /api/v1/og/guess/{date}/{guess}`, which 302s to
-  a rendered card showing the guess against the real score. Scan with a phone,
-  share it, and the post unfurls with Coral artwork instead of a blurry screen
-  photo. The device only supplies the guess; the real score comes from the
-  stored round, so the card cannot be faked from a hand-typed URL.
-- `GET /api/v1/og/token/{chain}/{address}` is the per-token card, for sharing a
-  token rather than a result.
+- The share is text, not an image. The device already has everything it needs:
+  the round's date, `answer.score`, and the player's own guess.
+
+  ```
+  Coral daily 2026-08-17
+  I said 61 · it was 48
+
+  0xcoral.com
+  ```
+
+  Two numbers and a date. Copy-pasteable, quotable, and it reads fine in a post
+  with no image attached, which is how Wordle's share worked. A rendered card was
+  built for this and deleted: an OG image only earns its keep when someone shares
+  a link and the unfurl needs a raster preview, and a game result is not a page.
+- A QR is still the way off the device, but it points at a prefilled post rather
+  than at an image.
+- `GET /api/v1/og/token/{chain}/{address}` stays useful for sharing a token
+  rather than a result, since a token page is a page.
 - The device never posts anything. It displays a code; a human decides.
 
 Done when: playing a round produces something worth posting without editing it.
