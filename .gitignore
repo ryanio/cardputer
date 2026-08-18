@@ -3,3 +3,4 @@ include/secrets.h
 *.bin
 *.elf
 .DS_Store
+sim-nvs-*.txt
