@@ -6,7 +6,7 @@ namespace store {
 
 namespace {
 
-constexpr const char *NAMESPACE = "coral";
+constexpr const char *NAMESPACE = "flint";
 
 Preferences prefs;
 bool opened = false;

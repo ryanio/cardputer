@@ -21,7 +21,7 @@ constexpr int CARD_H = 50;
 constexpr int HINT_Y = 113;
 constexpr int VISIBLE = COLS * GRID_ROWS;
 constexpr uint32_t STATUS_MS = 2000;
-constexpr const char *MENU_SOURCE = "coral " FW_VERSION;
+constexpr const char *MENU_SOURCE = "flint " FW_VERSION;
 constexpr const char *SELECTED_KEY = "sys.view";
 
 // Registration runs before setup, so the list lives inside the function and is

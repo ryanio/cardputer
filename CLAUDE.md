@@ -1,6 +1,7 @@
-# cardputer
+# flint
 
-Coral app for the M5Stack Cardputer ADV. Arduino under PlatformIO.
+Firmware for the M5Stack Cardputer ADV. Arduino under PlatformIO. Coral is one
+of the sources it reads, not the name of the thing.
 `AGENTS.md` is a symlink to this file.
 
 - [README.md](README.md) hardware, build, layout

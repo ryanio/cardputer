@@ -23,7 +23,7 @@ bool probed = false;
 
 void bootReport()
 {
-	Serial.printf("\ncoral %s, built %s %s\n", FW_VERSION, __DATE__, __TIME__);
+	Serial.printf("\nflint %s, built %s %s\n", FW_VERSION, __DATE__, __TIME__);
 	Serial.printf("chip %s rev %d, %d cores at %u MHz\n", ESP.getChipModel(),
 	              (int)ESP.getChipRevision(), (int)ESP.getChipCores(),
 	              (unsigned)getCpuFrequencyMhz());
@@ -50,7 +50,7 @@ void bootCard()
 {
 	char text[40];
 	ui::clearBody();
-	ui::title("coral " FW_VERSION);
+	ui::title("flint " FW_VERSION);
 
 	snprintf(text, sizeof(text), "heap  %u KB free", (unsigned)(ESP.getFreeHeap() / 1024));
 	ui::line(0, text);
@@ -59,7 +59,7 @@ void bootCard()
 	snprintf(text, sizeof(text), "flash %u KB", (unsigned)(ESP.getFlashChipSize() / 1024));
 	ui::line(2, text);
 	ui::line(4, net::haveCredentials() ? "joining wifi" : "wifi: open Setup", ui::DIM);
-	ui::statusBar("coral " FW_VERSION);
+	ui::statusBar("flint " FW_VERSION);
 }
 
 void probe()

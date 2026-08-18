@@ -36,7 +36,7 @@ constexpr int HANDSHAKE_TIMEOUT_S = 12;
 // UTC and localtime_r gives the boundary for free.
 constexpr const char *TZ_ET = "EST5EDT,M3.2.0,M11.1.0/2";
 
-constexpr const char *USER_AGENT = "cardputer-coral/" FW_VERSION;
+constexpr const char *USER_AGENT = "cardputer-flint/" FW_VERSION;
 
 // Any time after this is a clock that SNTP has actually set.
 constexpr time_t CLOCK_SANE = 1735689600;  // 2025 01 01

@@ -1,6 +1,7 @@
-# cardputer
+# flint
 
-Coral app for the M5Stack Cardputer ADV. Five views over
+Firmware for the M5Stack Cardputer ADV. Eight apps: a drum machine, a breathing
+coach, and six views over
 [coral](https://0xcoral.com), [bankr](https://bankr.bot),
 [glyphbots](https://www.glyphbots.com), [voxels](https://www.voxels.com) and
 [gwei](https://gwei.ryanio.com).

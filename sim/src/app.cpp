@@ -135,7 +135,7 @@ void simSetup()
 	ui::begin();
 	store::begin();
 
-	Serial.printf("\ncoral %s in the simulator\n", FW_VERSION);
+	Serial.printf("\nflint %s in the simulator\n", FW_VERSION);
 	Serial.println("keys: arrows move, enter opens, escape backs out, alt is fn");
 	Serial.println("      home or F1 is the G0 button\n");
 
