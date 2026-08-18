@@ -193,6 +193,14 @@ def history_spacing(data):
         return "median gap is %dms, so a 240px sparkline would need downsampling" % typical
 
 
+@rule("history points arrive in time order")
+def history_ordered(data):
+    points = data.get("points", [])
+    times = [p.get("t") for p in points if isinstance(p.get("t"), int)]
+    if any(times[i] > times[i + 1] for i in range(len(times) - 1)):
+        return "out of order, and the sparkline plots them along a time axis, so it would zigzag"
+
+
 @rule("colors are the hsl(h,s%,l%) form ui::parseHsl takes")
 def hsl_shape(data):
     colors = data.get("bot", {}).get("unicode", {}).get("colors", {})
@@ -325,7 +333,7 @@ def build_checks():
                 Field("low24h", NUM, nullable=True),
                 Field("high24h", NUM, nullable=True),
             ],
-            rules=[history_spacing],
+            rules=[history_spacing, history_ordered],
         ),
         Check(
             "glyphbots", "https://www.glyphbots.com/api/bot/1",
