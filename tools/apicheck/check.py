@@ -502,6 +502,23 @@ def build_checks():
             ],
         ),
         Check(
+            "voxels", "https://www.voxels.com/api/womps/81301.json",
+            fixture="voxels-womp-81301",
+            fields=[
+                Field("success", bool),
+                Field("womp.id", int),
+                Field("womp.image_url", str),
+                Field("womp.author.name", str, nullable=True),
+                Field("womp.coords", str, nullable=True),
+                Field("womp.parcel_address", str, nullable=True),
+                Field("womp.parcel_island", str, nullable=True),
+                Field("womp.created_at", str),
+            ],
+            # The list endpoint ignores offset, so browsing walks ids down and
+            # this is the call that makes that possible.
+            rules=[womp_success],
+        ),
+        Check(
             "voxels", "https://www.voxels.com/api/womps.json?limit=3",
             fixture="voxels-womps",
             fields=[

@@ -61,6 +61,12 @@ inline String operator+(const String &a, const char *b)
 
 // Only a declaration is needed: net.h names Stream in a signature and the
 // simulator's network never hands one out.
+// The name of the guard matters as much as the class: M5GFX only exposes its
+// drawJpg(Stream*) overloads when Stream_h is defined, which is how the real
+// Arduino core announces this header. Without it the simulator cannot stream a
+// JPEG at the panel and the womp view would not compile here.
+#define Stream_h
+
 class Stream {
 public:
 	virtual ~Stream() = default;
@@ -75,6 +81,12 @@ public:
 	virtual size_t readBytes(char *, size_t)
 	{
 		return 0;
+	}
+	// The decoder reads into a byte buffer, and Arduino's Stream carries both
+	// spellings, so this one does too.
+	virtual size_t readBytes(uint8_t *into, size_t want)
+	{
+		return readBytes((char *)into, want);
 	}
 };
 

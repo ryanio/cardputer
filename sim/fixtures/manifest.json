@@ -148,6 +148,23 @@
     {
       "match": "www.voxels.com/api/womps.json*",
       "fixture": "voxels-womps"
+    },
+    {
+      "match": "www.voxels.com/api/womps/81300.json",
+      "fixture": "voxels-womp-81300"
+    },
+    {
+      "match": "www.voxels.com/api/womps/81301.json",
+      "fixture": "voxels-womp-81301"
+    },
+    {
+      "match": "www.voxels.com/api/womps/81302.json",
+      "fixture": "voxels-womp-81302"
+    },
+    {
+      "match": "media.crvox.com/womps/0xe330dc28b47d73884ad88837aecfee1f49ad7e7b/womp_1787066194882_4f58dcb09f559cea97102918422c6c5c.jpg",
+      "fixture": "voxels-image-81302",
+      "binary": true
     }
   ]
 }

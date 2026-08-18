@@ -28,6 +28,7 @@ HEADER = """#pragma once
 // one answers, and tools/apicheck/check.py --save refreshes them from live.
 
 #include <cstddef>
+#include <cstdint>
 
 namespace fixtures {
 
@@ -59,24 +60,50 @@ def render():
     with open(MANIFEST) as handle:
         manifest = json.load(handle)
 
-    parts = [HEADER, "inline constexpr Route ROUTES[] = {\n"]
+    blobs = []
+    parts = [HEADER]
     total = 0
+    rows = []
     for route in manifest["routes"]:
         name = route["fixture"]
-        path = os.path.join(FIXTURE_DIR, name + ".json")
+        # A womp is a JPEG, and the panel decodes it from the stream, so the
+        # simulator has to hand over the same bytes rather than a description
+        # of them.
+        binary = route.get("binary", False)
+        path = os.path.join(FIXTURE_DIR, name + (".jpg" if binary else ".json"))
         if not os.path.exists(path):
             raise SystemExit("%s is in the manifest but %s does not exist. Run "
                              "tools/apicheck/check.py --save." % (name, os.path.relpath(path, ROOT)))
-        with open(path) as handle:
-            body = handle.read().strip()
-        json.loads(body)  # a fixture that is not JSON is a bug, not a payload
-        # Size is in bytes, not characters. A payload with any non ASCII in it
-        # is longer than it looks, and a short count truncates the parse.
-        size = len(body.encode("utf-8"))
+
+        if binary:
+            with open(path, "rb") as handle:
+                blob = handle.read()
+            size = len(blob)
+            symbol = "BLOB_%s" % name.replace("-", "_").upper()
+            body = ["inline constexpr uint8_t %s[] = {\n" % symbol]
+            for i in range(0, size, 16):
+                body.append("    " + ", ".join("0x%02x" % b for b in blob[i:i + 16]) + ",\n")
+            body.append("};\n\n")
+            blobs.append("".join(body))
+            rows.append('\t{"%s", "%s",\n\t (const char *)%s,\n\t %d},\n'
+                        % (route["match"], name, symbol, size))
+        else:
+            with open(path) as handle:
+                body = handle.read().strip()
+            json.loads(body)  # a fixture that is not JSON is a bug, not a payload
+            # Size is in bytes, not characters. A payload with any non ASCII in
+            # it is longer than it looks, and a short count truncates the parse.
+            size = len(body.encode("utf-8"))
+            mark = delimiter(body)
+            rows.append('\t{"%s", "%s",\n\t R"%s(%s)%s",\n\t %d},\n'
+                        % (route["match"], name, mark, body, mark, size))
         total += size
-        mark = delimiter(body)
-        parts.append('\t{"%s", "%s",\n\t R"%s(%s)%s",\n\t %d},\n'
-                     % (route["match"], name, mark, body, mark, size))
+
+    parts += blobs
+    # const rather than constexpr: a JPEG blob is a byte array and the cast to
+    # char is not a constant expression. The table still lands in flash.
+    parts.append("inline const Route ROUTES[] = {\n")
+    parts += rows
     parts.append("};\n")
     parts.append(FOOTER)
     return "".join(parts), len(manifest["routes"]), total
