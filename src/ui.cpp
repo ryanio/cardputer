@@ -178,7 +178,10 @@ void title(const char *text, uint16_t color)
 	g.fillRect(0, 0, W, TITLE_H, BG);
 	g.setFont(&fonts::Font2);
 	drawClipped(text, 3, 0, W - 6, color, BG, textdatum_t::top_left);
-	g.drawFastHLine(0, TITLE_H - 2, W, RULE);
+	// A descender in the title reaches the row above TITLE_H, so the rule sits
+	// one lower than it looks like it should: at TITLE_H - 2 the tail of a p or
+	// a g lands on the line.
+	g.drawFastHLine(0, TITLE_H - 1, W, RULE);
 	contentTop_ = TITLE_H;
 }
 
@@ -311,7 +314,7 @@ void statusBar(const char *source, const char *note)
 	if (source != nullptr) {
 		g.setTextColor(DIM, BAR);
 		g.setTextDatum(textdatum_t::top_left);
-		g.drawString(source, 3, top + 1);
+		g.drawString(source, 3, top + 3);
 	}
 
 	// Battery on the right. M5Unified answers -1 on hardware it cannot read,
@@ -328,12 +331,12 @@ void statusBar(const char *source, const char *note)
 	const uint16_t batteryColor = charging ? GOOD : (level < 0 ? DIM : (level > 40 ? FG : (level > 15 ? WARN : BAD)));
 	g.setTextColor(batteryColor, BAR);
 	g.setTextDatum(textdatum_t::top_right);
-	g.drawString(battery, W - 3, top + 1);
+	g.drawString(battery, W - 3, top + 3);
 	const int batteryWidth = g.textWidth(battery);
 
 	// Radio state as one dot, left of the battery.
 	const int dotX = W - 8 - batteryWidth;
-	g.fillCircle(dotX, top + 5, 2, radioColor());
+	g.fillCircle(dotX, top + 6, 2, radioColor());
 
 	if (note != nullptr && note[0] != '\0') {
 		const int left = 3 + g.textWidth(source == nullptr ? "" : source) + 6;
@@ -345,7 +348,7 @@ void statusBar(const char *source, const char *note)
 			while (cut.length() > 1 && (int)g.textWidth(cut.c_str()) > width) {
 				cut.remove(cut.length() - 1);
 			}
-			g.drawString(cut.c_str(), left, top + 1);
+			g.drawString(cut.c_str(), left, top + 3);
 		}
 	}
 }

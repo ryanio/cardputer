@@ -16,8 +16,8 @@ namespace ui {
 constexpr int W = 240;
 constexpr int H = 135;
 
-constexpr int STATUS_H = 10;         // the bottom bar, drawn by view::loop
-constexpr int BODY_H = H - STATUS_H; // 125
+constexpr int STATUS_H = 12;         // the bottom bar, drawn by view::loop
+constexpr int BODY_H = H - STATUS_H; // 123
 constexpr int TITLE_H = 18;          // title band, when a view draws one
 constexpr int LINE_H = 15;
 constexpr int LINES = 7;             // body rows under a title
