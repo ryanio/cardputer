@@ -77,13 +77,49 @@ Done when: a unit on the shelf quietly cycles the newest pictures in Voxels.
 
 The only part with real unknowns.
 
+Every bot has a canonical render at
+`media.glyphbots.com/bots/pngs/{tokenId}.png`, 3000x2250, and that is how
+anyone who has seen a GlyphBot has seen it. The device never fetches one, but
+it is the reference the atlas gets checked against, and measuring three of them
+settles the layout:
+
+- Character advance 144.5px, uniform. A space is a full empty cell, never
+  collapsed.
+- Line pitch exactly 300px, so a cell is 1 by 2.076 and **not square**. A `│`
+  draws the full 300px of its line box while a `■` fills 144x144 inside it. A
+  square atlas breaks every vertical connector in the collection.
+- Every line is centered on the canvas center, whatever its length.
+- Colors are exactly the payload's `hsl()` values. Through RGB565 a background
+  of (19,24,16) comes back (16,24,16), which nobody can see.
+- Every bot sampled is four lines and at most seven cells wide (12 bots,
+  2026-08-17).
+
+That sizes the cell against the screen rather than the font. Four lines in the
+122px body puts the pitch at 30 at most, so the advance is about 14.5 and the
+cell is roughly 14x30. A bot then occupies about 101x120 and leaves 135px for
+name and rank.
+
 - Generator fetches `GET /api/bots/facets`, extracts the distinct non-ASCII
   glyphs across every trait value (105 as of 2026-08-17), renders each to a mono
   bitmap, emits a C header plus a codepoint lookup.
-- Size the cell against the screen, not the font. Four lines on 135px means
-  roughly 24x24 with room for a name and rank.
+- All 105 are single width, but 71 are East Asian Ambiguous, the class that
+  goes double width in some contexts. The reference renders them narrow, so the
+  atlas does too.
 - `GET /api/bot/{tokenId}`, render `unicode.textContent` through the atlas,
   `unicode.colors` converted from `hsl()` to RGB565.
+
+Checking it needs no hardware. Put the bot layout in one pure function over a
+small canvas interface and compile it for the host as well as the firmware,
+then compare against the reference in cell units, since 240x135 against
+3000x2250 makes a pixel diff meaningless. Four assertions per bot: line
+centering offset, advance and pitch ratios, ink coverage per cell, and ink
+centroid within the cell. The last two catch a wrong glyph, one drawn too small
+in its cell, or a space that collapsed. Run it over tokenIds picked to cover
+all 105 glyphs.
+
+Open: which font the PNG generator uses. Spacing is settled, shapes are not,
+and the same harness answers it by rendering candidates and comparing ink
+signatures per glyph.
 
 Done when: three units each hold a different bot and look good enough to hand
 someone.

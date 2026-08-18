@@ -61,6 +61,13 @@ character sheet, and it is what the pet is built on rather than a bare hunger ba
 A GlyphBot is not an image. It is four short lines of Unicode plus a foreground
 and background color, which is already a display format for a 240x135 screen.
 
+There is a rendered PNG per bot at
+`https://media.glyphbots.com/bots/pngs/{tokenId}.png`, 3000x2250, and it is
+what an unfurl or a marketplace shows. The device never fetches one, since that
+is a 3000x2250 raster of four lines of text it already has. It matters as the
+reference the glyph atlas is measured against on a host, where it pins the
+advance, the line pitch and the centering. See [ROADMAP.md](ROADMAP.md).
+
 The collection's full alphabet is 105 distinct non-ASCII glyphs across all
 11,111 bots, counted from `/api/bots/facets`. Stock ESP32 fonts carry none of
 them, so the firmware ships a generated bitmap atlas of those 105. See the
