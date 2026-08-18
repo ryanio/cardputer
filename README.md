@@ -1,17 +1,23 @@
 # cardputer
 
-Coral app for the M5Stack Cardputer ADV. Four views over
-[coral](https://0xcoral.com), [glyphbots](https://www.glyphbots.com),
-[gwei](https://gwei.ryanio.com) and [voxels](https://www.voxels.com).
+Coral app for the M5Stack Cardputer ADV. Five views over
+[coral](https://0xcoral.com), [bankr](https://bankr.bot),
+[glyphbots](https://www.glyphbots.com), [voxels](https://www.voxels.com) and
+[gwei](https://gwei.ryanio.com).
+
+**[ryanio.github.io/cardputer](https://ryanio.github.io/cardputer/)** has the
+screenshots and how to run it without hardware.
 
 | View | Source | Shows |
 |------|--------|-------|
-| Gas | gwei | Base fee, three speed tiers, 24h sparkline, threshold alarm |
-| Bot | glyphbots | A GlyphBot from its Unicode genome, raised as a pet |
 | Reef | coral | The daily Coral Score guessing round |
+| Bankr | bankr | Agents by market cap and weekly revenue, scored through Coral |
+| Bot | glyphbots | A GlyphBot from its Unicode genome, raised as a pet |
 | Womp | voxels | The latest in-world photo, as a desk frame |
+| Gas | gwei | Base fee, three speed tiers, 24h sparkline, threshold alarm |
 
-- [docs/API.md](docs/API.md) the four APIs, verified shapes, rate limits
+- [docs/API.md](docs/API.md) the five APIs, verified shapes, rate limits
+- [sim/README.md](sim/README.md) the simulator, and how it takes screenshots
 - [docs/ROADMAP.md](docs/ROADMAP.md) build order
 - [CLAUDE.md](CLAUDE.md) rules
 
