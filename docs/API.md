@@ -1,9 +1,9 @@
-# The four sources
+# The five sources
 
 Every endpoint below was probed live on 2026-08-17. Response bodies are trimmed
 to the fields the firmware reads.
 
-All four are public, unauthenticated JSON over HTTPS. No API key ever reaches
+All five are public, unauthenticated JSON over HTTPS. No API key ever reaches
 the device, so there is nothing to leak in a flashed binary and nothing to
 rotate.
 
@@ -105,7 +105,7 @@ GET https://api.0xcoral.com/api/v1/guess/daily
    "explanation":{"headline":"...","bullets":[...],"caveats":[...]}},
  "token":{"chain":"ethereum","address":"0xb131f4a5..."}}
 
-GET https://api.0xcoral.com/api/v1/tokens/index?limit=3     corpus of graded tokens
+GET https://api.0xcoral.com/api/v1/tokens/index?limit=3     corpus of graded tokens, {chain, address}
 GET https://api.0xcoral.com/api/v1/traction                 network aggregates
 GET https://api.0xcoral.com/api/v1/dashboard                latest reef pulse, prose
 GET https://api.0xcoral.com/api/v1/og/token/{chain}/{address}  302 to a rendered card
@@ -126,6 +126,11 @@ Score is a heavy full lookup that self-rate-limits and took several seconds when
 probed. It is request-response with a spinner, never a poll. Typing a ticker into
 `/resolve` and scoring the result is the on-demand path.
 
+`tokens/index` returns just `{chain, address}` per entry, which makes a random
+round a single extra fetch: pick one, then score it. Together with `resolve`
+that gives the Reef view three ways in, a daily round everyone shares, a ticker
+someone types, and a random token from the graded corpus.
+
 `guess/daily` is the game path and it sidesteps all of that. One token a day, the
 same for everybody, precomputed once into KV, so it answers from the edge instead
 of waking the container. The clues are the market facts the score was computed
@@ -137,6 +142,36 @@ keep when someone shares a link and the unfurl needs a raster preview, which is
 what `og/token` is for. A game result is not a page, so the share is text the
 device composes itself from the round's `date` and `answer.score` plus the
 player's own guess. That needs nothing from the API.
+
+## bankr
+
+```
+GET https://api.bankr.bot/agent-profiles?limit=5
+{"profiles":[{"slug":"surplus-intelligence","projectName":"Surplus Intelligence",
+  "tokenSymbol":"Surplus","tokenName":"...","tokenAddress":"0xc52aedec...","tokenChainId":"base",
+  "marketCapUsd":3143563.615,"vol24hUsd":...,"weeklyRevenueWeth":"1.568400",
+  "description":"...","twitterUsername":"...","website":"...","profileImageUrl":"...",
+  "productsCount":3,"tags":[...],"createdAt":"..."}, ...],
+ "total":113,"limit":5,"offset":0}
+
+GET https://api.bankr.bot/agent-profiles/{slug}          one profile
+GET https://api.bankr.bot/agent-profiles/{slug}/tweets   recent posts
+```
+
+Probed live 2026-08-18: 113 agents, ordered by market cap, `limit` and `offset`
+both honoured. This is the one Bankr surface that needs no key, which is the
+only reason the device can read it: the Agent and Wallet APIs are `X-API-Key`
+and would put a secret on a unit we give away.
+
+**Every profile carries `tokenAddress` and `tokenChainId: "base"`, which is
+exactly what Coral's score endpoint takes.** That cross is the point of the
+view: Bankr says which agents are earning, Coral says what its own read of the
+token is. Scoring one took 6.6s when probed, so it needs a spinner and it
+carries the caveats like any other score.
+
+If a personal view is ever wanted, Bankr keys can be scoped `readOnly` with an
+IP allowlist, so a leaked one cannot move money. Typed on the device, never
+compiled in, same as WiFi. Not built.
 
 ## voxels
 
@@ -161,6 +196,12 @@ sometimes with status 200, so check the flag rather than the status.
 `/api/womps/{id}.jpg` does not exist. The picture is whatever `image_url`
 points at on `media.crvox.com`.
 
+`limit` works and `offset` is ignored: asking for offset 3 returns the same
+three newest womps. But `GET /api/womps/{id}.json` resolves any single womp and
+ids are sequential, so browsing backwards means taking the newest id and
+walking down. There is no popularity or view count in the payload, so "notable"
+is not something this API can answer.
+
 Those images are around 128KB. The device has 320KB of RAM in total with the
 TLS stack already inside it, so this has to be a streaming block decode
 straight to the display, never a fetch-then-decode. Scale down during the
@@ -183,7 +224,9 @@ Both ship in `src/ca_roots.h`, which carries the fetch and verify commands for
 refreshing them. mbedtls parses concatenated PEM, so one `setCACert` call takes
 the set and no host is pinned. Never ship `setInsecure()`.
 
-A third root rides along for the updater rather than for any source here:
+Two more ride along. `api.bankr.bot` sits behind Amazon, not Google, so it
+needs **Amazon Root CA 1** and would have failed TLS without it. And for the
+updater rather than for any source here:
 `api.github.com` chains to Sectigo Public Server Authentication Root E46, so a
 version check would fail TLS without it. The release download itself lands on
 ISRG Root YR, which the womp images already needed.
