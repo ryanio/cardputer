@@ -4,3 +4,4 @@ include/secrets.h
 *.elf
 .DS_Store
 sim-nvs-*.txt
+tools/glyphs/.fonts/
