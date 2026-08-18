@@ -37,5 +37,24 @@ convention, the row grid, NVS behaviour, and every pixel the panel draws.
 Simulated, in `sim/`: the keyboard comes from SDL, the battery is a number, and
 the network answers from `net_sim.cpp` with a fixed list of fake access points.
 A passphrase under eight characters fails, so the join failure path has
-something to fail on. HTTP has no fixtures yet and says so rather than
-pretending to fetch.
+something to fail on.
+
+## Fetches
+
+A fetch answers from `sim/fixtures`, which are real captures rather than
+invented bodies: `tools/apicheck/check.py --save` refreshes them from the live
+sources and `tools/fixtures/bundle.py` compiles them into `sim/src/fixtures.h`,
+because the web build has no filesystem to read them from.
+`sim/fixtures/manifest.json` says which URL each one answers.
+
+A URL nothing matches fails with "no fixture" rather than inventing a body.
+That is deliberate twice over: a view's error state gets exercised, and a demo
+never shows one token's score under another token's name.
+
+Fixtures answer instantly, which hides the screen a view draws while it waits.
+`--latency 4000` holds every fetch for four seconds, which is roughly what a
+Coral score costs on a real unit.
+
+```bash
+.pio/build/sim/program --latency 4000 --keys "\n" --shot /tmp/frame
+```

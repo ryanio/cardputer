@@ -1,6 +1,14 @@
 # The five sources
 
-Every endpoint below was probed live on 2026-08-17. Response bodies are trimmed
+Every endpoint below was probed live on 2026-08-17, and
+[tools/apicheck/check.py](../tools/apicheck/check.py) asks all of them again on
+demand and every morning in CI. It asserts the fields and the invariants the
+firmware reads, over TLS trusted by the exact roots in `src/ca_roots.h`, so a
+source that changes shape or rotates onto a root we do not carry fails there
+first. `--save` writes each answer into `sim/fixtures`, which is what the
+simulator serves.
+
+ Response bodies are trimmed
 to the fields the firmware reads.
 
 All five are public, unauthenticated JSON over HTTPS. No API key ever reaches
@@ -55,7 +63,9 @@ GET https://www.glyphbots.com/api/artifacts/recent  collection-wide mint activit
 
 The story is a separate endpoint from the bot, which is easy to miss: `/api/bot/1`
 does not carry any of it. Every bot has an arc with a faction, a role, a mission
-with an objective and a threat, and named abilities with cooldowns. That is a
+with an objective and a threat, and three named abilities. Two of them cost
+time and carry a `cooldown`; the third costs a `resource` instead and has no
+cooldown field at all, which is easy to miss and is checked for. That is a
 character sheet, and it is what the pet is built on rather than a bare hunger bar.
 
 A GlyphBot is not an image. It is four short lines of Unicode plus a foreground
@@ -159,12 +169,16 @@ GET https://api.bankr.bot/agent-profiles/{slug}/tweets   recent posts
 ```
 
 Probed live 2026-08-18: 113 agents, ordered by market cap, `limit` and `offset`
-both honoured. This is the one Bankr surface that needs no key, which is the
+both honoured, and `limit` refuses anything over 100. This is the one Bankr surface that needs no key, which is the
 only reason the device can read it: the Agent and Wallet APIs are `X-API-Key`
 and would put a secret on a unit we give away.
 
-**Every profile carries `tokenAddress` and `tokenChainId: "base"`, which is
-exactly what Coral's score endpoint takes.** That cross is the point of the
+**Almost every profile carries `tokenAddress` and a `tokenChainId`, which is
+exactly what Coral's score endpoint takes.** Two things the shape does not
+promise: 12 of the 113 are on `robinhood` rather than `base`, and one profile
+has no token at all, so `tokenAddress`, `tokenSymbol` and `marketCapUsd` are
+absent rather than null. Coral answers for both chains. A view that assumes
+every row has a token draws a blank line for that one. That cross is the point of the
 view: Bankr says which agents are earning, Coral says what its own read of the
 token is. Scoring one took 6.6s when probed, so it needs a spinner and it
 carries the caveats like any other score.

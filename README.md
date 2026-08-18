@@ -40,6 +40,14 @@ pio run -t upload
 pio device monitor
 ```
 
+Three checks, all runnable without a device:
+
+```bash
+tools/fmt.sh                  # apply the house style, --check to enforce it
+tools/apicheck/check.py       # ask the five sources whether they still fit
+pio run -e sim -t exec        # the simulator, which is how a view gets looked at
+```
+
 WiFi is typed on the device, under Setup in the menu, and kept in NVS. That is
 what makes a unit usable by whoever you give it to. For a dev unit that joins
 on first boot, `cp include/secrets.h.example include/secrets.h` and fill it in;
@@ -58,7 +66,10 @@ Older versions read no keys on this board.
 | `src/view.*` | view registry, menu, input, the exit convention |
 | `src/store.*` | NVS settings |
 | `src/views/*.cpp` | one file per view, each registering itself |
-| `src/ca_roots.h` | the two root CAs every host chains to |
+| `src/ca_roots.h` | the root CAs every host chains to |
+| `sim/` | the simulator, and the captured fixtures its network answers from |
+| `tools/apicheck/` | the contract check over all five sources |
+| `tools/fixtures/` | compiles the captures into a header the simulator links |
 
 The four spine headers are frozen. A view adds itself with `VIEW_REGISTER`
 and never edits them.

@@ -17,7 +17,12 @@ pio run -t upload       # flash
 pio device monitor      # serial
 ```
 
-Green as of 2026-08-17: RAM 15.3%, flash 33.2% of the 3.3MB app slot.
+Green as of 2026-08-18: RAM 16.4%, flash 34.8% of the 3.3MB app slot.
+
+`tools/fmt.sh` applies the house style and `--check` enforces it.
+`tools/apicheck/check.py` asks all five sources whether they still answer the
+way the firmware reads, and `--save` refreshes the simulator's fixtures.
+Both run in CI, the second on a schedule.
 
 ## Traps
 
