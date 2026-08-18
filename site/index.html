@@ -4,9 +4,9 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>coral on a Cardputer</title>
-<meta name="description" content="A handheld for the daily Coral round, the Bankr agent leaderboard, a GlyphBot, the newest Voxels photo and live gas. 240x135, no secrets on the device, and a simulator so you can try it without one.">
+<meta name="description" content="A handheld for Coral, Bankr, GlyphBots, Voxels and gwei. 240x135, nothing to sign in to, and the real firmware runs in your browser.">
 <meta property="og:title" content="coral on a Cardputer">
-<meta property="og:description" content="Five public APIs on a 240x135 screen. Try it in the simulator without hardware.">
+<meta property="og:description" content="Five public APIs on a 240x135 screen. The real firmware runs in your browser.">
 <meta property="og:type" content="website">
 <style>
   :root {
@@ -16,8 +16,6 @@
     --text: #e8e8ea;
     --dim: #9a9aa2;
     --coral: #ff7f50;
-    --good: #3ddc84;
-    --warn: #ffb020;
     --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
   }
   * { box-sizing: border-box; }
@@ -25,120 +23,103 @@
     margin: 0;
     background: var(--bg);
     color: var(--text);
-    font: 16px/1.65 system-ui, -apple-system, "Segoe UI", sans-serif;
+    font: 16px/1.6 system-ui, -apple-system, "Segoe UI", sans-serif;
     -webkit-font-smoothing: antialiased;
   }
-  .wrap { max-width: 940px; margin: 0 auto; padding: 0 24px; }
+  .wrap { max-width: 900px; margin: 0 auto; padding: 0 24px; }
   a { color: var(--coral); }
-  h1, h2, h3 { line-height: 1.2; letter-spacing: -0.01em; }
-  h2 { font-size: 1.5rem; margin: 0 0 8px; }
-  h3 { font-size: 1rem; margin: 0 0 4px; }
-  p { margin: 0 0 16px; }
-  section { padding: 56px 0; border-top: 1px solid var(--line); }
-  .lede { color: var(--dim); max-width: 62ch; }
+  h1, h2 { line-height: 1.15; letter-spacing: -0.02em; margin: 0 0 12px; }
+  h2 { font-size: 1.35rem; }
+  p { margin: 0 0 14px; }
+  .dim { color: var(--dim); }
+  section { padding: 48px 0; border-top: 1px solid var(--line); }
 
-  header { padding: 72px 0 8px; }
+  header { position: relative; padding: 64px 0 28px; overflow: hidden; }
+  header svg.art { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 0; }
+  header > *:not(svg) { position: relative; z-index: 1; }
   .kicker {
-    font: 600 12px/1 var(--mono);
-    letter-spacing: 0.14em;
+    font: 600 11px/1 var(--mono);
+    letter-spacing: 0.18em;
     text-transform: uppercase;
     color: var(--coral);
-    margin-bottom: 20px;
+    margin-bottom: 18px;
   }
-  header h1 { font-size: clamp(2rem, 6vw, 3.2rem); margin: 0 0 16px; }
-  header .lede { font-size: 1.12rem; }
+  header h1 { font-size: clamp(1.9rem, 5.4vw, 2.9rem); max-width: 19ch; }
+  header p { color: var(--dim); max-width: 48ch; }
 
-  /* Panels are 240x135. Scale by whole numbers and keep the pixels square. */
-  .screen {
-    display: block;
-    width: 100%;
-    height: auto;
-    image-rendering: pixelated;
-    background: #000;
-    border: 1px solid var(--line);
-    border-radius: 6px;
-  }
-  .hero { display: grid; grid-template-columns: 1fr 1fr; gap: 32px; align-items: center; margin: 32px 0 8px; }
-  .hero .screen { border-radius: 10px; }
-  .caption { font: 12px/1.5 var(--mono); color: var(--dim); margin-top: 10px; }
-
-  .actions { display: flex; flex-wrap: wrap; gap: 12px; margin: 24px 0 8px; }
+  .actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 20px; }
   .btn {
-    display: inline-block;
-    padding: 10px 18px;
-    border-radius: 8px;
-    font: 600 14px/1 system-ui, sans-serif;
-    text-decoration: none;
-    border: 1px solid var(--line);
-    color: var(--text);
+    display: inline-block; padding: 10px 16px; border-radius: 8px;
+    font: 600 14px/1 system-ui, sans-serif; text-decoration: none;
+    border: 1px solid var(--line); color: var(--text);
   }
   .btn.primary { background: var(--coral); border-color: var(--coral); color: #17110d; }
 
-  .grid { display: grid; gap: 24px; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); }
-  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 18px; }
-  .card p { margin: 0; color: var(--dim); font-size: 0.94rem; }
-  .src {
-    font: 600 11px/1 var(--mono);
-    letter-spacing: 0.1em;
-    color: var(--coral);
-    text-transform: uppercase;
-    display: block;
-    margin-bottom: 8px;
+  /* The device. The well holds the canvas, and the keyboard under it is the
+     ADV's own layout, where every key does what it does on the unit. */
+  .device {
+    background: linear-gradient(#1c1c21, #141418);
+    border: 1px solid #2f2f37;
+    border-radius: 14px;
+    padding: 14px 14px 12px;
+    box-shadow: 0 24px 60px rgba(0, 0, 0, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+    max-width: 620px;
   }
-  .shots { display: grid; gap: 18px; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); margin-top: 8px; }
-
-  .stage { position: relative; background: #000; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
-  .stage canvas { display: block; width: 100%; height: auto; image-rendering: pixelated; }
+  .well {
+    position: relative; background: #000;
+    border-radius: 6px;
+    box-shadow: inset 0 0 0 1px #33333b, 0 2px 10px rgba(0, 0, 0, 0.6);
+    overflow: hidden;
+  }
+  .well canvas { display: block; width: 100%; height: auto; image-rendering: pixelated; }
   .boot {
     position: absolute; inset: 0; width: 100%; height: 100%;
-    background: rgba(8, 8, 10, 0.82); color: var(--text);
-    border: 0; cursor: pointer;
-    font: 600 15px/1 system-ui, sans-serif;
+    background: rgba(6, 6, 8, 0.86); color: var(--text);
+    border: 0; cursor: pointer; font: 600 15px/1 system-ui, sans-serif;
   }
-  .boot:hover { background: rgba(8, 8, 10, 0.7); }
-  .keys { display: flex; flex-wrap: wrap; gap: 8px; margin: 14px 0 6px; align-items: center; }
-  .keys button {
-    background: var(--panel); color: var(--text);
-    border: 1px solid var(--line); border-radius: 7px;
-    padding: 8px 12px; cursor: pointer;
-    font: 500 13px/1 var(--mono);
+  .boot:hover { background: rgba(6, 6, 8, 0.72); }
+
+  .keyboard { display: grid; grid-template-rows: repeat(4, 1fr); gap: 4px; margin-top: 12px; }
+  .krow { display: grid; grid-template-columns: repeat(14, 1fr); gap: 4px; }
+  .keyboard button {
+    aspect-ratio: 1 / 0.8;
+    background: #24242b; color: #b9b9c2;
+    border: 1px solid #32323b; border-radius: 4px;
+    font: 500 9px/1 var(--mono);
+    cursor: pointer; padding: 0; overflow: hidden;
   }
-  .keys button:hover { border-color: var(--coral); color: var(--coral); }
-  .keys-gap { flex-basis: 100%; height: 0; }
+  .keyboard button:hover { background: var(--coral); border-color: var(--coral); color: #17110d; }
+  .keyboard button.hot { color: var(--coral); border-color: #4a3a33; }
+  .keyboard button.hot:hover { color: #17110d; }
+
+  .legend { font: 12px/1.7 var(--mono); color: var(--dim); margin-top: 12px; }
+
+  .sources { display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); }
+  .source { display: flex; gap: 12px; align-items: flex-start; }
+  .source img { width: 30px; height: 30px; border-radius: 7px; flex: none; }
+  .source b { display: block; font-size: 0.95rem; }
+  .source span { color: var(--dim); font-size: 0.88rem; }
+
+  ul.rules { list-style: none; padding: 0; margin: 0; display: grid; gap: 10px; }
+  ul.rules li { color: var(--dim); font-size: 0.95rem; padding-left: 16px; border-left: 2px solid var(--line); }
+  ul.rules b { color: var(--text); font-weight: 600; }
+
+  table { width: 100%; border-collapse: collapse; font-size: 0.92rem; }
+  td { padding: 8px 0; border-bottom: 1px solid var(--line); color: var(--dim); }
+  td:first-child { color: var(--text); width: 30%; padding-right: 14px; }
 
   pre {
-    background: var(--panel);
-    border: 1px solid var(--line);
-    border-radius: 8px;
-    padding: 14px 16px;
-    overflow-x: auto;
-    font: 13px/1.6 var(--mono);
-    color: var(--text);
-    margin: 0 0 12px;
+    background: var(--panel); border: 1px solid var(--line); border-radius: 8px;
+    padding: 12px 14px; overflow-x: auto; font: 13px/1.6 var(--mono); margin: 0;
   }
-  code { font-family: var(--mono); font-size: 0.92em; }
 
-  ul.rules { list-style: none; padding: 0; margin: 0; display: grid; gap: 18px; }
-  ul.rules li { padding-left: 18px; border-left: 2px solid var(--line); }
-  ul.rules strong { display: block; margin-bottom: 2px; }
-  ul.rules span { color: var(--dim); font-size: 0.94rem; }
-
-  table { width: 100%; border-collapse: collapse; font-size: 0.94rem; }
-  td { padding: 9px 0; border-bottom: 1px solid var(--line); vertical-align: top; color: var(--dim); }
-  td:first-child { color: var(--text); width: 34%; padding-right: 16px; }
-
-  .status li { margin-bottom: 10px; color: var(--dim); }
-  .status b { color: var(--text); font-weight: 600; }
-  .done { color: var(--good); font: 600 11px/1 var(--mono); letter-spacing: 0.08em; }
-  .next { color: var(--warn); font: 600 11px/1 var(--mono); letter-spacing: 0.08em; }
-
-  footer { padding: 48px 0 72px; border-top: 1px solid var(--line); color: var(--dim); font-size: 0.9rem; }
+  footer { padding: 40px 0 64px; border-top: 1px solid var(--line); color: var(--dim); font-size: 0.88rem; }
   footer a { color: var(--dim); }
-  .fine { font-size: 0.84rem; margin-top: 20px; }
+  footer .fine { font-size: 0.8rem; margin-top: 14px; }
 
-  @media (max-width: 700px) {
-    .hero { grid-template-columns: 1fr; }
-    section { padding: 40px 0; }
+  @media (max-width: 640px) {
+    .keyboard button { font-size: 7px; }
+    section { padding: 36px 0; }
   }
 </style>
 </head>
@@ -147,182 +128,141 @@
 <div class="wrap">
 
 <header>
+  <svg class="art" viewBox="0 0 900 320" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+    <defs>
+      <radialGradient id="glow" cx="24%" cy="34%" r="54%">
+        <stop offset="0%" stop-color="#ff7f50" stop-opacity="0.20"/>
+        <stop offset="100%" stop-color="#ff7f50" stop-opacity="0"/>
+      </radialGradient>
+      <pattern id="pix" width="10" height="10" patternUnits="userSpaceOnUse">
+        <rect width="1" height="1" fill="#ffffff" opacity="0.09"/>
+      </pattern>
+    </defs>
+    <rect width="900" height="320" fill="url(#pix)"/>
+    <rect width="900" height="320" fill="url(#glow)"/>
+    <g opacity="0.55" transform="translate(600 40) skewY(-6)">
+      <rect x="0" y="0" width="250" height="150" rx="12" fill="#17171c" stroke="#33333d"/>
+      <rect x="13" y="12" width="224" height="86" rx="4" fill="#050506" stroke="#2b2b33"/>
+      <rect x="21" y="20" width="64" height="30" rx="3" fill="#ff7f50" opacity="0.9"/>
+      <g fill="#22222a">
+        <rect x="91" y="20" width="64" height="30" rx="3"/>
+        <rect x="161" y="20" width="64" height="30" rx="3"/>
+        <rect x="21" y="56" width="64" height="30" rx="3"/>
+        <rect x="91" y="56" width="64" height="30" rx="3"/>
+        <rect x="161" y="56" width="64" height="30" rx="3"/>
+      </g>
+      <g fill="#26262e">
+        <rect x="13" y="106" width="224" height="8" rx="2"/>
+        <rect x="13" y="118" width="224" height="8" rx="2"/>
+        <rect x="13" y="130" width="224" height="8" rx="2"/>
+      </g>
+    </g>
+  </svg>
+
   <div class="kicker">M5Stack Cardputer ADV</div>
-  <h1>A handheld for five APIs that were already public.</h1>
-  <p class="lede">
-    The daily Coral round, the Bankr agent leaderboard, a GlyphBot raised as a
-    pet, the newest photo taken inside Voxels, and what gas costs right now. On a
-    240x135 screen with 56 keys, an ESP32-S3, and no secrets compiled into it.
-  </p>
+  <h1>Five APIs in your hand, none of them asking for a key.</h1>
+  <p>Coral, Bankr, GlyphBots, Voxels and gwei on a 240x135 screen. The firmware below is the one that runs on the device.</p>
   <div class="actions">
-    <a class="btn primary" href="https://github.com/ryanio/cardputer">Source on GitHub</a>
-    <a class="btn" href="#simulator">Try it without hardware</a>
+    <a class="btn primary" href="#run">Run it</a>
+    <a class="btn" href="https://github.com/ryanio/cardputer">GitHub</a>
   </div>
 </header>
 
-<div class="hero">
-  <div>
-    <img class="screen" src="img/menu.png" alt="The menu: Reef, Bankr, Bot, Womp, Gas and Setup.">
-    <p class="caption">Every screenshot here is the real firmware, captured by the simulator.</p>
-  </div>
-  <div>
-    <img class="screen" src="img/bot.png" alt="A view with its source named in the status bar.">
-    <p class="caption">The status bar names the source, never the app.</p>
-  </div>
-</div>
+<section id="run">
+  <h2>The real firmware, in your browser</h2>
+  <p class="dim">Compiled to WebAssembly from the same sources the device builds from. The keyboard works.</p>
 
-<section id="views">
-  <h2>Six screens</h2>
-  <p class="lede">Five sources and the setup that makes a unit yours. Every one of them exits with the same key.</p>
-  <div class="grid">
-    <div class="card">
-      <span class="src">coral</span>
-      <h3>Reef</h3>
-      <p>One anonymous token a day, the same for everybody. Guess its Coral score from holders, liquidity and the buyer split, then see what it actually was.</p>
+  <div class="device">
+    <div class="well">
+      <canvas id="screen" width="240" height="135"></canvas>
+      <button id="boot" class="boot">Start</button>
     </div>
-    <div class="card">
-      <span class="src">bankr</span>
-      <h3>Bankr</h3>
-      <p>The agent leaderboard by market cap and weekly revenue. Every profile carries a token on Base, so the device can score one through Coral and show both together.</p>
-    </div>
-    <div class="card">
-      <span class="src">glyphbots</span>
-      <h3>Bot</h3>
-      <p>A GlyphBot is four lines of Unicode and two colors, not an image. It gets rendered from its genome and raised as a pet that can really die.</p>
-    </div>
-    <div class="card">
-      <span class="src">voxels</span>
-      <h3>Womp</h3>
-      <p>The newest in-world photo as a desk frame. About 128KB of JPEG decoded straight to the panel, because it will not fit any other way.</p>
-    </div>
-    <div class="card">
-      <span class="src">gwei</span>
-      <h3>Gas</h3>
-      <p>Base fee large, three speed tiers under it, a 24 hour sparkline, and a tone when gas drops under a number you typed.</p>
-    </div>
-    <div class="card">
-      <span class="src">setup</span>
-      <h3>Setup</h3>
-      <p>Scan, pick, type the passphrase. The network lives on the unit, so one you were given joins your WiFi without a rebuild.</p>
-    </div>
+    <div class="keyboard" id="keyboard"></div>
   </div>
-</section>
 
-<section id="simulator">
-  <h2>Run it here</h2>
-  <p class="lede">
-    This is the firmware, not a demo of it. The same view and drawing code the
-    device runs, compiled to WebAssembly and drawn through the same graphics
-    library at the same 240x135. Click a key or use your keyboard.
+  <p class="legend">
+    1 to 6 open a view &nbsp;·&nbsp; ; . , / are the arrows &nbsp;·&nbsp; ` backs out of anything
   </p>
-
-  <div class="stage">
-    <canvas id="screen" width="240" height="135"></canvas>
-    <button id="boot" class="boot">Start the simulator</button>
-  </div>
-
-  <div class="keys" id="keys" hidden>
-    <button data-key="1">1 Reef</button>
-    <button data-key="2">2 Bankr</button>
-    <button data-key="3">3 Bot</button>
-    <button data-key="4">4 Womp</button>
-    <button data-key="5">5 Gas</button>
-    <button data-key="6">6 Setup</button>
-    <span class="keys-gap"></span>
-    <button data-key=",">&larr;</button>
-    <button data-key=";">&uarr;</button>
-    <button data-key=".">&darr;</button>
-    <button data-key="/">&rarr;</button>
-    <button data-key="\n">enter</button>
-    <button data-key="`">esc</button>
-  </div>
-  <p class="caption" id="hint">Nothing here is talking to a real network: the WiFi list is invented, so you can walk through Setup without joining anything.</p>
-
-  <h3 style="margin-top:40px">On your own machine</h3>
-  <p class="lede">
-    The desktop build is the same thing without the browser, and it takes its own
-    screenshots: scripted keys in, one image per press out, which is how a change
-    to a screen gets checked without anyone watching a window.
-  </p>
-<pre>git clone https://github.com/ryanio/cardputer
-brew install sdl2
-pio run -e sim -t exec -a --tour</pre>
 </section>
 
 <section>
-  <h2>How it behaves</h2>
+  <h2>What it reads</h2>
+  <div class="sources">
+    <div class="source">
+      <img src="img/src/coral.svg" alt="">
+      <div><b>Reef</b><span>The daily Coral round. One anonymous token, the same for everyone.</span></div>
+    </div>
+    <div class="source">
+      <img src="img/src/bankr.svg" alt="">
+      <div><b>Bankr</b><span>Agents by market cap and weekly revenue, scored through Coral.</span></div>
+    </div>
+    <div class="source">
+      <img src="img/src/glyphbots.png" alt="">
+      <div><b>Bot</b><span>A GlyphBot drawn from its Unicode genome, raised as a pet.</span></div>
+    </div>
+    <div class="source">
+      <img src="img/src/voxels.png" alt="">
+      <div><b>Womp</b><span>The newest in-world photo, decoded straight to the panel.</span></div>
+    </div>
+    <div class="source">
+      <img src="img/src/gwei.png" alt="">
+      <div><b>Gas</b><span>Base fee, three tiers, a sparkline, and a tone when gas gets cheap.</span></div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <h2>Rules it keeps</h2>
   <ul class="rules">
-    <li>
-      <strong>Every screen has a way out.</strong>
-      <span>The input loop takes the backtick before any view sees it, so no screen can trap you by forgetting to handle a key.</span>
-    </li>
-    <li>
-      <strong>No secrets on the device.</strong>
-      <span>Every source it reads is public and unauthenticated, including the Bankr agent leaderboard. Nothing needs a key, so there is nothing to leak in a flashed binary and nothing to rotate.</span>
-    </li>
-    <li>
-      <strong>WiFi is typed on the unit.</strong>
-      <span>Credentials live in NVS rather than the build, so a unit you hand to someone joins their network and does not carry yours.</span>
-    </li>
-    <li>
-      <strong>Poll windows are respected.</strong>
-      <span>Gas refreshes every 30 seconds because that is what the server does. The daily round is fetched once and then played with the radio off.</span>
-    </li>
-    <li>
-      <strong>A score always carries its caveats.</strong>
-      <span>Anything showing a Coral score shows what it is not, alongside the Coral name.</span>
-    </li>
+    <li><b>Every screen has a way out.</b> The loop takes the backtick before any view sees it.</li>
+    <li><b>No secrets on the device.</b> Every source is public, so there is nothing to leak.</li>
+    <li><b>WiFi is typed on the unit.</b> One you were given joins your network, not the last owner's.</li>
+    <li><b>A score carries its caveats.</b> Coral's name and its limits ship with the number.</li>
   </ul>
 </section>
 
 <section>
-  <h2>The hardware</h2>
+  <h2>Hardware</h2>
   <table>
-    <tr><td>Board</td><td>M5Stack Cardputer ADV (K132-ADV), Stamp-S3A, ESP32-S3FN8, 8MB flash</td></tr>
-    <tr><td>Screen</td><td>240x135 ST7789V2. Four lines of large text, or eight small</td></tr>
-    <tr><td>Keyboard</td><td>56 keys over a TCA8418, which needs M5Cardputer 1.1.1 or newer</td></tr>
-    <tr><td>Also on board</td><td>BMI270 IMU, ES8311 codec and a 1W speaker, MEMS mic, IR emitter, microSD, 1750mAh</td></tr>
-    <tr><td>Firmware</td><td>Arduino under PlatformIO. Serial only, never USB HID</td></tr>
+    <tr><td>Board</td><td>Cardputer ADV, ESP32-S3FN8, 8MB flash, 320KB RAM</td></tr>
+    <tr><td>Screen</td><td>240x135. Four lines of large text, eight small</td></tr>
+    <tr><td>Input</td><td>56 keys over a TCA8418</td></tr>
+    <tr><td>Extras</td><td>IMU, 1W speaker, mic, microSD, 1750mAh</td></tr>
   </table>
 </section>
 
 <section>
-  <h2>Where it is</h2>
-  <ul class="status">
-    <li><span class="done">shipped</span> &nbsp;<b>The spine.</b> WiFi, HTTPS with bundled roots, the view registry, the menu, NVS settings.</li>
-    <li><span class="done">shipped</span> &nbsp;<b>Setup on the device.</b> Scan, pick, type, forget.</li>
-    <li><span class="done">shipped</span> &nbsp;<b>The simulator.</b> Real code on a desktop, with screenshots.</li>
-    <li><span class="next">next</span> &nbsp;<b>Reef and Bankr.</b> The daily round, and the agent leaderboard with a Coral score beside it.</li>
-    <li><span class="next">next</span> &nbsp;<b>Gas.</b> Two endpoints, the sparkline, congestion banding, and the alarm tone.</li>
-    <li><span class="next">next</span> &nbsp;<b>Updates over the air.</b> Signed images checked against a key compiled into the firmware, because TLS only proves the bytes came from GitHub.</li>
-    <li><span class="next">next</span> &nbsp;<b>The womp frame, the glyph atlas, the pet, and the Coral round.</b></li>
-  </ul>
+  <h2>On your machine</h2>
+  <p class="dim">The desktop build takes its own screenshots, one per scripted key, so a change to a screen gets checked without anyone watching a window.</p>
+<pre>brew install sdl2
+pio run -e sim -t exec -a --tour</pre>
 </section>
 
 <footer>
   <p>
     <a href="https://github.com/ryanio/cardputer">github.com/ryanio/cardputer</a> &nbsp;·&nbsp;
     <a href="https://0xcoral.com">Coral</a> &nbsp;·&nbsp;
-    <a href="https://gwei.ryanio.com">gwei</a> &nbsp;·&nbsp;
+    <a href="https://bankr.bot">Bankr</a> &nbsp;·&nbsp;
     <a href="https://www.glyphbots.com">GlyphBots</a> &nbsp;·&nbsp;
     <a href="https://www.voxels.com">Voxels</a> &nbsp;·&nbsp;
-    <a href="https://bankr.bot">Bankr</a>
+    <a href="https://gwei.ryanio.com">gwei</a>
   </p>
   <p class="fine">
-    Voxels and Bankr are other people's projects, and this is an unaffiliated
-    client for their public APIs. A Coral score is not a price target, an audit,
-    or a trading recommendation.
+    Voxels and Bankr are other people's projects, and this is an unaffiliated client
+    for their public APIs. A Coral score is not a price target, an audit, or a
+    trading recommendation.
   </p>
 </footer>
 
 </div>
+
 <script>
-  // The panel is 240x135 and the canvas is too. CSS scales it, so the pixels
+  // The panel is 240x135 and so is the canvas. CSS scales it, so the pixels
   // stay square instead of being smoothed into mush.
-  var screenCanvas = document.getElementById('screen');
-  var paint = screenCanvas.getContext('2d');
+  var paint = document.getElementById('screen').getContext('2d');
   var frame = paint.createImageData(240, 135);
-  var sim = null;
+  var ready = false;
+  var press = function () {};
 
   window.coralBlit = function (heap, pointer, width, height) {
     var rgb = heap.subarray(pointer, pointer + width * height * 3);
@@ -336,29 +276,51 @@ pio run -e sim -t exec -a --tour</pre>
     paint.putImageData(frame, 0, 0);
   };
 
-  // Close to a megabyte of wasm, so it only loads when someone asks for it.
+  // The ADV's own layout: four rows of fourteen, labelled like the keycaps.
+  var ROWS = [
+    [['`', 'esc'], ['1'], ['2'], ['3'], ['4'], ['5'], ['6'], ['7'], ['8'], ['9'], ['0'], ['-'], ['='], ['\b', 'del']],
+    [['\t', 'tab'], ['q'], ['w'], ['e'], ['r'], ['t'], ['y'], ['u'], ['i'], ['o'], ['p'], ['['], [']'], ['\\']],
+    [['', 'fn'], ['', 'sft'], ['a'], ['s'], ['d'], ['f'], ['g'], ['h'], ['j'], ['k'], ['l'], [';'], ["'"], ['\n', 'ret']],
+    [['', 'ctl'], ['', 'opt'], ['', 'alt'], ['z'], ['x'], ['c'], ['v'], ['b'], ['n'], ['m'], [','], ['.'], ['/'], [' ', 'spc']]
+  ];
+  var HOT = ['`', '\n', ';', '.', ',', '/', '1', '2', '3', '4', '5', '6'];
+
+  var keyboard = document.getElementById('keyboard');
+  ROWS.forEach(function (row) {
+    var line = document.createElement('div');
+    line.className = 'krow';
+    row.forEach(function (key) {
+      var button = document.createElement('button');
+      button.textContent = key[1] || key[0];
+      if (key[0]) { button.setAttribute('data-key', key[0]); }
+      if (HOT.indexOf(key[0]) !== -1) { button.className = 'hot'; }
+      line.appendChild(button);
+    });
+    keyboard.appendChild(line);
+  });
+
+  keyboard.addEventListener('click', function (event) {
+    var key = event.target.getAttribute('data-key');
+    if (key && ready) { press(key.charCodeAt(0)); }
+  });
+
+  // Close to a megabyte of wasm, so it loads when someone asks for it.
   document.getElementById('boot').addEventListener('click', function (event) {
     var button = event.currentTarget;
     button.textContent = 'loading';
     var script = document.createElement('script');
     script.src = 'sim/coral.js';
     script.onload = function () {
-      // SDL wants a canvas of its own for the window it insists on making.
-      // Ours is the one that gets painted.
+      // SDL insists on a canvas for the window it makes. Ours is the one that
+      // gets painted, straight from the panel's framebuffer.
       CoralSim({ canvas: document.createElement('canvas') }).then(function (module) {
-        sim = module;
+        press = function (code) { module.ccall('simPress', null, ['number'], [code]); };
+        ready = true;
         button.remove();
-        document.getElementById('keys').hidden = false;
       });
     };
-    script.onerror = function () { button.textContent = 'could not load the simulator'; };
+    script.onerror = function () { button.textContent = 'could not load it'; };
     document.head.appendChild(script);
-  });
-
-  document.getElementById('keys').addEventListener('click', function (event) {
-    var key = event.target.getAttribute('data-key');
-    if (!key || !sim) { return; }
-    sim.ccall('simPress', null, ['number'], [key === '\\n' ? 10 : key.charCodeAt(0)]);
   });
 </script>
 </body>

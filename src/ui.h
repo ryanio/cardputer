@@ -31,6 +31,7 @@ constexpr uint16_t FG = rgb565(255, 255, 255);
 constexpr uint16_t DIM = rgb565(128, 128, 128);
 constexpr uint16_t RULE = rgb565(58, 58, 58);
 constexpr uint16_t BAR = rgb565(16, 24, 32);
+constexpr uint16_t PANEL = rgb565(22, 22, 28);
 constexpr uint16_t CORAL = rgb565(255, 127, 80);
 constexpr uint16_t GOOD = rgb565(61, 220, 132);
 constexpr uint16_t WARN = rgb565(255, 176, 32);
@@ -79,6 +80,10 @@ void bigNumber(const char *text, uint16_t color = FG, const char *suffix = nullp
 
 // A full width band, for congestion banding behind a number.
 void banner(int y, int h, uint16_t color);
+
+// The unit the menu and the data views are built from. A screen this small
+// wastes less space on a grid of these than on a list with one item per row.
+void card(int x, int y, int w, int h, bool selected);
 
 // Centered headline with an optional second line. For empty and error states.
 void message(const char *headline, const char *detail = nullptr, uint16_t color = FG);

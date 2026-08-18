@@ -253,6 +253,15 @@ void banner(int y, int h, uint16_t color)
 	gfx().fillRect(0, y, W, min(h, contentBottom_ - y), color);
 }
 
+void card(int x, int y, int w, int h, bool selected)
+{
+	M5GFX &g = gfx();
+	g.fillRoundRect(x, y, w, h, 4, selected ? CORAL : PANEL);
+	if (!selected) {
+		g.drawRoundRect(x, y, w, h, 4, RULE);
+	}
+}
+
 void message(const char *headline, const char *detail, uint16_t color)
 {
 	M5GFX &g = gfx();

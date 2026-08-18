@@ -10,10 +10,16 @@ namespace view {
 
 namespace {
 
-constexpr int LIST_TOP = 2;
-constexpr int ENTRY_H = 18;
-constexpr int HINT_Y = 113;
-constexpr int VISIBLE = (HINT_Y - LIST_TOP) / ENTRY_H;
+// The menu is a grid of cards rather than a list. On 240x135 a list spends
+// most of its width on nothing, and six cards read at arm's length.
+constexpr int COLS = 3;
+constexpr int GRID_ROWS = 2;
+constexpr int MARGIN = 5;
+constexpr int GAP = 5;
+constexpr int CARD_W = (ui::W - MARGIN * 2 - GAP * (COLS - 1)) / COLS;
+constexpr int CARD_H = 50;
+constexpr int HINT_Y = 115;
+constexpr int VISIBLE = COLS * GRID_ROWS;
 constexpr uint32_t STATUS_MS = 2000;
 constexpr const char *MENU_SOURCE = "coral " FW_VERSION;
 constexpr const char *SELECTED_KEY = "sys.view";
@@ -59,41 +65,44 @@ void drawMenu()
 		return;
 	}
 
-	if (selected < scroll) {
-		scroll = selected;
-	} else if (selected >= scroll + VISIBLE) {
-		scroll = selected - VISIBLE + 1;
+	// Scroll by whole rows, so a seventh view pushes the grid rather than
+	// reflowing it.
+	const int selectedRow = selected / COLS;
+	const int firstRow = scroll / COLS;
+	if (selectedRow < firstRow) {
+		scroll = selectedRow * COLS;
+	} else if (selectedRow >= firstRow + GRID_ROWS) {
+		scroll = (selectedRow - GRID_ROWS + 1) * COLS;
 	}
 
-	for (int row = 0; row < VISIBLE; row++) {
-		const int i = scroll + row;
+	for (int slot = 0; slot < VISIBLE; slot++) {
+		const int i = scroll + slot;
 		if (i >= total) {
 			break;
 		}
 		const View *v = at(i);
-		const int y = LIST_TOP + row * ENTRY_H;
+		const int x = MARGIN + (slot % COLS) * (CARD_W + GAP);
+		const int y = MARGIN + (slot / COLS) * (CARD_H + GAP);
 		const bool on = i == selected;
 
-		if (on) {
-			g.fillRoundRect(2, y, ui::W - 4, ENTRY_H - 1, 4, ui::CORAL);
-		}
-		const uint16_t background = on ? ui::CORAL : ui::BG;
-		const uint16_t label = on ? ui::BG : ui::FG;
+		ui::card(x, y, CARD_W, CARD_H, on);
+		const uint16_t background = on ? ui::CORAL : ui::PANEL;
 
 		char number[4];
 		snprintf(number, sizeof(number), "%d", i + 1);
-		g.setFont(&fonts::Font2);
-		g.setTextColor(on ? ui::BG : ui::DIM, background);
+		g.setFont(&fonts::Font0);
+		g.setTextColor(on ? ui::BG : ui::RULE, background);
 		g.setTextDatum(textdatum_t::top_left);
-		g.drawString(number, 8, y + 1);
+		g.drawString(number, x + 4, y + 4);
 
-		g.setTextColor(label, background);
-		g.drawString(v->name, 26, y + 1);
+		g.setFont(&fonts::Font2);
+		g.setTextColor(on ? ui::BG : ui::FG, background);
+		g.setTextDatum(textdatum_t::top_center);
+		g.drawString(v->name, x + CARD_W / 2, y + 14);
 
 		g.setFont(&fonts::Font0);
 		g.setTextColor(on ? ui::BG : ui::DIM, background);
-		g.setTextDatum(textdatum_t::top_right);
-		g.drawString(v->source, ui::W - 8, y + 5);
+		g.drawString(v->source, x + CARD_W / 2, y + CARD_H - 13);
 	}
 
 	g.setFont(&fonts::Font0);
@@ -160,21 +169,28 @@ void menuKey(const Key &k)
 		return;
 	}
 
-	if (k.up) {
+	if (k.left) {
 		selected = (selected + total - 1) % total;
-		repaint();
-	} else if (k.down) {
+	} else if (k.right) {
 		selected = (selected + 1) % total;
-		repaint();
-	} else if (k.enter || k.space || k.right) {
+	} else if (k.up) {
+		selected = selected >= COLS ? selected - COLS : total - 1;
+	} else if (k.down) {
+		selected = selected + COLS < total ? selected + COLS : 0;
+	} else if (k.enter || k.space) {
 		open(selected);
+		return;
 	} else if (k.ch >= '1' && k.ch <= '9') {
 		const int i = k.ch - '1';
 		if (i < total) {
 			selected = i;
 			open(i);
 		}
+		return;
+	} else {
+		return;
 	}
+	repaint();
 }
 
 }  // namespace
