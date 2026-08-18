@@ -15,7 +15,7 @@ constexpr int SCAN_FAILED = -2;
 constexpr int MAX_LISTED = 24;
 constexpr int ROWS = 5;  // list rows on screen at once
 constexpr size_t SSID_MAX = 32;
-constexpr size_t PASS_MAX = 63;
+constexpr size_t PASSPHRASE_MAX = 63;
 constexpr uint32_t SPIN_MS = 120;
 
 constexpr const char *ACTIONS[] = {
@@ -140,8 +140,10 @@ void drawStatus()
 		snprintf(text, sizeof(text), "%s  %s  %d dBm", stateText(), net::ip().toString().c_str(),
 		         (int)net::rssi());
 	} else {
-		snprintf(text, sizeof(text), "%s  %s", stateText(),
-		         net::credentialsAreStored() ? "saved on this unit" : "built into this build");
+		const char *where = !net::haveCredentials() ? "no network saved yet"
+		                    : net::credentialsAreStored() ? "saved on this unit"
+		                                                  : "built into this build";
+		snprintf(text, sizeof(text), "%s  %s", stateText(), where);
 	}
 	ui::line(1, text, stateColor());
 
@@ -326,6 +328,8 @@ bool pickingKey(const view::Key &k)
 	if (k.del || k.left) {
 		net::scanClear();
 		toStatus();
+	} else if (scanning) {
+		return true;  // a scan is running, so there is nothing to pick yet
 	} else if (listed == 0 && k.enter) {
 		startScan();
 	} else if (k.up && listed > 0) {
@@ -349,7 +353,7 @@ bool pickingKey(const view::Key &k)
 
 bool typingKey(const view::Key &k)
 {
-	const size_t limit = typingSsid ? SSID_MAX : PASS_MAX;
+	const size_t limit = typingSsid ? SSID_MAX : PASSPHRASE_MAX;
 
 	if (k.enter) {
 		if (typingSsid) {
