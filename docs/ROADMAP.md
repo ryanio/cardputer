@@ -1,131 +1,115 @@
 # Roadmap
 
-Build order for the Coral app on the Cardputer ADV. Each phase ends with
-something you can hold and show someone.
+Arduino + PlatformIO on three Cardputer ADVs. Endpoints in [API.md](API.md),
+rules in [../CLAUDE.md](../CLAUDE.md).
 
-Endpoint shapes and verified response bodies are in [API.md](API.md). The fork
-and its constraints are in [../CLAUDE.md](../CLAUDE.md).
+The ADV has hardware the original lacked: a BMI270 IMU, an ES8311 codec driving
+a real 1W speaker, a decent MEMS mic, and a 1750mAh battery. Phases 3 and 5 are
+built around those rather than around the screen.
 
-## Phase 0: on the menu
+## Phase 0: skeleton
 
-Prove the toolchain before writing a feature. Nothing here is Coral-specific.
+- `pio run -t upload`, boot, WiFi from `include/secrets.h`, clock via SNTP.
+- Three-item menu (Gas / Bot / Reef). Every view exits with `` ` `` (Esc).
+- Battery percentage in a corner, always.
 
-- Clone the UserDemo, `CardputerADV` branch, `python3 ./fetch_repos.py`,
-  `idf.py build`, flash it unmodified. Confirm the stock firmware still boots.
-- Copy `main/apps/app_dummy/` to `main/apps/app_coral/`, rename the class,
-  add the include to `main/apps/apps.h`, register it in `main/main.cpp` with
-  `GetMooncake().installApp(std::make_unique<AppCoral>());`.
-- Draw a title and a three-item sub-menu (Gas, Bot, Reef). Nothing behind them
-  yet.
-- Wire G0 so it closes the app from the sub-menu, and from inside any view once
-  those exist. Test it before moving on: an app you cannot leave is the one bug
-  guaranteed to annoy you every session after.
-
-Done when: Coral appears in the launcher between the stock apps, opens, shows
-three choices, and G0 gets you out.
+Done when: it boots, you can move between three empty views and back out.
 
 ## Phase 1: gas, which is really the network stack
 
-The smallest payload of the three, so it is the one that proves HTTP, TLS and
-JSON parsing.
+Smallest payload, so it proves HTTPS + JSON before anything depends on them.
 
-- `esp_http_client` + `esp_crt_bundle` for TLS, cJSON for parsing. All in
-  ESP-IDF, nothing to add.
-- `GET /api/gas` every 30s, matching the server's own refresh window.
-- Base fee large, three speed tiers under it, ETH price in the corner. Handle
-  `ethPriceUsd: null` as its own state rather than printing zero.
-- Background banded by congestion, reusing gwei's Chill / Busy / Chaos / Whale
-  thresholds.
-- `GET /api/gas/history` on a longer interval as a 240px sparkline. Points
-  arrive thinned to one a minute already.
-- Threshold alarm through the ES8311 codec: type a number, it beeps when base
-  fee drops under it. The ADV's audio path is a real speaker, so this is worth
-  doing properly.
+- `WiFiClientSecure` + ArduinoJson. `GET /api/gas` every 30s, matching the
+  server's own refresh window.
+- Base fee large, three tiers under it. `ethPriceUsd: null` is its own state,
+  never a zero.
+- Background banded by congestion (gwei's own Chill / Busy / Chaos / Whale).
+- `GET /api/gas/history` as a 240px sparkline. Points arrive thinned to one a
+  minute already.
+- **Threshold alarm through the ES8311.** Type a number, it plays a tone when
+  base fee drops under it. A real speaker, so use it: a short rising arpeggio,
+  not a beep.
 
-Done when: a unit sits on the desk showing live gas and beeps at a threshold.
+Done when: it sits on the desk showing live gas and wakes you when gas is cheap.
 
-## Phase 2: the glyph atlas and a bot on screen
+## Phase 2: the glyph atlas
 
-The only part with real unknowns, so it comes while the plumbing is fresh.
+The only part with real unknowns.
 
-- Tooling fetches `GET /api/bots/facets`, extracts the distinct non-ASCII
-  characters across every trait value (105 as of 2026-08-17), renders each into
-  a mono bitmap, and emits a C header plus a codepoint lookup table.
-- Pick the cell size against the screen, not the font. Four lines of bot on
-  135px of height means roughly 24x24 with room for a name and rank.
-- `GET /api/bot/{tokenId}`, render `unicode.textContent` through the atlas with
+- Generator fetches `GET /api/bots/facets`, extracts the distinct non-ASCII
+  glyphs across every trait value (105 as of 2026-08-17), renders each to a mono
+  bitmap, emits a C header plus a codepoint lookup.
+- Size the cell against the screen, not the font. Four lines on 135px means
+  roughly 24x24 with room for a name and rank.
+- `GET /api/bot/{tokenId}`, render `unicode.textContent` through the atlas,
   `unicode.colors` converted from `hsl()` to RGB565.
 
-Done when: three units each hold a different bot, and they look good enough that
-you want to hand one to someone.
+Done when: three units each hold a different bot and look good enough to hand
+someone.
 
-## Phase 3: the bot as a pet
+## Phase 3: the pet, which is where the ADV earns its keep
 
-One thing to settle before writing any of it: **real collection activity is too
-slow to be the food supply.** The most recent artifact mint across the whole
-collection was 2026-08-11, six days before this was written. A pet fed only by
-onchain events starves for a week at a time.
+Settle one thing first: **real collection activity is too slow to be the food
+supply.** The most recent mint across the whole collection was 2026-08-11. A pet
+fed on onchain events starves for a week. So attention is the food, and real
+activity is the rare event.
 
-So the loop is inverted. Attention is the food; real activity is the rare event.
-
-- Identity from `GET /api/bot/{tokenId}/story`, fetched once and cached to
-  microSD: faction, role, mission and named abilities with cooldowns. The pet is
-  that character. The cooldowns are the obvious hook for care actions.
-- Local state in NVS: hunger, mood, energy, age, care streak. Decays against
-  wall clock, so it keeps running with WiFi off and through sleep.
-- Care actions on the keyboard, seconds at a time, several times a day. Entirely
-  offline.
-- Poll `GET /api/bot/{tokenId}` every few minutes for the two fields that change:
+- Identity from `GET /api/bot/{tokenId}/story`, cached to microSD: faction,
+  role, mission, named abilities with cooldowns. The pet is that character.
+- State in NVS: hunger, mood, energy, age, streak. Decays on wall clock, so it
+  runs with WiFi off and through sleep.
+- **Every bot has a voice.** Derive a short signature tone from the bot's trait
+  glyphs, so #5815 always sounds like #5815 and two bots are audibly different.
+  A collection you can hear is a thing nobody has.
+- **The IMU is the interaction.** Pick it up and the pet wakes. Shake it and the
+  pet objects. Tilt to pet it. Set it face down and it sleeps. No keyboard.
+- **The mic is ambient mood.** Sample the room's noise floor, not its content. A
+  bot in a loud room is livelier; one on a quiet desk gets bored. Never record,
+  never transmit, just a level.
+- Poll `GET /api/bot/{tokenId}` every few minutes for the two fields that move:
   `royalties.mintCount` and `burnedAt`.
-- A mint against your bot is a celebration: sound, animation, a permanent entry
-  on the card. Rare by design, and worth noticing because of it.
-- `burnedAt` going non-null is death. Permanent, onchain, not resettable from the
-  device. A pet that can really die is why anyone will care about this one.
-- Idle animation from the atlas: swapping eye and mouth cells between
-  trait-adjacent glyphs reads as alive without new art.
-- The BMI270 is here, so picking the device up can wake the pet.
+- A mint against your bot is a celebration: its own tone, animation, a permanent
+  line on the card. Rare by design, which is why it lands.
+- `burnedAt` non-null is death. Permanent, onchain, not resettable from the
+  device. A pet that can really die is why anyone cares about this one.
+- Magnetic back: it lives on the side of a monitor and you poke it in passing.
 
-Done when: the pet visibly changes across a day of being ignored, and a real mint
-produces a real reaction.
+Done when: it changes across a day of being ignored, and you can tell whose bot
+is whose with your eyes shut.
 
 ## Phase 4: the Coral round
 
-`GET /api/v1/guess/daily` does the hard part server-side: one token a day, the
-same for everybody, market facts as the clue and the score as the answer, in one
-precomputed payload.
+`GET /api/v1/guess/daily` does the work server-side: one token a day, same for
+everyone, market facts as the clue and the score as the answer, one payload.
 
-- One fetch a day. The whole round arrives together, so a unit plays with the
-  radio off afterwards.
-- The round is anonymous, no ticker. The player reasons from holder count,
-  liquidity, market cap and the buyer/seller split, which is the difference
-  between a judgment call and recognizing a name.
-- Player types 0 to 100. Reveal the real score, the verdict and
-  `explanation.bullets`. Score by closeness, streak in NVS.
-- Every reveal screen carries `explanation.caveats` and the Coral name.
-- For free play beyond the daily, type a ticker into `/resolve` and score the
-  result. That path is live and slow, so it needs a spinner.
+- One fetch a day, then it plays with the radio off.
+- Anonymous, no ticker. You reason from holders, liquidity, mcap and the
+  buyer/seller split. That is the difference between a judgment call and
+  recognizing a name.
+- Type 0 to 100. Reveal score, verdict, `explanation.bullets`. Streak in NVS.
+- Every reveal carries `explanation.caveats` and the Coral name.
+- Free play: type a ticker into `/resolve` and score it. Live and slow, needs a
+  spinner.
 
-Done when: a round is genuinely hard to guess and you want to play again.
+Done when: a round is genuinely hard and you want another.
 
-## Phase 5: three units
+## Phase 5: three of them
 
-What the other two Cardputers are for.
-
-- ESP-NOW peering, no router. Mind the shared radio and channel: a peered unit
-  and a fetching unit want different things.
-- **Bots meet.** Bring two close and they exchange tokenId, traits and rarity
-  rank. Shared traits compute a compatibility, both get a mood boost, and each
-  records having met the other. Bots that have met before recognize each other.
-  This is the mode people will film.
-- **Head to head.** Everyone already has the same daily token, so two units
-  comparing guesses needs no coordination at all.
+- ESP-NOW, no router. Mind the shared radio: a peered unit and a fetching unit
+  want different channels, so pick one per app state.
+- **Bots meet.** Bring two close, they trade tokenId, traits and rank. Shared
+  traits give a compatibility, both get a mood boost, each remembers the other.
+  Bots that have met before greet each other by playing the other's tone. This
+  is the mode people film.
+- **Head to head.** Everyone already has the same daily token, so comparing
+  guesses needs no coordination at all.
+- Three units, so it is a tournament, not a duel.
 
 Done when: two bots meeting produces something you would show a stranger.
 
-## Phase 6: getting a result off the device
+## Phase 6: off the device
 
-- The share is text, not an image. The device has everything it needs: the
-  round's date, `answer.score`, and the player's own guess.
+- The share is text. The device has the date, `answer.score` and the guess.
 
   ```
   Coral daily 2026-08-17
@@ -134,18 +118,26 @@ Done when: two bots meeting produces something you would show a stranger.
   0xcoral.com
   ```
 
-  Two numbers and a date. Copy-pasteable, quotable, and it reads fine in a post
-  with no image attached, which is how Wordle's share worked. A rendered card was
-  built for this and deleted: an OG image only earns its keep when someone shares
-  a link and the unfurl needs a raster preview, and a game result is not a page.
-- A QR is still the way off the device, pointing at a prefilled post.
+  Two numbers and a date, copy-pasteable, reads fine with no image. An OG card
+  was built for this and deleted: an image only earns its keep when someone
+  shares a link and the unfurl needs a raster preview, and a result is not a
+  page.
+- A QR gets it off the device, pointing at a prefilled post.
 
-Done when: finishing a round produces something worth posting without editing it.
+## Parked
 
-## Later
+Ideas the hardware allows that nothing yet needs. Left here rather than built.
 
-- Rebase onto ADV-V0.3 or whatever is current. Keeping our diff to one app
-  directory plus three lines is what makes that cheap.
-- Battery and sleep tuning. 1750mAh is generous, but Phases 1 and 3 both want
-  all-day runtime.
-- The IR emitter and the microphone have no use yet. Leave them until they do.
+- IR emitter: no use. It is a TV blaster, and the stock firmware already has one.
+- BLE: the bot as a beacon nearby phones can see. Fun, no clear payoff.
+- 3.5mm jack: only matters if the pet gets a soundtrack.
+- LEGO holes: a three-unit desk dock, when there are three finished units.
+
+## Constraints worth keeping in view
+
+- 240x135. Four lines of large text or roughly eight small. Design for eight.
+- 56 keys, no comfortable way to type 42 hex characters. Anything needing an
+  address goes through `/resolve` with a ticker.
+- M5Cardputer 1.1.1+ or the TCA8418 keyboard reads nothing.
+- Phases 1 and 3 both want all-day battery, so sleep behavior is not a Phase 7
+  problem.

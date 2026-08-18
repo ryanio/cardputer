@@ -1,8 +1,7 @@
 # cardputer
 
-A Coral app for the M5Stack Cardputer ADV, built as a fork of M5Stack's
-[M5Cardputer-UserDemo](https://github.com/m5stack/M5Cardputer-UserDemo)
-(MIT, `CardputerADV` branch). `AGENTS.md` is a symlink to this file.
+A Coral app for the M5Stack Cardputer ADV, Arduino under PlatformIO.
+`AGENTS.md` is a symlink to this file.
 
 Hardware and setup live in [README.md](README.md). Endpoint shapes and rate
 limits live in [docs/API.md](docs/API.md). Build order lives in
@@ -14,29 +13,17 @@ limits live in [docs/API.md](docs/API.md). Build order lives in
    they matter.
 2. **Simplicity first.** Smallest change that solves the request. One screen,
    one app, three views.
-3. **Surgical changes.** Every changed line traces to the ask. In a fork, that
-   also means: do not reformat, restructure or "improve" upstream code. A diff
-   against upstream that touches only our app is a diff we can rebase.
+3. **Surgical changes.** Every changed line traces to the ask.
 4. **Verify on hardware.** A change that compiles is not a change that works.
    Flash it and look at the screen before calling it done.
 
 ## Don't re-derive these
 
-- **This is a fork, so upstream is a dependency, not our code.** Our work lives
-  in `main/apps/app_coral/` plus three lines elsewhere: an include in
-  `main/apps/apps.h`, a `GetMooncake().installApp(...)` in `main/main.cpp`, and
-  whatever CMake needs. Anything beyond that is a change we have to carry
-  forward every time upstream releases.
-- **ESP-IDF v5.4.2, not Arduino.** JSON is cJSON, HTTP is `esp_http_client`,
-  TLS is esp-tls with `esp_crt_bundle`. All three ship with ESP-IDF. Do not add
-  ArduinoJson, M5Unified or M5Cardputer; this codebase has its own HAL, reached
-  through `GetHAL()`.
-- **`python3 ./fetch_repos.py` before the first build.** Dependencies are not
-  submodules and a fresh clone will not build without it.
-- **Home is the G0 button on the top edge, and it is a convention we honor.**
-  Every upstream app polls `GetHAL().homeButton.wasClicked()` and calls
-  `close()`. Ours does the same, in every view including sub-menus, or the
-  device traps the user in our app. This is not a keyboard key.
+- **M5Cardputer 1.1.1 or newer, always.** The ADV drives its keyboard through a
+  TCA8418 controller; the original Cardputer used a 74HC138. Older library
+  versions compile fine and then read no keys at all.
+- **Give every view a way out.** The stock firmware trains users that G0 on the
+  top edge is home. Match it, and never leave a screen with no exit.
 - **No secrets ever reach the device.** All three APIs are public and
   unauthenticated. If a task seems to need a key, the design is wrong. WiFi
   credentials come from the stock `app_set_wifi` provisioning, so we do not
@@ -66,14 +53,15 @@ limits live in [docs/API.md](docs/API.md). Build order lives in
   contract address goes through coral's `/api/v1/resolve` with a ticker.
 - ESP-NOW and WiFi share one radio and one channel. A peered unit and a fetching
   unit want different things. Pick one per app state.
-- The ADV has a BMI270 IMU the original lacks. Tilt and shake are available as
-  input, and `app_imu` upstream is the working reference.
+- The ADV has a BMI270 IMU the original lacks, so tilt and shake are available
+  as input.
 
 ## Verification
 
 ```bash
-idf.py build            # compile
-idf.py flash monitor    # flash the connected unit and watch serial
+pio run                 # compile
+pio run -t upload       # flash the connected unit
+pio device monitor      # serial log
 ```
 
 Docs-only changes need neither. Anything touching rendering, timing or the
@@ -84,5 +72,3 @@ network path gets flashed and looked at.
 Commit at meaningful checkpoints, not only when asked. Scope each commit to its
 own ask. Commit onto `main` directly, no branches.
 
-Keep our commits separable from upstream's history, so a rebase onto a new
-upstream release stays a rebase rather than an archaeology exercise.

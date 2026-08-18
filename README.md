@@ -1,83 +1,47 @@
 # cardputer
 
-A Coral app for the M5Stack Cardputer ADV, showing data from
+Coral app for the M5Stack Cardputer ADV. Three views over
 [coral](https://0xcoral.com), [glyphbots](https://www.glyphbots.com) and
 [gwei](https://gwei.ryanio.com).
 
-Not a firmware from scratch. This is a fork of M5Stack's own
-[M5Cardputer-UserDemo](https://github.com/m5stack/M5Cardputer-UserDemo)
-(MIT, `CardputerADV` branch) with one app added to its launcher. That app has
-its own sub-menu:
-
-| View | Source | What it does |
-|------|--------|--------------|
-| Gas | gwei | Live Ethereum base fee, three speed tiers, 24h sparkline, threshold alarm |
-| Bot | glyphbots | A GlyphBot rendered from its Unicode genome, raised as a pet |
+| View | Source | Shows |
+|------|--------|-------|
+| Gas | gwei | Base fee, three speed tiers, 24h sparkline, threshold alarm |
+| Bot | glyphbots | A GlyphBot from its Unicode genome, raised as a pet |
 | Reef | coral | The daily Coral Score guessing round |
 
-Forking buys the launcher, the keyboard driver, the display stack, the audio
-codec, WiFi provisioning and the home-button convention. All three sources are
-public, unauthenticated JSON over HTTPS, so no API key ever reaches the device.
-
-## Docs
-
-- [docs/API.md](docs/API.md) covers the three sources, with verified response
-  shapes and the rate limits worth respecting.
-- [docs/ROADMAP.md](docs/ROADMAP.md) sequences the build.
-- [CLAUDE.md](CLAUDE.md) holds the operating rules. `AGENTS.md` symlinks to it.
+- [docs/API.md](docs/API.md) the three APIs, verified shapes, rate limits
+- [docs/ROADMAP.md](docs/ROADMAP.md) build order
+- [CLAUDE.md](CLAUDE.md) rules
 
 ## Hardware
 
-M5Stack **Cardputer ADV** (SKU K132-Adv), three units.
+Cardputer ADV (K132-ADV), three units. ESP32-S3FN8 (Stamp-S3A), 8MB flash.
+240x135 ST7789V2. 56 keys via TCA8418. BMI270 IMU. ES8311 codec, 1W speaker,
+3.5mm jack. MEMS mic. IR emitter. microSD. Grove HY2.0-4P + EXT 2.54-14P.
+1750mAh. Magnetic back, LEGO holes.
 
-- ESP32-S3FN8, Xtensa LX7 dual core at 240MHz, 8MB flash
-- 1.14" ST7789V2, 240x135
-- 56-key keyboard (4 x 14) on a TCA8418 controller
-- BMI270 6-axis IMU
-- ES8311 audio codec, NS4150B amp, 8R 1W speaker, 3.5mm jack
-- MEMS microphone, 65dB SNR
-- IR emitter, microSD, Grove HY2.0-4P, EXT 2.54-14P
-- 1750mAh battery
-- WiFi and BLE
+Not the original v1.1: different keyboard controller (TCA8418 vs 74HC138),
+different audio (ES8311 vs NS4168+SPM1423), plus the IMU and the 3.5mm jack.
+GPS and LoRa are Grove/EXT modules, not onboard.
 
-Not the original Cardputer v1.1. The ADV has the IMU, the better audio path and
-the bigger battery, and it runs a different firmware branch. GPS and LoRa appear
-as apps in the stock firmware but are **not** onboard; those drive Grove and EXT
-modules.
-
-**Home is the G0 button on the top edge**, not a key. Every app polls it and
-closes. Ours must too.
-
-## Stack
-
-ESP-IDF **v5.4.2**. No Arduino, no PlatformIO. JSON is cJSON and TLS is esp-tls
-with the built-in certificate bundle, both already in ESP-IDF, so there are no
-third-party libraries to add.
-
-## Setup
+## Build
 
 ```bash
-git clone https://github.com/m5stack/M5Cardputer-UserDemo.git
-cd M5Cardputer-UserDemo
-git checkout CardputerADV
-python3 ./fetch_repos.py
-idf.py build
+cp include/secrets.h.example include/secrets.h   # WiFi SSID and password
+pio run -t upload
+pio device monitor
 ```
 
-Flash with the power switch off, holding G0, then powering on from the rear to
-enter download mode:
+M5Cardputer 1.1.1 is the first release that drives the ADV's TCA8418 keyboard.
+Older versions read no keys on this board.
 
-```bash
-idf.py flash monitor
-```
+## Stock firmware
 
-## Adding the app
+The device ships with M5Stack's
+[UserDemo](https://github.com/m5stack/M5Cardputer-UserDemo) (`CardputerADV`
+branch, MIT), which is a useful HAL reference and is on the `upstream` remote.
+Flashing ours replaces it; M5Burner puts it back. With three units, keeping one
+stock costs nothing.
 
-Three edits, following `app_dummy` as the template:
-
-1. Copy `main/apps/app_dummy/` to `main/apps/app_coral/` and rename the class.
-2. Add its header to `main/apps/apps.h`.
-3. Register it in `main/main.cpp`:
-   `GetMooncake().installApp(std::make_unique<AppCoral>());`
-
-Menu order follows registration order in `main.cpp`.
+In that firmware, home is the G0 button on the top edge, not a key.
