@@ -17,7 +17,7 @@ pio run -t upload       # flash
 pio device monitor      # serial
 ```
 
-Green as of 2026-08-18: RAM 17.4%, flash 35.7% of the 3.3MB app slot.
+Green as of 2026-08-18: RAM 17.6%, flash 36.3% of the 3.3MB app slot.
 
 `tools/fmt.sh` applies the house style and `--check` enforces it.
 `tools/apicheck/check.py` asks all five sources whether they still answer the
@@ -41,7 +41,9 @@ Both run in CI, the second on a schedule.
 - **Poll windows.** gwei refreshes at most every 30s. Coral's `/guess/daily` is
   one round per ET day: fetch once, play offline. Never loop `/score`; three
   devices hammering it get all three blocked.
-- **The glyph atlas is generated, never hand-edited.** Regenerate and commit both.
+- **The glyph atlas is generated, never hand edited.** `tools/glyphs/generate.py`
+  reads the alphabet from the collection itself, so a new trait glyph fails the
+  scheduled check rather than drawing a blank square.
 - **A GlyphBot is text, not an image.** Render `unicode.textContent` with
   `unicode.colors`. Never fetch a PNG for a bot.
 - **Womp JPEGs are ~128KB and RAM is 320KB with TLS inside it.** Stream the
