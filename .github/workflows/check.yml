@@ -1,0 +1,64 @@
+name: check
+
+on:
+  push:
+    branches: [main]
+    paths-ignore:
+      - site/**
+      - docs/**
+      - "*.md"
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: check-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: both builds compile
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      # The espressif32 toolchain is a large download. Keeping it means a push
+      # costs a compile rather than a compile plus a platform install.
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.platformio/.cache
+            ~/.platformio/packages
+            ~/.platformio/platforms
+          key: pio-${{ runner.os }}-${{ hashFiles('platformio.ini') }}
+          restore-keys: pio-${{ runner.os }}-
+      - run: pip install --upgrade platformio
+      - run: sudo apt-get update && sudo apt-get install -y libsdl2-dev
+      - name: firmware
+        run: pio run
+      - name: simulator
+        run: pio run -e sim
+
+  format:
+    name: the code matches .clang-format
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      # Pinned, because two clang-format releases disagree about small things
+      # and a version drift would fail this for nobody's mistake.
+      - run: pip install clang-format==21.1.2
+      - run: tools/fmt.sh --check
+
+  generated:
+    name: generated files match their sources
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: tools/fixtures/bundle.py --check

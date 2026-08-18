@@ -1,0 +1,37 @@
+name: api
+
+# The five sources are somebody else's, and none of them owes us a stable
+# shape. This asks them every morning whether they still answer the way the
+# firmware reads, over TLS trusted by the exact roots the device carries, so a
+# change lands as a red run here rather than as a blank screen on a unit.
+#
+# It is deliberately not on push: a source having a bad minute should never
+# fail somebody's commit.
+on:
+  schedule:
+    - cron: "17 13 * * *"
+  workflow_dispatch:
+    inputs:
+      sources:
+        description: gwei, glyphbots, coral, bankr, voxels. Empty means all.
+        required: false
+        default: ""
+
+concurrency:
+  group: api
+  cancel-in-progress: false
+
+jobs:
+  probe:
+    name: the sources answer as the firmware reads them
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      # Through the environment rather than interpolated into the command, so
+      # the input is an argument and never a shell fragment.
+      - env:
+          SOURCES: ${{ inputs.sources }}
+        run: tools/apicheck/check.py $SOURCES
