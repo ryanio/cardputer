@@ -32,10 +32,13 @@ COMMON="-O2 -sUSE_SDL=2 $INCLUDES $DEFINES"
 compile() {
 	local src=$1 lang=$2
 	local obj="$OBJ/$(echo "$src" | shasum | cut -c1-16).o"
+	# A failure inside a command substitution does not trip set -e, and the
+	# link then complains about a missing object rather than the compile that
+	# never happened. So it is checked here.
 	if [ "$lang" = "c" ]; then
-		emcc $COMMON -c "$src" -o "$obj"
+		emcc $COMMON -c "$src" -o "$obj" || { echo "failed: $src" >&2; exit 1; }
 	else
-		em++ -std=gnu++17 $COMMON -c "$src" -o "$obj"
+		em++ -std=gnu++17 $COMMON -c "$src" -o "$obj" || { echo "failed: $src" >&2; exit 1; }
 	fi
 	echo "$obj"
 }
@@ -47,13 +50,13 @@ compile() {
 SOURCES_CPP=()
 while IFS= read -r f; do
 	case "$(basename "$f")" in
-		main.cpp | net.cpp) continue ;;
+		main.cpp | net.cpp | jpeg.cpp) continue ;;
 	esac
 	SOURCES_CPP+=("$f")
 done < <(find "$ROOT/src" -name '*.cpp')
 SOURCES_CPP+=(
 	"$ROOT"/sim/src/app.cpp "$ROOT"/sim/src/shim.cpp "$ROOT"/sim/src/net_sim.cpp
-	"$ROOT"/sim/src/main_web.cpp
+	"$ROOT"/sim/src/jpeg_sim.cpp "$ROOT"/sim/src/main_web.cpp
 )
 while IFS= read -r f; do SOURCES_CPP+=("$f"); done < <(find "$M5GFX" -name '*.cpp')
 
