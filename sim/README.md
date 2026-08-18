@@ -55,6 +55,16 @@ says it has none. Coral's score endpoint rate limits hard enough that only a
 few tokens have a captured score, which is why guessing a ticker in the
 simulator reaches the reveal and then says Coral had no answer.
 
+One fixture is a real 148KB JPEG rather than JSON, because the womp view
+decodes a photo off the socket and there is no way to check that against a
+description of one. That is also the one place the simulator is not the
+firmware: M5GFX only offers its streaming `drawJpg(Stream*)` when it thinks it
+is on Arduino, and telling it that on a desktop swaps the whole panel driver,
+so `sim/src/jpeg_sim.cpp` reads the body first and hands over a buffer. What
+the desktop still checks is the fit, the crop, the caption and the browsing.
+Whether the stream decodes inside 320KB beside a TLS session is unknown 3 in
+docs/PLAN.md, and only a device answers it.
+
 Fixtures answer instantly, which hides the screen a view draws while it waits.
 `--latency 4000` holds every fetch for four seconds, which is roughly what a
 Coral score costs on a real unit.

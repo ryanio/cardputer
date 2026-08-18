@@ -17,7 +17,7 @@ pio run -t upload       # flash
 pio device monitor      # serial
 ```
 
-Green as of 2026-08-18: RAM 17.6%, flash 36.3% of the 3.3MB app slot.
+Green as of 2026-08-18: RAM 17.8%, flash 36.7% of the 3.3MB app slot.
 
 `tools/fmt.sh` applies the house style and `--check` enforces it.
 `tools/apicheck/check.py` asks all five sources whether they still answer the
@@ -46,8 +46,10 @@ Both run in CI, the second on a schedule.
   scheduled check rather than drawing a blank square.
 - **A GlyphBot is text, not an image.** Render `unicode.textContent` with
   `unicode.colors`. Never fetch a PNG for a bot.
-- **Womp JPEGs are ~128KB and RAM is 320KB with TLS inside it.** Stream the
-  decode to the panel, scaling as you go. Never fetch-then-decode.
+- **Womp JPEGs are 45KB to 152KB and RAM is 320KB with TLS inside it.** The
+  decode streams through `src/jpeg.cpp`, which is split per target the way
+  `net.cpp` is: only the device gets M5GFX's drawJpg(Stream*). Never
+  fetch-then-decode.
 - **Anything showing a Coral score shows its caveats and the Coral name.**
   `src/coral.*` is the one place that draws one, so the rule has one
   implementation rather than one per view.

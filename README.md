@@ -67,6 +67,7 @@ Older versions read no keys on this board.
 | `src/store.*` | NVS settings |
 | `src/views/*.cpp` | one file per view, each registering itself |
 | `src/coral.*` | a Coral score, and the two screens it is always shown through |
+| `src/jpeg.*` | a photo decoded off the socket, split per target like net |
 | `src/glyphs.h` | generated: the 105 characters a GlyphBot is drawn from |
 | `src/ca_roots.h` | the root CAs every host chains to |
 | `sim/` | the simulator, and the captured fixtures its network answers from |

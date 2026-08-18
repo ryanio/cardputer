@@ -91,6 +91,11 @@ one new idea: pictures.
   and the first build reported 320KB, which looks like internal SRAM alone. If
   there is PSRAM after all, this phase gets much easier.
 
+Built, apart from the cycling, and apart from the part only hardware settles:
+the decode streams through M5GFX's own drawJpg(Stream*) and holds nothing but
+its 3.9KB work pool, but whether that survives beside a live TLS session in
+320KB is unknown 3 and has never been run on a unit.
+
 Done when: a unit on the shelf quietly cycles the newest pictures in Voxels.
 
 ## Phase 4: the glyph atlas

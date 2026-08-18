@@ -225,10 +225,19 @@ ids are sequential, so browsing backwards means taking the newest id and
 walking down. There is no popularity or view count in the payload, so "notable"
 is not something this API can answer.
 
-Those images are around 128KB. The device has 320KB of RAM in total with the
-TLS stack already inside it, so this has to be a streaming block decode
-straight to the display, never a fetch-then-decode. Scale down during the
-decode rather than after.
+Those images are 45KB to 152KB, always 1024x1024. The device has 320KB of RAM
+in total with the TLS stack already inside it, so this has to be a streaming
+block decode straight to the display, never a fetch-then-decode.
+
+M5GFX already does exactly that: `drawJpg(Stream*, ...)` wraps the body in a
+`StreamWrapper` and the decoder pulls a few bytes at a time, pushing each
+finished block at the panel and holding nothing but its own 3.9KB work pool.
+Passing a zoom of -1 on the width fills the panel and keeps the aspect, which
+crops a square womp top and bottom rather than leaving a 135 pixel picture
+between two black bars. The overloads only exist when `Stream_h` and `ARDUINO`
+are both defined, which is true on the device and cannot be made true in the
+simulator without swapping its panel driver, so `src/jpeg.cpp` and
+`sim/src/jpeg_sim.cpp` split along that line.
 
 Live presence is the one thing the API does not cover, and deliberately: the
 docs say livekit, radio, metrics and the internal `/grid/*` routes are not
