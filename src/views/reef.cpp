@@ -19,6 +19,7 @@ const view::View kReef = {
     .name = "Reef",
     .source = "CORAL",
     .order = view::ORDER_REEF,
+    .icon = icons::WAVES,
     .draw = draw,
 };
 

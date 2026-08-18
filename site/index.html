@@ -55,42 +55,66 @@
   }
   .btn.primary { background: var(--coral); border-color: var(--coral); color: #17110d; }
 
-  /* The device. The well holds the canvas, and the keyboard under it is the
-     ADV's own layout, where every key does what it does on the unit. */
+  /* The device, drawn after the real ADV: light shell, dark base, and a
+     keyboard whose keycaps are coloured the way the unit's are. */
   .device {
-    background: linear-gradient(#1c1c21, #141418);
-    border: 1px solid #2f2f37;
-    border-radius: 14px;
-    padding: 14px 14px 12px;
-    box-shadow: 0 24px 60px rgba(0, 0, 0, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.05);
     max-width: 620px;
+    background: linear-gradient(#f0f0ec, #cfcfc9 62%, #b9b9b3);
+    border-radius: 16px;
+    padding: 12px 12px 10px;
+    box-shadow:
+      0 2px 0 #9a9a95, 0 10px 0 #2b2b2e, 0 12px 2px #1b1b1e,
+      0 34px 60px rgba(0, 0, 0, 0.6),
+      inset 0 1px 0 rgba(255, 255, 255, 0.85);
+  }
+  .deck { display: flex; align-items: center; gap: 10px; margin-bottom: 9px; padding: 0 2px; }
+  .brand { font: 700 10px/1.15 var(--mono); color: #2a2a2e; letter-spacing: 0.04em; }
+  .brand span { display: block; font-weight: 600; font-size: 8px; color: #6c6c70; }
+  .brand::before {
+    content: ""; display: inline-block; vertical-align: middle;
+    width: 7px; height: 7px; margin-right: 5px;
+    border-left: 2px solid var(--coral); border-top: 2px solid var(--coral);
+  }
+  .module {
+    margin-left: auto; display: flex; gap: 2px; align-items: center;
+    padding: 3px 5px; border-radius: 3px; background: #1e1e22;
+  }
+  .module i { width: 3px; height: 9px; border-radius: 1px; display: block; }
+  .screw {
+    width: 9px; height: 9px; border-radius: 50%;
+    background: radial-gradient(circle at 35% 32%, #cfcfca, #85857f 60%, #6a6a64);
+    box-shadow: inset 0 0 0 1px #9a9a94;
   }
   .well {
     position: relative; background: #000;
-    border-radius: 6px;
-    box-shadow: inset 0 0 0 1px #33333b, 0 2px 10px rgba(0, 0, 0, 0.6);
+    border-radius: 4px; padding: 5px;
+    box-shadow: inset 0 0 0 2px #16161a, 0 1px 0 rgba(255, 255, 255, 0.6);
     overflow: hidden;
   }
-  .well canvas { display: block; width: 100%; height: auto; image-rendering: pixelated; }
+  .well canvas { display: block; width: 100%; height: auto; image-rendering: pixelated; border-radius: 2px; }
   .boot {
     position: absolute; inset: 0; width: 100%; height: 100%;
-    background: rgba(6, 6, 8, 0.86); color: var(--text);
+    background: rgba(6, 6, 8, 0.86); color: #fff;
     border: 0; cursor: pointer; font: 600 15px/1 system-ui, sans-serif;
   }
   .boot:hover { background: rgba(6, 6, 8, 0.72); }
 
-  .keyboard { display: grid; grid-template-rows: repeat(4, 1fr); gap: 4px; margin-top: 12px; }
-  .krow { display: grid; grid-template-columns: repeat(14, 1fr); gap: 4px; }
+  .keyboard { display: grid; grid-template-rows: repeat(4, 1fr); gap: 3px; margin-top: 10px; }
+  .krow { display: grid; grid-template-columns: repeat(14, 1fr); gap: 3px; }
   .keyboard button {
-    aspect-ratio: 1 / 0.8;
-    background: #24242b; color: #b9b9c2;
-    border: 1px solid #32323b; border-radius: 4px;
-    font: 500 9px/1 var(--mono);
+    aspect-ratio: 1 / 0.82;
+    border: 0; border-radius: 3px;
+    font: 600 8px/1 var(--mono);
     cursor: pointer; padding: 0; overflow: hidden;
+    background: #f4f4f0; color: #2a2a2e;
+    box-shadow: 0 1.5px 0 #8f8f89, inset 0 1px 0 rgba(255, 255, 255, 0.9);
   }
-  .keyboard button:hover { background: var(--coral); border-color: var(--coral); color: #17110d; }
-  .keyboard button.hot { color: var(--coral); border-color: #4a3a33; }
-  .keyboard button.hot:hover { color: #17110d; }
+  .keyboard button[data-tone="dark"] { background: #26262a; color: #d8d8d4; box-shadow: 0 1.5px 0 #101012; }
+  .keyboard button[data-tone="orange"] { background: var(--coral); color: #24140c; box-shadow: 0 1.5px 0 #b5522e; }
+  .keyboard button[data-tone="blue"] { background: #4f7fe0; color: #0e1626; box-shadow: 0 1.5px 0 #33549a; }
+  .keyboard button[data-tone="green"] { background: #43b96a; color: #0d2415; box-shadow: 0 1.5px 0 #2c7a46; }
+  .keyboard button:active { transform: translateY(1px); box-shadow: none; }
+  .keyboard button:hover { outline: 2px solid var(--coral); outline-offset: 1px; }
 
   .legend { font: 12px/1.7 var(--mono); color: var(--dim); margin-top: 12px; }
 
@@ -173,6 +197,15 @@
   <p class="dim">Compiled to WebAssembly from the same sources the device builds from. The keyboard works.</p>
 
   <div class="device">
+    <div class="deck">
+      <div class="brand"><span>CARDPUTER</span>ADV</div>
+      <div class="screw"></div>
+      <div class="module" aria-hidden="true">
+        <i style="background:#e8534f"></i><i style="background:#f2a33c"></i>
+        <i style="background:#f7e463"></i><i style="background:#57c15f"></i>
+        <i style="background:#4f9de8"></i><i style="background:#a86fe0"></i>
+      </div>
+    </div>
     <div class="well">
       <canvas id="screen" width="240" height="135"></canvas>
       <button id="boot" class="boot">Start</button>
@@ -278,12 +311,15 @@ pio run -e sim -t exec -a --tour</pre>
 
   // The ADV's own layout: four rows of fourteen, labelled like the keycaps.
   var ROWS = [
-    [['`', 'esc'], ['1'], ['2'], ['3'], ['4'], ['5'], ['6'], ['7'], ['8'], ['9'], ['0'], ['-'], ['='], ['\b', 'del']],
+    [['`', 'esc', 'orange'], ['1', '', 'dark'], ['2', '', 'dark'], ['3', '', 'dark'], ['4', '', 'dark'],
+     ['5', '', 'dark'], ['6', '', 'dark'], ['7', '', 'dark'], ['8', '', 'dark'], ['9', '', 'dark'],
+     ['0', '', 'dark'], ['-', '', 'dark'], ['=', '', 'dark'], ['\b', 'del', 'dark']],
     [['\t', 'tab'], ['q'], ['w'], ['e'], ['r'], ['t'], ['y'], ['u'], ['i'], ['o'], ['p'], ['['], [']'], ['\\']],
-    [['', 'fn'], ['', 'sft'], ['a'], ['s'], ['d'], ['f'], ['g'], ['h'], ['j'], ['k'], ['l'], [';'], ["'"], ['\n', 'ret']],
-    [['', 'ctl'], ['', 'opt'], ['', 'alt'], ['z'], ['x'], ['c'], ['v'], ['b'], ['n'], ['m'], [','], ['.'], ['/'], [' ', 'spc']]
+    [['', 'fn', 'orange'], ['', 'Aa', 'blue'], ['a'], ['s'], ['d'], ['f'], ['g'], ['h'], ['j'], ['k'],
+     ['l'], [';', '\u2191'], ["'"], ['\n', 'ok', 'dark']],
+    [['', 'ctrl'], ['', 'opt', 'green'], ['', 'alt'], ['z'], ['x'], ['c'], ['v'], ['b'], ['n'], ['m'],
+     [',', '\u2190'], ['.', '\u2193'], ['/', '\u2192'], [' ', '', 'dark']]
   ];
-  var HOT = ['`', '\n', ';', '.', ',', '/', '1', '2', '3', '4', '5', '6'];
 
   var keyboard = document.getElementById('keyboard');
   ROWS.forEach(function (row) {
@@ -293,7 +329,7 @@ pio run -e sim -t exec -a --tour</pre>
       var button = document.createElement('button');
       button.textContent = key[1] || key[0];
       if (key[0]) { button.setAttribute('data-key', key[0]); }
-      if (HOT.indexOf(key[0]) !== -1) { button.className = 'hot'; }
+      if (key[2]) { button.setAttribute('data-tone', key[2]); }
       line.appendChild(button);
     });
     keyboard.appendChild(line);

@@ -19,6 +19,7 @@ const view::View kBot = {
     .name = "Bot",
     .source = "GLYPHBOTS",
     .order = view::ORDER_BOT,
+    .icon = icons::BOT,
     .draw = draw,
 };
 

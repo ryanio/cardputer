@@ -147,11 +147,13 @@ void drawStatus()
 	}
 	ui::line(1, text, stateColor());
 
+	constexpr uint8_t ACTION_ICONS[] = {icons::WIFI, icons::KEYBOARD, icons::TRASH};
 	for (int i = 0; i < ACTION_COUNT; i++) {
 		const bool on = i == action;
 		const bool dim = i == 2 && !net::credentialsAreStored();
-		snprintf(text, sizeof(text), "%s%s", on ? "> " : "  ", ACTIONS[i]);
-		ui::line(3 + i, text, dim ? ui::RULE : (on ? ui::CORAL : ui::FG));
+		const uint16_t color = dim ? ui::RULE : (on ? ui::CORAL : ui::FG);
+		ui::line(3 + i, ACTIONS[i], color, 24);
+		ui::icon(ACTION_ICONS[i], 5, ui::TITLE_H + (3 + i) * ui::LINE_H + 2, color);
 	}
 }
 
@@ -412,6 +414,7 @@ const view::View kSetup = {
     .name = "Setup",
     .source = "SETUP",
     .order = view::ORDER_LAST,
+    .icon = icons::SETTINGS,
     .enter = enter,
     .leave = leave,
     .draw = draw,

@@ -18,6 +18,7 @@ const view::View kGas = {
     .name = "Gas",
     .source = "GWEI",
     .order = view::ORDER_GAS,
+    .icon = icons::FUEL,
     .draw = draw,
 };
 

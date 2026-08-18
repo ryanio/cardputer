@@ -20,6 +20,7 @@ const view::View kBankr = {
     .name = "Bankr",
     .source = "BANKR",
     .order = view::ORDER_BANKR,
+    .icon = icons::LANDMARK,
     .draw = draw,
 };
 

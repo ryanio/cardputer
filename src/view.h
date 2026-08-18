@@ -3,6 +3,8 @@
 #include <Arduino.h>
 #include <M5Cardputer.h>
 
+#include "icons.h"
+
 // The menu, the input loop, and the rule that every screen has a way out.
 //
 // A view registers itself from its own file with VIEW_REGISTER, so adding one
@@ -53,6 +55,7 @@ struct View {
 	const char *name;    // menu label: Gas
 	const char *source;  // status bar source: GWEI, GLYPHBOTS, CORAL, VOXELS
 	int order;
+	uint8_t icon = icons::COUNT;  // drawn on the menu card, COUNT for none
 
 	// A view whose content is the whole point, a picture or a bot, takes the
 	// panel and the loop draws no status bar. It then owns the rule that a

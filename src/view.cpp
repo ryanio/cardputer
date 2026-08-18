@@ -93,16 +93,18 @@ void drawMenu()
 		g.setFont(&fonts::Font0);
 		g.setTextColor(on ? ui::BG : ui::RULE, background);
 		g.setTextDatum(textdatum_t::top_left);
-		g.drawString(number, x + 4, y + 4);
+		g.drawString(number, x + 4, y + 3);
+
+		ui::icon(v->icon, x + (CARD_W - 16) / 2, y + 3, on ? ui::BG : ui::CORAL);
 
 		g.setFont(&fonts::Font2);
 		g.setTextColor(on ? ui::BG : ui::FG, background);
 		g.setTextDatum(textdatum_t::top_center);
-		g.drawString(v->name, x + CARD_W / 2, y + 14);
+		g.drawString(v->name, x + CARD_W / 2, y + 21);
 
 		g.setFont(&fonts::Font0);
 		g.setTextColor(on ? ui::BG : ui::DIM, background);
-		g.drawString(v->source, x + CARD_W / 2, y + CARD_H - 13);
+		g.drawString(v->source, x + CARD_W / 2, y + CARD_H - 11);
 	}
 
 	g.setFont(&fonts::Font0);

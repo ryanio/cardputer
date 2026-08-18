@@ -19,6 +19,7 @@ const view::View kWomp = {
     .name = "Womp",
     .source = "VOXELS",
     .order = view::ORDER_WOMP,
+    .icon = icons::CAMERA,
     .draw = draw,
 };
 

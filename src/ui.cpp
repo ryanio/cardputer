@@ -182,7 +182,7 @@ void title(const char *text, uint16_t color)
 	contentTop_ = TITLE_H;
 }
 
-void line(int row, const char *text, uint16_t color)
+void line(int row, const char *text, uint16_t color, int x)
 {
 	if (row < 0) {
 		return;
@@ -194,7 +194,7 @@ void line(int row, const char *text, uint16_t color)
 	M5GFX &g = gfx();
 	g.fillRect(0, y, W, LINE_H, BG);
 	g.setFont(&fonts::Font2);
-	drawClipped(text, 3, y, W - 6, color, BG, textdatum_t::top_left);
+	drawClipped(text, x, y, W - x - 3, color, BG, textdatum_t::top_left);
 }
 
 void lineAt(int y, const char *text, uint16_t color, textdatum_t datum)
@@ -251,6 +251,15 @@ void banner(int y, int h, uint16_t color)
 		return;
 	}
 	gfx().fillRect(0, y, W, min(h, contentBottom_ - y), color);
+}
+
+void icon(uint8_t id, int x, int y, uint16_t color)
+{
+	if (id >= icons::COUNT) {
+		return;
+	}
+	const icons::Icon &glyph = icons::ALL[id];
+	gfx().drawBitmap(x, y, glyph.data, glyph.width, glyph.height, color);
 }
 
 void card(int x, int y, int w, int h, bool selected)

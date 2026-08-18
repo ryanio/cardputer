@@ -3,6 +3,8 @@
 #include <Arduino.h>
 #include <M5Cardputer.h>
 
+#include "icons.h"
+
 // Drawing on 240x135. Four lines of large text, or eight small ones.
 //
 // The screen is one shared surface, so the layout is fixed here rather than
@@ -62,7 +64,7 @@ void title(const char *text, uint16_t color = CORAL);
 // Row 0 is the first line under whatever the view has drawn so far. Each row
 // repaints its own strip, so a view can update one line without clearing the
 // screen.
-void line(int row, const char *text, uint16_t color = FG);
+void line(int row, const char *text, uint16_t color = FG, int x = 3);
 
 // Where row 0 sits, and how many rows are left below it.
 int contentTop();
@@ -80,6 +82,9 @@ void bigNumber(const char *text, uint16_t color = FG, const char *suffix = nullp
 
 // A full width band, for congestion banding behind a number.
 void banner(int y, int h, uint16_t color);
+
+// One of the generated Lucide bitmaps, drawn in a single color.
+void icon(uint8_t id, int x, int y, uint16_t color);
 
 // The unit the menu and the data views are built from. A screen this small
 // wastes less space on a grid of these than on a list with one item per row.
