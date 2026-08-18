@@ -22,6 +22,12 @@ limits live in [docs/API.md](docs/API.md). Build order lives in
 - **M5Cardputer 1.1.1 or newer, always.** The ADV drives its keyboard through a
   TCA8418 controller; the original Cardputer used a 74HC138. Older library
   versions compile fine and then read no keys at all.
+- **Never enable USB HID.** The ESP32-S3's native USB can present as a keyboard,
+  and M5's stock firmware ships an app that does exactly that. A device which can
+  type into a host the moment it is plugged in is the BadUSB class, and these
+  units are being given away and may come back. Our firmware enumerates as CDC
+  serial only. If a feature ever seems to need HID, that is a conversation, not a
+  commit.
 - **Give every view a way out.** The stock firmware trains users that G0 on the
   top edge is home. Match it, and never leave a screen with no exit.
 - **No secrets ever reach the device.** All three APIs are public and
