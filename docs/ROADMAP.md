@@ -32,7 +32,21 @@ Smallest payload, so it proves HTTPS + JSON before anything depends on them.
 
 Done when: it sits on the desk showing live gas and wakes you when gas is cheap.
 
-## Phase 2: the glyph atlas
+## Phase 2: OTA, before the phases that need iterating
+
+Small, and it pays for itself immediately: every phase after this one is edited
+far more than it is designed.
+
+- `ArduinoOTA` or `esp_https_ota` against a versioned binary. Device checks on
+  boot and on demand, never on a timer.
+- Keep the previous image and roll back on a failed boot. Three units and no
+  cable means a bad push is otherwise three walks to the desk.
+- Show the running version on the menu, so "did it take" is answerable by
+  looking.
+
+Done when: you push a build and all three units are running it without a cable.
+
+## Phase 3: the glyph atlas
 
 The only part with real unknowns.
 
@@ -47,7 +61,7 @@ The only part with real unknowns.
 Done when: three units each hold a different bot and look good enough to hand
 someone.
 
-## Phase 3: the pet, which is where the ADV earns its keep
+## Phase 4: the pet, which is where the ADV earns its keep
 
 Settle one thing first: **real collection activity is too slow to be the food
 supply.** The most recent mint across the whole collection was 2026-08-11. A pet
@@ -77,7 +91,7 @@ activity is the rare event.
 Done when: it changes across a day of being ignored, and you can tell whose bot
 is whose with your eyes shut.
 
-## Phase 4: the Coral round
+## Phase 5: the Coral round
 
 `GET /api/v1/guess/daily` does the work server-side: one token a day, same for
 everyone, market facts as the clue and the score as the answer, one payload.
@@ -93,7 +107,7 @@ everyone, market facts as the clue and the score as the answer, one payload.
 
 Done when: a round is genuinely hard and you want another.
 
-## Phase 5: three of them
+## Phase 6: three of them
 
 - ESP-NOW, no router. Mind the shared radio: a peered unit and a fetching unit
   want different channels, so pick one per app state.
@@ -107,7 +121,7 @@ Done when: a round is genuinely hard and you want another.
 
 Done when: two bots meeting produces something you would show a stranger.
 
-## Phase 6: off the device
+## Phase 7: off the device
 
 - The share is text. The device has the date, `answer.score` and the guess.
 
@@ -124,6 +138,48 @@ Done when: two bots meeting produces something you would show a stranger.
   page.
 - A QR gets it off the device, pointing at a prefilled post.
 
+## Phase 8: Ask Coral
+
+The keyboard's real purpose. Type a question, get an answer.
+
+Coral has no public ask endpoint today, and the existing pipeline cannot be
+wrapped: `HandleAskCoralArgs` wants a tenant, channel, platform and message id,
+and the result is `{ path, sent, skippedReason }`. It SENDS through platform
+egress and never returns text. So this needs a parallel path through the model
+that returns instead of sending.
+
+Spend rails first, because an unauthenticated public AI endpoint is an open
+wallet:
+
+- Its own tight per-IP bucket on the existing limiter.
+- A hard global answers-per-day ceiling that declines politely once hit.
+- A low max-tokens per answer, which the screen wants anyway.
+- Behind a test, per the money rule.
+
+On the device:
+
+- Terse mode. 240x135 is roughly eight short lines, so the endpoint returns a
+  short answer, not a truncated long one.
+- Carries its caveats and the Coral name, same contract as every other score
+  surface.
+- **Hand off to Telegram for the long version.** A QR or deep link continues the
+  same question in the bot, where there is room to answer properly. The device
+  gives you the gist; the phone gives you the rest.
+
+## Phase 9: a script layer
+
+Compiled C++ always needs a flash. An interpreter does not.
+
+- Embed something small (Lua is the obvious candidate) with a narrow API: draw,
+  fetch, tone, read a key. Not the whole firmware.
+- Type a script on the device and it runs immediately. This is what Phase 2's
+  OTA cannot give you.
+- The same capped Coral endpoint from Phase 8 can return a script instead of an
+  answer, so "write me a behavior" works without a model key on the device.
+- Sandbox it before it is fun: network allowlist, no filesystem writes, a
+  watchdog, and a revert-to-last-good. The first bad script otherwise wedges the
+  UI and the only fix is a cable.
+
 ## Parked
 
 Ideas the hardware allows that nothing yet needs. Left here rather than built.
@@ -132,6 +188,9 @@ Ideas the hardware allows that nothing yet needs. Left here rather than built.
 - BLE: the bot as a beacon nearby phones can see. Fun, no clear payoff.
 - 3.5mm jack: only matters if the pet gets a soundtrack.
 - LEGO holes: a three-unit desk dock, when there are three finished units.
+- Voice input: the mic is good enough, but there is no on-device speech to text,
+  and streaming audio out is a privacy surface this does not need. Phase 8 takes
+  typing.
 
 ## Constraints worth keeping in view
 
