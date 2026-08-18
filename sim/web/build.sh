@@ -40,9 +40,18 @@ compile() {
 	echo "$obj"
 }
 
-SOURCES_CPP=(
-	"$ROOT"/src/ui.cpp "$ROOT"/src/view.cpp "$ROOT"/src/store.cpp
-	"$ROOT"/src/views/*.cpp
+# Every firmware source except the two the simulator replaces, which is what
+# platformio.ini's build_src_filter says for the native build. Listing them by
+# hand meant the next file added to the spine broke this link, quietly, in the
+# one build nobody compiles before pushing.
+SOURCES_CPP=()
+while IFS= read -r f; do
+	case "$(basename "$f")" in
+		main.cpp | net.cpp) continue ;;
+	esac
+	SOURCES_CPP+=("$f")
+done < <(find "$ROOT/src" -name '*.cpp')
+SOURCES_CPP+=(
 	"$ROOT"/sim/src/app.cpp "$ROOT"/sim/src/shim.cpp "$ROOT"/sim/src/net_sim.cpp
 	"$ROOT"/sim/src/main_web.cpp
 )
