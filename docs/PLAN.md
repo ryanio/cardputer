@@ -1,12 +1,14 @@
 # Engineering plan
 
-What is built, and the flash gate that has not been run.
+What is built, and what the first unit answered.
 
 ## The constraint
 
-**Nobody in the build loop can flash.** Agents and the manager compile; only
-Ryan can put a binary on a device and look at it. Every view is now written and
-none of it has ever run on hardware.
+**A screen still needs a person in front of it.** An agent on Ryan's machine
+can flash a unit and read the port back with `tools/serial/read.py`, so
+anything the firmware prints is checkable without him. Anything it draws, plays
+or is tipped is not: nobody in the build loop can look at the panel, hear the
+speaker, or pick the unit up.
 
 ## What got built
 
@@ -110,6 +112,21 @@ reaches the panel.
 336KB the chip actually reports, and a handshake plus a fetch bottoms out at
 186KB. A live session costs around 60KB while it is open.
 
+**Unknown 3, does the streaming decode hold: yes, and it costs nothing.** A
+148,390 byte photo landed on the panel in 2649ms, over the same TLS session
+that fetched its metadata:
+
+```
+net: ok .../womps/81300.json 760 B in 1782 ms, heap 248872 free, 190896 low
+net: ok .../womp_1786937202867_....jpg 148390 B in 2649 ms, heap 249816 free, 185368 low
+womp: 81300, 144KB in 2649ms
+```
+
+The low water mark under a 144KB image is 185KB, against 186KB for the boot
+probe that fetches 535 bytes. The image never exists in RAM, so its size does
+not show up in the heap at all. Free heap after is higher than before, so the
+first one did not leak.
+
 Settled in passing: the TCA8418 reads keys, a network typed on the unit joins
 out of NVS, SNTP lands, and gwei answers over the bundled roots rather than
 over a desktop's trust store.
@@ -119,8 +136,6 @@ own monitor wants a terminal. `tools/serial/read.py` is that, if it helps.
 
 ## Unknowns still open
 
-3. **Does the streaming decode hold** at 45KB to 152KB an image? It holds a
-   3.9KB work pool and nothing else by construction.
 4. **Does the speaker work?** Beat, Calm and the gas alarm all call
    `Speaker.tone`, and the simulator's speaker is a no-op.
 5. **Which way up is the IMU?** M5Unified fixes axes per board and has no case
@@ -129,8 +144,8 @@ own monitor wants a terminal. `tools/serial/read.py` is that, if it helps.
 
 ## What is left
 
-- **The rest of the flash gate.** Steps 1 and 2 are done. Womp, the speaker
-  and the IMU axes need someone in front of the unit.
+- **The rest of the flash gate.** Boot, Setup, Menu and Womp are done. The
+  speaker and the IMU axes need someone in front of the unit.
 - **OTA**, Phase 2, including image signing. The only piece of the original
   plan still unwritten.
 - **Sound in the browser build.** `sim/include/M5Cardputer.h` has a no-op

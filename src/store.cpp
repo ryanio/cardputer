@@ -25,6 +25,16 @@ bool valid(const char *key)
 	return opened;
 }
 
+// Reading a setting that was never written is the normal first run, but
+// Preferences logs its own miss as an error before handing back the fallback:
+// "nvs_get_blob len fail: gas.alarm NOT_FOUND" on a unit that has simply never
+// had an alarm set. Asking whether the key exists first costs one lookup and
+// keeps the boot log to things that are actually wrong.
+bool present(const char *key)
+{
+	return valid(key) && prefs.isKey(key);
+}
+
 }  // namespace
 
 bool begin()
@@ -46,7 +56,7 @@ bool ready()
 
 int32_t getInt(const char *key, int32_t fallback)
 {
-	return valid(key) ? prefs.getInt(key, fallback) : fallback;
+	return present(key) ? prefs.getInt(key, fallback) : fallback;
 }
 
 bool setInt(const char *key, int32_t value)
@@ -56,7 +66,7 @@ bool setInt(const char *key, int32_t value)
 
 float getFloat(const char *key, float fallback)
 {
-	return valid(key) ? prefs.getFloat(key, fallback) : fallback;
+	return present(key) ? prefs.getFloat(key, fallback) : fallback;
 }
 
 bool setFloat(const char *key, float value)
@@ -66,7 +76,7 @@ bool setFloat(const char *key, float value)
 
 bool getBool(const char *key, bool fallback)
 {
-	return valid(key) ? prefs.getBool(key, fallback) : fallback;
+	return present(key) ? prefs.getBool(key, fallback) : fallback;
 }
 
 bool setBool(const char *key, bool value)
@@ -76,7 +86,7 @@ bool setBool(const char *key, bool value)
 
 String getString(const char *key, const char *fallback)
 {
-	return valid(key) ? prefs.getString(key, fallback) : String(fallback);
+	return present(key) ? prefs.getString(key, fallback) : String(fallback);
 }
 
 bool setString(const char *key, const String &value)

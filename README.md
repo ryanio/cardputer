@@ -20,12 +20,14 @@ screenshots and how to run it without hardware.
 
 - [docs/API.md](docs/API.md) the five APIs, verified shapes, rate limits
 - [sim/README.md](sim/README.md) the simulator, and how it takes screenshots
-- [docs/PLAN.md](docs/PLAN.md) what is built, and the flash gate nobody has run
+- [docs/PLAN.md](docs/PLAN.md) what is built, and what the first unit answered
 - [docs/ROADMAP.md](docs/ROADMAP.md) build order
 - [CLAUDE.md](CLAUDE.md) rules
 
-Every view is written and none of it has run on hardware. The screenshots came
-out of the simulator, which is why the simulator exists.
+The first unit ran on 2026-08-18: no PSRAM, TLS fits with 186KB to spare, and
+a 144KB photo decodes to the panel in 2.6 seconds without ever existing in RAM.
+The speaker and the IMU axes are still unheard and unchecked. Most screenshots
+came out of the simulator, which is why the simulator exists.
 
 ## Hardware
 

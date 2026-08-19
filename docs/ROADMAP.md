@@ -12,8 +12,9 @@ forward because Coral is the story. Phase 2, OTA, is the only piece of the
 original plan still unwritten. The IMU arrived ahead of phase 5 and is a layer
 rather than a feature: `src/motion.*` filters it once, `src/rest.*` sleeps the
 panel when the unit is face down, and Maze, Rain and the dial under a Coral
-guess are what it bought. The pet inherits all of it. Nothing here has run on hardware: see the flash
-gate in [PLAN.md](PLAN.md), which nobody has been through yet.
+guess are what it bought. The pet inherits all of it. The first unit ran on 2026-08-18 and answered
+three of the five unknowns: see [PLAN.md](PLAN.md) for the numbers and for the
+speaker and the IMU, which are still open.
 
 ## Phase 0: skeleton
 
@@ -82,9 +83,10 @@ The cheapest fun in the plan: Phase 1's network stack plus pictures. The JPEGs
 run 45KB to 152KB against 320KB of RAM with TLS in it, so the decode has to
 stream block by block straight to the panel, scaling as it goes.
 
-**Built**, apart from the cycling. The decode goes through M5GFX's own
-`drawJpg(Stream*)` and holds nothing but its 3.9KB work pool; whether that
-survives beside a live TLS session is unknown 3 and has never run on a unit.
+**Built**, apart from the cycling, and proven on a unit. The decode goes
+through M5GFX's own `drawJpg(Stream*)` and holds nothing but its 3.9KB work
+pool. A 148,390 byte photo drew in 2649ms beside a live TLS session and left
+the heap where it found it.
 
 Done when: a unit on the shelf quietly cycles the newest pictures in Voxels.
 

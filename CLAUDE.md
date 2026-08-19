@@ -7,7 +7,7 @@ of the sources it reads, not the name of the thing.
 - [README.md](README.md) hardware, build, layout
 - [docs/API.md](docs/API.md) the five sources, verified shapes, rate limits, CA roots
 - [docs/ROADMAP.md](docs/ROADMAP.md) phases
-- [docs/PLAN.md](docs/PLAN.md) what is built, and the flash gate nobody has run
+- [docs/PLAN.md](docs/PLAN.md) what is built, and what the first unit answered
 
 ## Build
 
@@ -19,15 +19,16 @@ tools/fmt.sh            # house style, --check enforces it
 tools/apicheck/check.py # ask the five sources whether they still fit
 ```
 
-Green as of 2026-08-18: RAM 18.1%, flash 36.9% of the 3.3MB app slot. CI
+Green as of 2026-08-18: RAM 18.1%, flash 37.0% of the 3.3MB app slot. CI
 compiles both targets on a push and probes the sources on a schedule.
 
 ## Traps
 
 - **M5Cardputer 1.1.1+.** The ADV keyboard is a TCA8418; the original was a
   74HC138. Older versions compile fine and read no keys.
-- **Nobody in the build loop can flash.** Agents compile. Only Ryan verifies.
-  "Compiles" is never "works".
+- **Flashing is scriptable, looking is not.** `pio run -t upload` and
+  `tools/serial/read.py` work from an agent, so anything printed is checkable.
+  Anything drawn, played or tipped needs Ryan. "Compiles" is never "works".
 - **No secrets on the device.** All five sources are public. If something seems
   to need a key, the design is wrong. WiFi is typed on the unit and kept in
   NVS; gitignored `include/secrets.h` is a dev-unit fallback only.
