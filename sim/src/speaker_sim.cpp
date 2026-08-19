@@ -24,7 +24,7 @@
 namespace {
 
 constexpr int RATE = 22050;
-constexpr int CHANNELS = 8;  // what M5Unified offers, and Beat uses one a track
+constexpr int CHANNELS = 8;       // what M5Unified offers, and Beat uses one a track
 constexpr int RAMP = RATE / 500;  // 2ms, enough to take the click off
 constexpr float MAX = 9000.0f;    // headroom for eight voices in an int16
 
@@ -118,7 +118,8 @@ void mix(void *, Uint8 *stream, int bytes)
 		}
 
 		const float scaled = sum * MAX * ((float)master / 255.0f);
-		out[i] = (int16_t)(scaled > 32000.0f ? 32000.0f : (scaled < -32000.0f ? -32000.0f : scaled));
+		out[i] =
+		    (int16_t)(scaled > 32000.0f ? 32000.0f : (scaled < -32000.0f ? -32000.0f : scaled));
 	}
 }
 
