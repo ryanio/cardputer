@@ -119,8 +119,17 @@ GET https://api.0xcoral.com/api/v1/resolve?q=MEME
 
 GET https://api.0xcoral.com/api/v1/tokens/{chain}/{address}
 {"symbol":"MEME","market":{"marketCapUsd":31447771,"liquidityUsd":205368.53,
-   "volume24hUsd":4207.44,"priceChange24hPct":-0.0101, ...},
- "holders":{"count":741291,"topHoldersExInfraPct":51.62, ...},"links":{...}}
+   "volume24hUsd":4207.44,"priceChange24hPct":-0.0101,"priceUsd":0.00046, ...},
+ "holders":{"count":741291,"topHoldersExInfraPct":51.62, ...},
+ "activity":{"h24":{"buys":48,"sells":47,"volumeUsd":12875.92}, "h6":..., "h1":..., "m5":...},
+ "firstCaller":{"handle":"Brookwhale","platform":"telegram",
+   "calledAt":"2026-08-19T01:40:41.677Z","calledMcapUsd":128838},
+ "reach":{"mentions":15,"communities":5,"windowHours":24},
+ "safety":{"honeypot":false,"mintAuthority":false, ...},
+ "ath":{"price":0.0043,"date":"2025-08-24T00:00:00.000Z"},
+ "score":{"score":58,"verdict":"unknown","confidence":0.55,"confidenceLabel":"medium",
+   "explanation":{"headline":"...","bullets":[...],"caveats":[...]}},
+ "links":{...}}
 
 GET https://api.0xcoral.com/api/v1/score/{chain}/{address}
 {"score":61,"verdict":"unknown","confidence":0.649,"confidenceLabel":"medium",
@@ -149,6 +158,31 @@ character contract address is miserable; typing `MEME` is not.
 The first returns the market facts a person would reason from, the second
 returns the answer. Show one, hide the other.
 
+**The token payload carries far more than that shape suggests, and the Reef
+feed is built out of the three fields nothing else here uses.**
+
+`firstCaller` is whoever put the token in front of a room first: a handle, the
+platform, when, and `calledMcapUsd`, the market cap at that moment. Today's
+`marketCapUsd` over that one is the whole of the PnL, and it is the only
+priced call anything public here offers. About a third of the graded corpus
+carries one; the field is **absent, not null**, on the rest, and `handle`
+without `calledMcapUsd` happens too, which is a call with no entry to price it
+against rather than a call that never happened. Every handle sampled was
+`telegram`. There is a `/callers/{id}` route, but it answers `caller_not_found`
+for every handle tried, so a caller leaderboard is something a reader adds up
+from the tokens it holds, not something to fetch.
+
+`reach` is `{mentions, communities, windowHours}`, chat volume over a day. It
+is the rarest of the three and absent far more often than present.
+
+`score` rides inside the same body, the same shape `score/{chain}/{address}`
+returns, `explanation` and `caveats` included, and it was present on all 40
+tokens sampled. **That is the fast route to a score**: one token fetch answers
+in under a second where the standalone score endpoint takes several and rate
+limits, so anything reading a list of tokens should never touch `/score`. It
+comes with a `validUntil` ten minutes out, which is the grading being done on
+request, and is why a corpus read once goes stale rather than wrong.
+
 `explanation.bullets` are five short lines already sized for a narrow column.
 `caveats` is not decoration, and the API repeats it in an
 `x-coral-attribution` header. Both get screen space.
@@ -157,10 +191,16 @@ Score is a heavy lookup that self rate limits and takes seconds. It is request
 and response behind a spinner, never a poll, and a 429 means wait rather than
 retry.
 
-`tokens/index` returns just `{chain, address}` per entry, which makes a random
-round a single extra fetch: pick one, then score it. Together with `resolve`
-that gives the Reef view three ways in: a ticker someone types, a random token
-from the graded corpus, and the token of the day everybody shares.
+`tokens/index` returns just `{chain, address}` per entry, most recently graded
+first, and `limit` is honoured to at least 100. It ignores everything else:
+`sort`, `full` and `expand` all come back as the same bare pairs. So a feed is
+the index once and then one fetch per token, which is what Reef does, filling
+the corpus behind the reader a token at a time. Solana is about three quarters
+of it, with `robinhood`, `bsc` and `ethereum` making up the rest.
+
+Together with `resolve` that also gives the guessing round three ways in: a
+ticker someone types, a random token out of the corpus already in hand, and
+the token of the day everybody shares.
 
 `guess/daily` is the game path and it sidesteps all of that. One token a day, the
 same for everybody, precomputed once into KV, so it answers from the edge instead

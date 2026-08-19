@@ -197,6 +197,166 @@
       "match": "media.crvox.com/womps/0xe330dc28b47d73884ad88837aecfee1f49ad7e7b/womp_1787066194882_4f58dcb09f559cea97102918422c6c5c.jpg",
       "fixture": "voxels-image-81302",
       "binary": true
+    },
+    {
+      "match": "api.0xcoral.com/api/v1/tokens/solana/A2juv28T*",
+      "fixture": "coral-token-a2juv28tgy",
+      "reef": true
+    },
+    {
+      "match": "api.0xcoral.com/api/v1/tokens/solana/DPmxFPHY*",
+      "fixture": "coral-token-dpmxfphyvw",
+      "reef": true
+    },
+    {
+      "match": "api.0xcoral.com/api/v1/tokens/solana/6QyWUHzo*",
+      "fixture": "coral-token-6qywuhzo9v",
+      "reef": true
+    },
+    {
+      "match": "api.0xcoral.com/api/v1/tokens/solana/y8XCoC5c*",
+      "fixture": "coral-token-y8xcoc5c4h",
+      "reef": true
+    },
+    {
+      "match": "api.0xcoral.com/api/v1/tokens/robinhood/0x75e99e*",
+      "fixture": "coral-token-0x75e99e4e",
+      "reef": true
+    },
+    {
+      "match": "api.0xcoral.com/api/v1/tokens/solana/48CjSLNM*",
+      "fixture": "coral-token-48cjslnmpj",
+      "reef": true
+    },
+    {
+      "match": "api.0xcoral.com/api/v1/tokens/solana/DFpnX5Up*",
+      "fixture": "coral-token-dfpnx5upks",
+      "reef": true
+    },
+    {
+      "match": "api.0xcoral.com/api/v1/tokens/solana/B4xUM4K9*",
+      "fixture": "coral-token-b4xum4k9js",
+      "reef": true
+    },
+    {
+      "match": "api.0xcoral.com/api/v1/tokens/solana/3cuoLYsp*",
+      "fixture": "coral-token-3cuolyspkw",
+      "reef": true
+    },
+    {
+      "match": "api.0xcoral.com/api/v1/tokens/solana/5b9E4b8e*",
+      "fixture": "coral-token-5b9e4b8eiw",
+      "reef": true
+    },
+    {
+      "match": "api.0xcoral.com/api/v1/tokens/solana/4urqrE1R*",
+      "fixture": "coral-token-4urqre1rau",
+      "reef": true
+    },
+    {
+      "match": "api.0xcoral.com/api/v1/tokens/solana/FCvrpVqS*",
+      "fixture": "coral-token-fcvrpvqs8x",
+      "reef": true
+    },
+    {
+      "match": "api.0xcoral.com/api/v1/tokens/solana/dgJAJwbB*",
+      "fixture": "coral-token-dgjajwbbkl",
+      "reef": true
+    },
+    {
+      "match": "api.0xcoral.com/api/v1/tokens/solana/B6iPFNDC*",
+      "fixture": "coral-token-b6ipfndctn",
+      "reef": true
+    },
+    {
+      "match": "api.0xcoral.com/api/v1/tokens/solana/4eNyg56i*",
+      "fixture": "coral-token-4enyg56io8",
+      "reef": true
+    },
+    {
+      "match": "api.0xcoral.com/api/v1/tokens/solana/DEho1X84*",
+      "fixture": "coral-token-deho1x84k2",
+      "reef": true
+    },
+    {
+      "match": "api.0xcoral.com/api/v1/tokens/solana/FT9SQ9ri*",
+      "fixture": "coral-token-ft9sq9riby",
+      "reef": true
+    },
+    {
+      "match": "api.0xcoral.com/api/v1/tokens/robinhood/0xe2808d*",
+      "fixture": "coral-token-0xe2808df4",
+      "reef": true
+    },
+    {
+      "match": "api.0xcoral.com/api/v1/tokens/robinhood/0x4c2d0c*",
+      "fixture": "coral-token-0x4c2d0c58",
+      "reef": true
+    },
+    {
+      "match": "api.0xcoral.com/api/v1/tokens/ethereum/0x35f897*",
+      "fixture": "coral-token-0x35f897fd",
+      "reef": true
+    },
+    {
+      "match": "api.0xcoral.com/api/v1/tokens/solana/6UaFx5Lo*",
+      "fixture": "coral-token-6uafx5lohs",
+      "reef": true
+    },
+    {
+      "match": "api.0xcoral.com/api/v1/tokens/solana/3sKhvyBU*",
+      "fixture": "coral-token-3skhvybuxj",
+      "reef": true
+    },
+    {
+      "match": "api.0xcoral.com/api/v1/tokens/solana/DZkxhWCv*",
+      "fixture": "coral-token-dzkxhwcvke",
+      "reef": true
+    },
+    {
+      "match": "api.0xcoral.com/api/v1/tokens/robinhood/0xfd0361*",
+      "fixture": "coral-token-0xfd036176",
+      "reef": true
+    },
+    {
+      "match": "api.0xcoral.com/api/v1/tokens/solana/6na1t1VZ*",
+      "fixture": "coral-token-6na1t1vzzs",
+      "reef": true
+    },
+    {
+      "match": "api.0xcoral.com/api/v1/tokens/bsc/0x928661*",
+      "fixture": "coral-token-0x928661e5",
+      "reef": true
+    },
+    {
+      "match": "api.0xcoral.com/api/v1/tokens/solana/6YXw6zTJ*",
+      "fixture": "coral-token-6yxw6ztjyy",
+      "reef": true
+    },
+    {
+      "match": "api.0xcoral.com/api/v1/tokens/solana/7g2xyrq9*",
+      "fixture": "coral-token-7g2xyrq9fk",
+      "reef": true
+    },
+    {
+      "match": "api.0xcoral.com/api/v1/tokens/solana/7aGdbu4M*",
+      "fixture": "coral-token-7agdbu4mme",
+      "reef": true
+    },
+    {
+      "match": "api.0xcoral.com/api/v1/tokens/solana/YNiobysT*",
+      "fixture": "coral-token-yniobystkw",
+      "reef": true
+    },
+    {
+      "match": "api.0xcoral.com/api/v1/tokens/robinhood/0xe254c4*",
+      "fixture": "coral-token-0xe254c468",
+      "reef": true
+    },
+    {
+      "match": "api.0xcoral.com/api/v1/tokens/solana/DbThmv3y*",
+      "fixture": "coral-token-dbthmv3yey",
+      "reef": true
     }
   ]
 }

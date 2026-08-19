@@ -84,8 +84,12 @@ a few seconds; a blank screen and an allocation message settles unknown 3. Walk
 one id down to confirm the first did not leak.
 
 **6. Bot and Reef.** A bot should look like the site's version of the same bot,
-in its own two colors. Play one Reef round to the reveal, and lean the unit to
-pick the number rather than typing it.
+in its own two colors. In Reef, watch the corner counter fill on its own while
+you read the first card: that is thirty two blocking fetches spaced by a pause,
+and if a keypress goes missing while one is in flight the pause is too short.
+Then rank by best calls and check the top multiple against the caller's entry
+cap. Play one guess round to the reveal, and lean the unit to pick the number
+rather than typing it.
 
 **7. Maze, Rain, and face down.** Both are the axis check made visible: a
 marble that rolls the way the unit is tipped and glyphs that pour downhill mean

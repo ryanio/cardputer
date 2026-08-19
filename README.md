@@ -12,7 +12,7 @@ screenshots and how to run it without hardware.
 
 | View | Source | Shows |
 |------|--------|-------|
-| Reef | coral | Guess a Coral Score: a ticker, a random token, or the one everybody gets today |
+| Reef | coral | The tokens Coral just graded, who called each one first, and what the call is worth now |
 | Bankr | bankr | Agents by market cap and weekly revenue, scored through Coral |
 | Bot | glyphbots | A GlyphBot drawn from its Unicode, the sheet behind it, and four ways to browse |
 | Womp | voxels | In-world photos, newest first, decoded straight to the panel |

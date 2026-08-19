@@ -19,7 +19,7 @@ tools/fmt.sh            # house style, --check enforces it
 tools/apicheck/check.py # ask the five sources whether they still fit
 ```
 
-Green as of 2026-08-18: RAM 18.4%, flash 37.0% of the 3.3MB app slot. CI
+Green as of 2026-08-18: RAM 20.5%, flash 37.6% of the 3.3MB app slot. CI
 compiles both targets on a push and probes the sources on a schedule.
 
 ## Traps
@@ -49,6 +49,12 @@ compiles both targets on a push and probes the sources on a schedule.
   one path is what made settling it a single edit rather than ten.
 - **Poll windows.** gwei refreshes at most every 30s. Coral's `/guess/daily` is
   one round per ET day: fetch once, play offline. Never loop `/score`.
+- **A Coral token body already carries its score**, `explanation` and caveats
+  included, and answers in well under a second. `/score` is for one token
+  somebody asked about, never for a list. `firstCaller.calledMcapUsd` against
+  today's cap is the only priced call anything public here offers.
+- **A blocking fetch eats the keypress on top of it.** Anything filling itself
+  in the background waits for the reader to go still first.
 - **Three headers are generated, never hand edited**: `src/icons.h`,
   `src/glyphs.h`, `sim/src/fixtures.h`. Each has `--check` and CI runs it.
 - **Sample more than one of anything.** Bot 1 is the exception, not the shape.

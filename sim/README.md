@@ -64,6 +64,12 @@ Fetches answer from `sim/fixtures`, real captures rather than invented bodies.
 `tools/fixtures/bundle.py` compiles them into `sim/src/fixtures.h`, because the
 web build has no filesystem. `manifest.json` says which URL each one answers.
 
+Reef is the exception, because it reads a whole corpus rather than one body:
+`tools/fixtures/reef.py` captures the Coral index and one payload per token in
+it, then writes the routes for them and bundles. Those routes carry
+`"reef": true` and are replaced whole on every run, so the index and the bodies
+behind it can never drift apart. Everything else in the manifest is by hand.
+
 An unmatched URL fails with "no fixture" rather than inventing a body, and
 every token is routed by its own address, so a view shows its own numbers or
 says it has none. Coral rate limits scores hard enough that only a few tokens

@@ -289,6 +289,32 @@ def score_sane(data):
         return "no caveats, and CLAUDE.md says every score shows them"
 
 
+@rule("a called token still says who called it, when, and at what cap")
+def caller_priced(data):
+    caller = data.get("firstCaller")
+    if not isinstance(caller, dict):
+        return ("firstCaller is %r. Reef prices every call against calledMcapUsd, and this "
+                "token had a caller when the check was written" % caller)
+    if not caller.get("handle"):
+        return "firstCaller carries no handle"
+    if not re.match(r"^\d{4}-\d{2}-\d{2}T", str(caller.get("calledAt"))):
+        return "calledAt is %r, and the card counts the hours from it" % caller.get("calledAt")
+    cap = caller.get("calledMcapUsd")
+    if cap is not None and not (isinstance(cap, NUM) and cap > 0):
+        return ("calledMcapUsd is %r. It divides today's cap, so anything but a positive "
+                "number or nothing at all is a multiple nobody should read" % cap)
+
+
+@rule("the token payload carries its own score, caveats and all")
+def token_carries_score(data):
+    score = data.get("score", {})
+    if not isinstance(score.get("score"), NUM) or not 0 <= score["score"] <= 100:
+        return ("score.score is %r. The feed reads a score out of every token body rather "
+                "than asking /score, which self rate limits" % score.get("score"))
+    if not score.get("explanation", {}).get("caveats"):
+        return "no caveats, and CLAUDE.md says every score shows them"
+
+
 @rule("the daily round hides nothing the device needs to play offline")
 def daily_playable(data):
     if not data.get("clues"):
@@ -313,6 +339,14 @@ def token_share_scale(data):
     if pct is not None and not 0 <= pct <= 100:
         return ("topHoldersExInfraPct is %s. The two endpoints disagree about scale on purpose "
                 "and the views correct for it, so a change here draws a wrong number" % pct)
+
+
+@rule("the index honours limit, which is how much corpus the feed gets")
+def index_limit(data):
+    tokens = data.get("tokens", [])
+    if len(tokens) != 32:
+        return ("asked for 32 and got %d. tools/fixtures/reef.py captures whatever this "
+                "returns, so the simulator would quietly show a shorter reef" % len(tokens))
 
 
 @rule("profiles come back ordered by market cap, descending")
@@ -529,6 +563,34 @@ def build_checks():
             rules=[score_sane],
         ),
         Check(
+            "coral",
+            # A token with a first call on record. The call is a historical
+            # fact, so it stays; the market around it is what moves.
+            "https://api.0xcoral.com/api/v1/tokens/solana/"
+            "CcWVFqrwzkEdHH1YpfZRjkdbKrxYQbU9BRqeC6ZGpump",
+            fixture="coral-token-ccwvfqrw",
+            fields=[
+                Field("symbol", str),
+                Field("market.marketCapUsd", NUM, nullable=True),
+                Field("activity.h24.buys", int, nullable=True),
+                Field("activity.h24.sells", int, nullable=True),
+                Field("firstCaller.handle", str),
+                Field("firstCaller.platform", str),
+                Field("firstCaller.calledAt", str),
+                Field("firstCaller.calledMcapUsd", NUM, nullable=True,
+                      note="a call with no entry to price it against"),
+                # reach is the rarest of the three and absent far more often
+                # than present, so the card draws it only when it is there.
+                Field("reach.mentions", int, optional=True),
+                Field("reach.communities", int, optional=True),
+                Field("score.score", NUM),
+                Field("score.verdict", str),
+                Field("score.explanation.bullets", list),
+                Field("score.explanation.caveats", list),
+            ],
+            rules=[caller_priced, token_carries_score],
+        ),
+        Check(
             "coral", "https://api.0xcoral.com/api/v1/guess/daily",
             fixture="coral-daily",
             fields=[
@@ -551,12 +613,18 @@ def build_checks():
             rules=[daily_playable, daily_share_scale],
         ),
         Check(
-            "coral", "https://api.0xcoral.com/api/v1/tokens/index?limit=8",
-            fixture="coral-index",
+            # The Reef feed asks for the same page and then reads every entry,
+            # so a limit that stops being honoured is a corpus that shrinks
+            # without saying so. No fixture here on purpose: the index and the
+            # token bodies behind it have to be captured together or the
+            # simulator gets entries nothing answers for, which is what
+            # tools/fixtures/reef.py is.
+            "coral", "https://api.0xcoral.com/api/v1/tokens/index?limit=32",
             fields=[
                 Field("tokens[].chain", str),
                 Field("tokens[].address", str),
             ],
+            rules=[index_limit],
         ),
         Check(
             "bankr", "https://api.bankr.bot/agent-profiles?limit=12",
