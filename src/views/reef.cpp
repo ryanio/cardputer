@@ -1,6 +1,8 @@
 #include <ArduinoJson.h>
+#include <math.h>
 
 #include "../coral.h"
+#include "../motion.h"
 #include "../net.h"
 #include "../store.h"
 #include "../ui.h"
@@ -73,6 +75,9 @@ int clueCount = 0;
 coral::Score score;
 
 int guess = -1;
+// Whether the number on screen is coming from the wrist. Typing takes it back,
+// so the two ways in never fight over the same digit.
+bool tilting = false;
 int page = 0;  // the reveal: 0 is the number, 1 is what Coral read
 char entry[TICKER_MAX + 1] = {0};
 
@@ -237,6 +242,7 @@ void resetRound()
 {
 	clueCount = 0;
 	guess = -1;
+	tilting = false;
 	page = 0;
 	score.value = -1;
 	date[0] = '\0';
@@ -451,6 +457,50 @@ void drawTicker()
 	ui::small(3, 106, "enter looks it up, del erases", ui::DIM);
 }
 
+// The guess, and the dial a wrist turns it on.
+//
+// Typing 87 on this keyboard is two keys and no thought. Leaning the unit to
+// 87 is a judgment held in your hand, which is what the round is asking for,
+// so a tilt past ten degrees takes the number over and typing takes it back.
+// It is drawn on its own because tilting moves it several times a second, and
+// repainting the clues under it every time would flicker the whole screen.
+constexpr int DIAL_X = 76;
+constexpr int DIAL_W = 150;
+constexpr int DIAL_Y = 112;
+constexpr int NUMBER_Y = 72;
+constexpr float TILT_TAKES_OVER = 10.0f;  // degrees
+
+void drawGuess()
+{
+	char text[8];
+	M5GFX &g = ui::gfx();
+	// Two strips, with the hint line left alone between them.
+	g.fillRect(DIAL_X, NUMBER_Y - 2, ui::W - DIAL_X, 28, ui::BG);
+	g.fillRect(DIAL_X - 4, DIAL_Y - 6, DIAL_W + 8, 13, ui::BG);
+
+	// Nothing stands in for a guess that has not been made. A placeholder here
+	// draws as a rule and reads as one.
+	if (guess >= 0) {
+		snprintf(text, sizeof(text), "%d", guess);
+		g.setFont(&fonts::DejaVu24);
+		g.setTextColor(tilting ? ui::CORAL : ui::FG, ui::BG);
+		g.setTextDatum(textdatum_t::top_left);
+		g.drawString(text, DIAL_X, NUMBER_Y);
+	}
+
+	if (!motion::available()) {
+		return;
+	}
+	g.drawFastHLine(DIAL_X, DIAL_Y, DIAL_W, ui::RULE);
+	for (int at = 0; at <= 100; at += 50) {
+		g.drawFastVLine(DIAL_X + at * (DIAL_W - 1) / 100, DIAL_Y - 2, 5, ui::RULE);
+	}
+	if (guess >= 0) {
+		const int x = DIAL_X + guess * (DIAL_W - 1) / 100;
+		g.fillRect(x - 1, DIAL_Y - 4, 3, 9, tilting ? ui::CORAL : ui::DIM);
+	}
+}
+
 void drawClues()
 {
 	char text[32];
@@ -473,18 +523,16 @@ void drawClues()
 	g.drawFastHLine(0, 68, ui::W, ui::RULE);
 
 	ui::small(3, 82, "your guess", ui::DIM);
-	// Nothing stands in for a guess that has not been made. A placeholder here
-	// draws as a rule and reads as one.
-	if (guess >= 0) {
-		snprintf(text, sizeof(text), "%d", guess);
-		g.setFont(&fonts::DejaVu24);
-		g.setTextColor(ui::FG, ui::BG);
-		g.setTextDatum(textdatum_t::top_left);
-		g.drawString(text, 76, 74);
-	}
+	drawGuess();
 
-	ui::small(3, 106, guess >= 0 ? "enter reveals what Coral said" : "type 0 to 100, del erases",
-	          ui::DIM);
+	// One line that stays true either way, because the number under it moves
+	// with the wrist and the line is not redrawn while it does.
+	if (motion::available()) {
+		ui::small(3, 98, "tilt or type it, enter reveals", ui::DIM);
+	} else {
+		ui::small(3, 98, guess >= 0 ? "enter reveals what Coral said" : "type 0 to 100, del erases",
+		          ui::DIM);
+	}
 }
 
 void drawReveal()
@@ -568,8 +616,28 @@ void leave()
 	job = Job::None;
 }
 
+// The wrist, on the one screen that asks for a number. Nothing is submitted by
+// leaning, so a unit put down mid round cannot answer for anybody.
+void tiltGuess()
+{
+	if (screen != Screen::Clues || state != State::Ready || !motion::available()) {
+		return;
+	}
+	if (!tilting && fabsf(motion::roll()) < TILT_TAKES_OVER) {
+		return;
+	}
+	tilting = true;
+	const int next = constrain((int)lroundf(50.0f + motion::steerX() * 50.0f), 0, GUESS_MAX);
+	if (next != guess) {
+		guess = next;
+		drawGuess();
+	}
+}
+
 void tick()
 {
+	tiltGuess();
+
 	if (job == Job::None || !waitingShown) {
 		return;
 	}
@@ -658,12 +726,16 @@ bool tickerKey(const view::Key &k)
 bool cluesKey(const view::Key &k)
 {
 	if (k.del) {
+		// A typed digit is worth more than a lean, so erasing one puts the
+		// number back in the hands of whoever is typing.
+		tilting = false;
 		if (guess < 0) {
 			screen = Screen::Home;
 		} else {
 			guess = guess < 10 ? -1 : guess / 10;
 		}
 	} else if (k.ch >= '0' && k.ch <= '9') {
+		tilting = false;
 		const int digit = k.ch - '0';
 		const int next = guess < 0 ? digit : guess * 10 + digit;
 		// 100 is a legal answer and 1000 is not, so a third digit only lands
