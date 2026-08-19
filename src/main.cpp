@@ -5,7 +5,9 @@
 #include <M5Cardputer.h>
 #include <WiFi.h>
 
+#include "motion.h"
 #include "net.h"
+#include "rest.h"
 #include "store.h"
 #include "ui.h"
 #include "version.h"
@@ -41,6 +43,20 @@ void bootReport()
 	} else {
 		Serial.println("psram none");
 	}
+	// Which way up the BMI270 is glued is the one thing the axis constants in
+	// motion.cpp cannot be reasoned out, so the raw sample is printed here.
+	// Face up on a desk it should read near 0, 0, +1. Whichever number is not
+	// where this says it should be names the sign to flip.
+	if (motion::available()) {
+		float ax = 0.0f;
+		float ay = 0.0f;
+		float az = 0.0f;
+		M5.Imu.getAccel(&ax, &ay, &az);
+		Serial.printf("imu yes, accel %.2f %.2f %.2f g\n", ax, ay, az);
+	} else {
+		Serial.println("imu none");
+	}
+
 	Serial.printf("heap %u KB free of %u KB, largest block %u KB\n",
 	              (unsigned)(ESP.getFreeHeap() / 1024), (unsigned)(ESP.getHeapSize() / 1024),
 	              (unsigned)(ESP.getMaxAllocHeap() / 1024));
@@ -58,6 +74,8 @@ void bootCard()
 	ui::line(1, text, psramFound() ? ui::GOOD : ui::WARN);
 	snprintf(text, sizeof(text), "flash %u KB", (unsigned)(ESP.getFlashChipSize() / 1024));
 	ui::line(2, text);
+	snprintf(text, sizeof(text), "imu   %s", motion::available() ? "yes" : "none");
+	ui::line(3, text, motion::available() ? ui::GOOD : ui::DIM);
 	ui::line(4, net::haveCredentials() ? "joining wifi" : "wifi: open Setup", ui::DIM);
 	ui::statusBar("flint " FW_VERSION);
 }
@@ -109,6 +127,10 @@ void setup()
 void loop()
 {
 	M5Cardputer.update();
+	motion::update();
+	// A key wakes the panel as surely as turning the unit back over, so a unit
+	// face down in a bag is not a unit anybody has to rescue.
+	rest::loop(M5Cardputer.Keyboard.isChange());
 	net::loop();
 
 	if (!probed && net::online()) {

@@ -5,8 +5,10 @@
 #include <string>
 #include <vector>
 
+#include "motion.h"
 #include "net.h"
 #include "net_sim.h"
+#include "rest.h"
 #include "store.h"
 #include "ui.h"
 #include "version.h"
@@ -21,6 +23,10 @@
 // Keys: the host keyboard is the Cardputer's. Arrows are the four keys that
 // print arrows, Escape is the backtick, so Escape always backs out. Alt is Fn.
 // Home or F1 is the G0 button.
+//
+// The mouse is the IMU. Where the pointer sits in the window is how far the
+// unit is tipped, holding the left button shakes it, and F2 turns it face
+// down, which is what puts the panel to sleep.
 
 namespace {
 
@@ -137,7 +143,8 @@ void simSetup()
 
 	Serial.printf("\nflint %s in the simulator\n", FW_VERSION);
 	Serial.println("keys: arrows move, enter opens, escape backs out, alt is fn");
-	Serial.println("      home or F1 is the G0 button\n");
+	Serial.println("      home or F1 is the G0 button");
+	Serial.println("imu:  the mouse tilts it, the left button shakes it, F2 is face down\n");
 
 	net::begin();
 	view::begin();
@@ -147,6 +154,8 @@ void simSetup()
 void simLoop()
 {
 	M5Cardputer.update();
+	motion::update();
+	rest::loop(M5Cardputer.Keyboard.isChange());
 	net::loop();
 	runTour();
 	runScript();

@@ -87,6 +87,20 @@ public:
 	}
 };
 
+// The BMI270, simulated. The mouse is the wrist: how far the pointer sits from
+// the middle of the window is how far the unit is tipped, holding the left
+// button rattles it, and F2 turns it face down. Enough to drive every gesture
+// src/motion.cpp reads, which is what keeps a motion view something anybody
+// can look at without a unit.
+class IMU_Class {
+public:
+	bool isEnabled() const
+	{
+		return true;
+	}
+	bool getAccel(float *x, float *y, float *z);
+};
+
 class Power_Class {
 public:
 	enum is_charging_t { is_discharging = 0, is_charging, charge_unknown };
@@ -143,6 +157,7 @@ public:
 	M5GFX &Lcd = Display;
 	Power_Class Power;
 	Speaker_Class Speaker;
+	IMU_Class Imu;
 
 	Button_Class &getButton(size_t)
 	{

@@ -4,6 +4,7 @@
 #include <Preferences.h>
 
 #include <chrono>
+#include <cmath>
 #include <fstream>
 #include <sstream>
 
@@ -17,6 +18,7 @@ const auto started = std::chrono::steady_clock::now();
 
 uint8_t previous[SDL_NUM_SCANCODES] = {0};
 bool buttonPending = false;
+bool faceDown = false;
 
 // US layout, the row a Cardputer prints on its keycaps.
 // clang-format off
@@ -200,6 +202,62 @@ bool Button_Class::wasPressed()
 void Button_Class::press()
 {
 	buttonPending = true;
+}
+
+bool IMU_Class::getAccel(float *x, float *y, float *z)
+{
+	// Where the pointer is inside the window, as -1 to 1 from the middle. No
+	// focus means nobody is holding it, so it lies flat.
+	float nx = 0.0f;
+	float ny = 0.0f;
+	uint32_t buttons = 0;
+	SDL_Window *window = SDL_GetMouseFocus();
+	if (window != nullptr) {
+		int mx = 0;
+		int my = 0;
+		int w = 0;
+		int h = 0;
+		buttons = SDL_GetMouseState(&mx, &my);
+		SDL_GetWindowSize(window, &w, &h);
+		if (w > 0 && h > 0) {
+			nx = (float)(mx * 2 - w) / (float)w;
+			ny = (float)(my * 2 - h) / (float)h;
+		}
+	}
+
+	// F2 flips it over. Held rather than toggled would mean holding a key to
+	// watch the screen turn itself off, which is the one thing face down does.
+	const uint8_t *keys = SDL_GetKeyboardState(nullptr);
+	static bool downLast = false;
+	if (keys != nullptr) {
+		const bool pressed = keys[SDL_SCANCODE_F2] != 0;
+		if (pressed && !downLast) {
+			faceDown = !faceDown;
+		}
+		downLast = pressed;
+	}
+
+	const float roll = nx * (float)M_PI * 0.25f;  // 45 degrees at the edge
+	const float pitch = ny * (float)M_PI * 0.25f;
+	float ax = sinf(roll);
+	float ay = sinf(pitch);
+	float az = sqrtf(1.0f - ax * ax - ay * ay);
+	if (faceDown) {
+		az = -az;
+	}
+
+	// The left button rattles it at about 10Hz, which is a hand shaking rather
+	// than a wrist turning, so the same filter that ignores one catches this.
+	if ((buttons & SDL_BUTTON(SDL_BUTTON_LEFT)) != 0) {
+		const float wobble = sinf((float)millis() * 0.06f) * 2.2f;
+		ax += wobble;
+		ay += wobble * 0.6f;
+	}
+
+	*x = ax;
+	*y = ay;
+	*z = az;
+	return true;
 }
 
 void M5Unified::begin()
