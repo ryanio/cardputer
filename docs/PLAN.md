@@ -64,14 +64,16 @@ which should push Y positive. Whichever is not is a sign to flip in
 **2. Setup.** Scan, pick, type, join, power cycle. No keys read at all means an
 M5Cardputer older than 1.1.1 got linked.
 
-**3. Menu.** A carousel: one card in the middle, the strip sliding when you
-move, every view opening and exiting on the backtick. Watch the slide, because
-that is the part only hardware settles: it holds a 42KB sprite while it moves
-and gives it back a second after it stops, and a unit that could not spare the
-memory steps between cards instead of sliding and says so once on the serial
-line. Digits 1 to 9 and 0 still jump straight to a card, and leaning the unit
-spins it. A screen
-that traps you is a spine bug, since the loop enforces the exit, not the view.
+**3. Menu.** A carousel: one card in the middle, the strip sliding when the
+selection moves, every view opening and exiting on the backtick. A screen that
+traps you is a spine bug, since the loop enforces the exit, not the view.
+
+What to watch here is the slide itself. It is drawn into a 42KB sprite held
+only while the strip is moving, which the 271KB largest block at boot says
+fits, and pushed at 40MHz, which says a frame costs about 8ms. So it should
+look like motion rather than a series of positions. A unit that could not get
+the sprite steps between cards and prints `menu: no sprite` once. Digits 1 to 9
+and 0 jump straight to a card, and leaning the unit spins it.
 
 **4. Gas.** Live fee, three tiers, a sparkline with a shape in it. Then arm the
 alarm above the current fee: nobody has heard the arpeggio. Leave it a minute

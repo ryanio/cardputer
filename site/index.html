@@ -235,7 +235,7 @@
 
 <section id="run">
   <h2>The real firmware, in your browser</h2>
-  <p class="dim">Compiled to WebAssembly from the same sources the device builds from. The keyboard works.</p>
+  <p class="dim">Compiled to WebAssembly from the same sources the device builds from. The keyboard works, and so does the accelerometer.</p>
 
   <div class="device">
     <div class="deck">
@@ -255,8 +255,10 @@
   </div>
 
   <p class="legend">
-    <b>1</b> to <b>8</b> open an app &nbsp;·&nbsp; the four tinted keys are the arrows
-    &nbsp;·&nbsp; <b>enter</b> chooses &nbsp;·&nbsp; <b>esc</b> backs out of anything
+    <b>1</b> to <b>9</b> and <b>0</b> open an app &nbsp;·&nbsp; the four tinted keys are the
+    arrows &nbsp;·&nbsp; <b>enter</b> chooses &nbsp;·&nbsp; <b>esc</b> backs out of anything
+    <br>move the mouse over the screen to tip the unit, hold the button to shake it: the
+    menu, the maze and the glyphs all read the accelerometer
   </p>
 </section>
 
@@ -354,7 +356,8 @@ pio run -e sim -t exec -a --tour</pre>
 <script>
   // The panel is 240x135 and so is the canvas. CSS scales it, so the pixels
   // stay square instead of being smoothed into mush.
-  var paint = document.getElementById('screen').getContext('2d');
+  var panel = document.getElementById('screen');
+  var paint = panel.getContext('2d');
   var frame = paint.createImageData(240, 135);
   var ready = false;
   var press = function () {};
@@ -419,6 +422,29 @@ pio run -e sim -t exec -a --tour</pre>
         press = function (code) { module.ccall('simPress', null, ['number'], [code]); };
         ready = true;
         button.remove();
+
+        // The unit has an accelerometer, so the mouse is the wrist: where the
+        // pointer sits over the screen is how far it is tipped, and holding
+        // the button rattles it. SDL cannot see the pointer here, because the
+        // canvas it owns is not the one on the page, so the lean is handed
+        // straight to the firmware instead.
+        var tilt = function (x, y) {
+          module.ccall('simTilt', null, ['number', 'number'], [x, y]);
+        };
+        var shake = function (on) {
+          module.ccall('simShake', null, ['number'], [on ? 1 : 0]);
+        };
+        panel.addEventListener('mousemove', function (event) {
+          var box = panel.getBoundingClientRect();
+          // A canvas with no size on it would divide the lean by zero, and a
+          // gravity of NaN takes every falling thing off the screen at once.
+          if (box.width < 1 || box.height < 1) { return; }
+          tilt((event.clientX - box.left) / box.width * 2 - 1,
+               (event.clientY - box.top) / box.height * 2 - 1);
+        });
+        panel.addEventListener('mouseleave', function () { tilt(0, 0); shake(false); });
+        panel.addEventListener('mousedown', function () { shake(true); });
+        window.addEventListener('mouseup', function () { shake(false); });
       });
     };
     script.onerror = function () { button.textContent = 'could not load it'; };

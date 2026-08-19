@@ -65,7 +65,7 @@ const Step TOUR[] = {
     {3400, ".", "and again"},
     {4200, "\n", "open Reef"},
     {6200, "`", "backtick backs out of anything"},
-    {7200, "8", "jump straight to Setup"},
+    {7200, "0", "jump straight to Setup"},
     {8600, "\n", "scan for networks"},
     {11000, ".", "pick the second one"},
     {12000, "\n", "it is open, so it joins without a passphrase"},
@@ -109,7 +109,7 @@ void runScript()
 void hint()
 {
 	const view::View *v = view::active();
-	const char *text = v == nullptr ? "menu: arrows move, 1 to 5 jump, enter opens"
+	const char *text = v == nullptr ? "menu: arrows move, digits jump, enter opens"
 	                                : "in a view: escape or the backtick goes back to the menu";
 	if (text != lastHint) {
 		lastHint = text;
@@ -218,4 +218,18 @@ void simArgs(int argc, char **argv)
 extern "C" void simPress(int key)
 {
 	M5Cardputer.Keyboard.queue((char)key);
+}
+
+// The browser build paints from the panel's framebuffer into a canvas of its
+// own, so SDL never sees the pointer over the screen anybody is looking at.
+// The page hands the lean in instead: the same mouse, through a different
+// door, so tilting works there the way it does on the desktop.
+extern "C" void simTilt(float x, float y)
+{
+	M5.Imu.setTilt(x, y);
+}
+
+extern "C" void simShake(int shaking)
+{
+	M5.Imu.setShaking(shaking != 0);
 }

@@ -77,7 +77,7 @@ em++ "${OBJECTS[@]}" -o "$OUT/coral.js" \
 	-O2 -sUSE_SDL=2 \
 	-sALLOW_MEMORY_GROWTH=1 \
 	-sMODULARIZE=1 -sEXPORT_NAME=CoralSim \
-	-sEXPORTED_FUNCTIONS=_main,_simPress \
+	-sEXPORTED_FUNCTIONS=_main,_simPress,_simTilt,_simShake \
 	-sEXPORTED_RUNTIME_METHODS=ccall \
 	-sENVIRONMENT=web
 
