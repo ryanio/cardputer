@@ -26,6 +26,11 @@ compiles both targets on a push and probes the sources on a schedule.
 
 - **M5Cardputer 1.1.1+.** The ADV keyboard is a TCA8418; the original was a
   74HC138. Older versions compile fine and read no keys.
+- **The keyboard hands over what is held, not what just arrived.** `keysState`
+  lists every key still down, oldest first, and the count is what changes when
+  one is let go. `view::readKey` is where a press becomes an event, and it is
+  the only place allowed to decide that. The simulator reports held keys too,
+  so both surfaces run the same path.
 - **Flashing is scriptable, looking is not.** `pio run -t upload` and
   `tools/serial/read.py` work from an agent, so anything printed is checkable.
   Anything drawn, played or tipped needs Ryan. "Compiles" is never "works".

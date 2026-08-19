@@ -384,23 +384,89 @@ void drawActive()
 	}
 }
 
+// What was down last pass, so a key counts once when it arrives rather than
+// every pass it stays down. The keyboard hands over every key currently held,
+// in the order they went down, and the count is what changes when one of them
+// is let go: letting go of the second of two overlapping keys reads as a fresh
+// press of the first, and reading the front of the list means the older key is
+// the one that answers. Arrows tapped fast enough to overlap, which is what
+// tapping fast means on a thumb keyboard, then step twice and sometimes the
+// wrong way. Codes are the character, or one of these for the keys that have
+// no character of their own.
+constexpr uint8_t HELD_MAX = 8;
+constexpr uint8_t CODE_ENTER = 0x80;
+constexpr uint8_t CODE_DEL = 0x81;
+constexpr uint8_t CODE_TAB = 0x82;
+
+uint8_t held[HELD_MAX] = {0};
+uint8_t heldCount = 0;
+
+bool wasHeld(uint8_t code)
+{
+	for (uint8_t i = 0; i < heldCount; i++) {
+		if (held[i] == code) {
+			return true;
+		}
+	}
+	return false;
+}
+
 bool readKey(Key &out)
 {
-	if (!M5Cardputer.Keyboard.isChange() || !M5Cardputer.Keyboard.isPressed()) {
+	const Keyboard_Class::KeysState &st = M5Cardputer.Keyboard.keysState();
+
+	uint8_t down[HELD_MAX];
+	uint8_t downCount = 0;
+	if (st.enter) {
+		down[downCount++] = CODE_ENTER;
+	}
+	if (st.del) {
+		down[downCount++] = CODE_DEL;
+	}
+	if (st.tab) {
+		down[downCount++] = CODE_TAB;
+	}
+	for (const char c : st.word) {
+		if (downCount >= HELD_MAX) {
+			break;
+		}
+		down[downCount++] = (uint8_t)c;
+	}
+
+	// One key a pass. A second one that arrived on the same scan is kept out of
+	// held so it reads as new next pass, which delays it 5ms rather than losing
+	// it. Modifiers are not in here: they are a state a key is pressed in.
+	uint8_t fired = 0;
+	uint8_t keep[HELD_MAX];
+	uint8_t keepCount = 0;
+	for (uint8_t i = 0; i < downCount; i++) {
+		if (!wasHeld(down[i])) {
+			if (fired != 0) {
+				continue;
+			}
+			fired = down[i];
+		}
+		keep[keepCount++] = down[i];
+	}
+	heldCount = keepCount;
+	for (uint8_t i = 0; i < keepCount; i++) {
+		held[i] = keep[i];
+	}
+
+	if (fired == 0) {
 		return false;
 	}
-	Keyboard_Class::KeysState &st = M5Cardputer.Keyboard.keysState();
 
-	out.enter = st.enter;
-	out.del = st.del;
-	out.space = st.space;
-	out.tab = st.tab;
+	out.enter = fired == CODE_ENTER;
+	out.del = fired == CODE_DEL;
+	out.tab = fired == CODE_TAB;
+	out.ch = fired < 0x80 ? (char)fired : 0;
+	out.space = out.ch == ' ';
 	out.fn = st.fn;
 	out.shift = st.shift;
 	out.ctrl = st.ctrl;
 	out.opt = st.opt;
 	out.alt = st.alt;
-	out.ch = st.word.empty() ? 0 : st.word.front();
 
 	switch (out.ch) {
 		case ';':

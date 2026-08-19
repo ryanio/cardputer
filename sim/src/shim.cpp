@@ -17,6 +17,7 @@ namespace {
 const auto started = std::chrono::steady_clock::now();
 
 uint8_t previous[SDL_NUM_SCANCODES] = {0};
+bool queueHeld = false;
 bool buttonPending = false;
 bool faceDown = false;
 bool tiltPinned = false;
@@ -129,16 +130,21 @@ void Keyboard_Class::update()
 	_changed = false;
 	_pressed = 0;
 
+	// Every key that is down, not the ones that just went down, because that is
+	// what the device reports and holding one is a state the firmware has to
+	// handle rather than a thing the simulator can hide. Which press is new is
+	// worked out in view.cpp, on both.
 	for (int code = 0; code < count; code++) {
-		if (now[code]) {
-			_pressed++;
-		}
-		const bool pressedNow = now[code] && !previous[code];
+		const bool down = now[code] != 0;
+		const bool was = previous[code] != 0;
 		previous[code] = now[code];
-		if (!pressedNow) {
+		if (down != was) {
+			_changed = true;
+		}
+		if (!down) {
 			continue;
 		}
-		_changed = true;
+		_pressed++;
 
 		switch (code) {
 			case SDL_SCANCODE_RETURN:
@@ -157,8 +163,11 @@ void Keyboard_Class::update()
 				continue;
 			case SDL_SCANCODE_HOME:
 			case SDL_SCANCODE_F1:
-				// The G0 button on the top edge.
-				buttonPending = true;
+				// The G0 button on the top edge, which is a press and not a
+				// hold: it fires once however long it is leaned on.
+				if (!was) {
+					buttonPending = true;
+				}
 				continue;
 			default:
 				break;
@@ -169,9 +178,16 @@ void Keyboard_Class::update()
 		}
 	}
 
-	if (!_changed && !_queued.empty()) {
+	// A queued key is delivered on a frame where nothing real is down, and the
+	// frame after it is its release. Without that gap two of the same key in a
+	// row read as one key held across both frames, and the second is lost.
+	if (queueHeld) {
+		queueHeld = false;
+		_changed = true;
+	} else if (_pressed == 0 && !_queued.empty()) {
 		const char c = _queued.front();
 		_queued.erase(_queued.begin());
+		queueHeld = true;
 		_changed = true;
 		_pressed = 1;
 		if (c == '\n') {
