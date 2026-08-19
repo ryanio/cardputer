@@ -87,11 +87,38 @@ the panel, and turn it back over, which should bring it straight back.
 All of the above is verified in the simulator, so anything that differs is a
 driver, a memory or a TLS difference.
 
-## Unknowns only hardware can settle
+## Settled on a unit, 2026-08-18
 
-1. **Is there PSRAM?** M5 does not list any for the Stamp-S3A.
-2. **Does TLS fit** beside the display buffer in 320KB? Every network view
-   depends on yes.
+The first flash happened. The report, read back over serial:
+
+```
+flint 0.1.0, built Aug 18 2026 18:34:45
+chip ESP32-S3 rev 0, 2 cores at 240 MHz
+flash 8192 KB, sketch 1191 KB of 4455 KB
+psram none
+heap 300 KB free of 336 KB, largest block 271 KB
+net: online as 192.168.4.111, rssi -48 dBm
+net: clock set, 2026 08 18 22:01 ET
+probe: tls ok, heap 247 KB before, 246 KB after, 186 KB low water
+probe: base fee 0.0495 gwei
+```
+
+**Unknown 1, PSRAM: none.** The streaming decode stays the only way a photo
+reaches the panel.
+
+**Unknown 2, does TLS fit: yes, with room.** 300KB free at boot against the
+336KB the chip actually reports, and a handshake plus a fetch bottoms out at
+186KB. A live session costs around 60KB while it is open.
+
+Settled in passing: the TCA8418 reads keys, a network typed on the unit joins
+out of NVS, SNTP lands, and gwei answers over the bundled roots rather than
+over a desktop's trust store.
+
+This was read by pulsing RTS on the port and listening, because PlatformIO's
+own monitor wants a terminal. `tools/serial/read.py` is that, if it helps.
+
+## Unknowns still open
+
 3. **Does the streaming decode hold** at 45KB to 152KB an image? It holds a
    3.9KB work pool and nothing else by construction.
 4. **Does the speaker work?** Beat, Calm and the gas alarm all call
@@ -102,7 +129,8 @@ driver, a memory or a TLS difference.
 
 ## What is left
 
-- **The flash gate.** Nothing else should be built first.
+- **The rest of the flash gate.** Steps 1 and 2 are done. Womp, the speaker
+  and the IMU axes need someone in front of the unit.
 - **OTA**, Phase 2, including image signing. The only piece of the original
   plan still unwritten.
 - **Sound in the browser build.** `sim/include/M5Cardputer.h` has a no-op
