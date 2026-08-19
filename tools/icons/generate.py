@@ -30,6 +30,8 @@ ICONS = [
     ("settings", "SETTINGS", 16),
     ("music", "MUSIC", 16),
     ("wind", "WIND", 16),
+    ("cloud-rain", "CLOUD_RAIN", 16),
+    ("route", "ROUTE", 16),
     ("wifi", "WIFI", 12),
     ("keyboard", "KEYBOARD", 12),
     ("trash-2", "TRASH", 12),

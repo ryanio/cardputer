@@ -99,6 +99,17 @@ public:
 		return true;
 	}
 	bool getAccel(float *x, float *y, float *z);
+
+	// A hand nobody has to hold. --tilt pins the lean where a screenshot wants
+	// it, and --shake rattles the unit on a timer, which is how a motion view
+	// gets captured by a script rather than by somebody waving a mouse.
+	void setTilt(float x, float y);
+	void setShaking(bool shaking);
+
+	// A wrist that keeps turning: the lean rolls all the way round once every
+	// so many seconds. It is how a falling, rolling view gets a strip of
+	// frames worth looking at without anybody holding the unit.
+	void setOrbit(float seconds);
 };
 
 class Power_Class {

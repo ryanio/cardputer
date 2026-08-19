@@ -191,6 +191,21 @@ void simArgs(int argc, char **argv)
 			shotPrefix = argv[++i];
 		} else if (strcmp(argv[i], "--quit-after") == 0 && more) {
 			quitAfter = (uint32_t)strtoul(argv[++i], nullptr, 10);
+		} else if (strcmp(argv[i], "--tilt") == 0 && more) {
+			// --tilt 0.6,0.4 pins the lean, so a screenshot of a motion view
+			// does not depend on where somebody left the pointer. Right and
+			// down are positive, and 1 is the whole way over.
+			float x = 0.0f;
+			float y = 0.0f;
+			if (sscanf(argv[++i], "%f,%f", &x, &y) == 2) {
+				M5.Imu.setTilt(x, y);
+			}
+		} else if (strcmp(argv[i], "--orbit") == 0 && more) {
+			// --orbit 5 rolls the lean all the way round every five seconds,
+			// which keeps anything that falls or rolls moving on its own.
+			M5.Imu.setOrbit(strtof(argv[++i], nullptr));
+		} else if (strcmp(argv[i], "--shake") == 0) {
+			M5.Imu.setShaking(true);
 		} else if (strcmp(argv[i], "--latency") == 0 && more) {
 			// Fixtures answer instantly, which hides the screen a view draws
 			// while it waits. Coral's score takes seconds on a real unit.

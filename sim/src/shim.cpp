@@ -19,6 +19,11 @@ const auto started = std::chrono::steady_clock::now();
 uint8_t previous[SDL_NUM_SCANCODES] = {0};
 bool buttonPending = false;
 bool faceDown = false;
+bool tiltPinned = false;
+bool shakingAlways = false;
+float tiltX = 0.0f;
+float tiltY = 0.0f;
+float orbitSeconds = 0.0f;
 
 // US layout, the row a Cardputer prints on its keycaps.
 // clang-format off
@@ -204,15 +209,38 @@ void Button_Class::press()
 	buttonPending = true;
 }
 
+void IMU_Class::setTilt(float x, float y)
+{
+	tiltX = x;
+	tiltY = y;
+	tiltPinned = true;
+}
+
+void IMU_Class::setShaking(bool shaking)
+{
+	shakingAlways = shaking;
+}
+
+void IMU_Class::setOrbit(float seconds)
+{
+	orbitSeconds = seconds;
+	tiltPinned = true;
+}
+
 bool IMU_Class::getAccel(float *x, float *y, float *z)
 {
 	// Where the pointer is inside the window, as -1 to 1 from the middle. No
 	// focus means nobody is holding it, so it lies flat.
-	float nx = 0.0f;
-	float ny = 0.0f;
+	float nx = tiltX;
+	float ny = tiltY;
+	if (orbitSeconds > 0.0f) {
+		const float turn = (float)millis() / (orbitSeconds * 1000.0f) * 2.0f * (float)M_PI;
+		nx = cosf(turn) * 0.8f;
+		ny = sinf(turn) * 0.8f;
+	}
 	uint32_t buttons = 0;
 	SDL_Window *window = SDL_GetMouseFocus();
-	if (window != nullptr) {
+	if (!tiltPinned && window != nullptr) {
 		int mx = 0;
 		int my = 0;
 		int w = 0;
@@ -248,7 +276,7 @@ bool IMU_Class::getAccel(float *x, float *y, float *z)
 
 	// The left button rattles it at about 10Hz, which is a hand shaking rather
 	// than a wrist turning, so the same filter that ignores one catches this.
-	if ((buttons & SDL_BUTTON(SDL_BUTTON_LEFT)) != 0) {
+	if (shakingAlways || (buttons & SDL_BUTTON(SDL_BUTTON_LEFT)) != 0) {
 		const float wobble = sinf((float)millis() * 0.06f) * 2.2f;
 		ax += wobble;
 		ay += wobble * 0.6f;
