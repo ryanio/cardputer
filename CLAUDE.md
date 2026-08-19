@@ -19,7 +19,7 @@ tools/fmt.sh            # house style, --check enforces it
 tools/apicheck/check.py # ask the five sources whether they still fit
 ```
 
-Green as of 2026-08-18: RAM 18.0%, flash 36.7% of the 3.3MB app slot. CI
+Green as of 2026-08-18: RAM 18.1%, flash 36.9% of the 3.3MB app slot. CI
 compiles both targets on a push and probes the sources on a schedule.
 
 ## Traps
