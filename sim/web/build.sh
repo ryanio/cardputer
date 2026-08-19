@@ -54,10 +54,14 @@ while IFS= read -r f; do
 	esac
 	SOURCES_CPP+=("$f")
 done < <(find "$ROOT/src" -name '*.cpp')
-SOURCES_CPP+=(
-	"$ROOT"/sim/src/app.cpp "$ROOT"/sim/src/shim.cpp "$ROOT"/sim/src/net_sim.cpp
-	"$ROOT"/sim/src/jpeg_sim.cpp "$ROOT"/sim/src/main_web.cpp
-)
+# Same again for the simulator's own ring, minus the native entry point. Found
+# rather than listed, for the reason above.
+while IFS= read -r f; do
+	case "$(basename "$f")" in
+		main_native.cpp) continue ;;
+	esac
+	SOURCES_CPP+=("$f")
+done < <(find "$ROOT/sim/src" -name '*.cpp')
 while IFS= read -r f; do SOURCES_CPP+=("$f"); done < <(find "$M5GFX" -name '*.cpp')
 
 SOURCES_C=()

@@ -148,7 +148,5 @@ own monitor wants a terminal. `tools/serial/read.py` is that, if it helps.
   speaker and the IMU axes need someone in front of the unit.
 - **OTA**, Phase 2, including image signing. The only piece of the original
   plan still unwritten.
-- **Sound in the browser build.** `sim/include/M5Cardputer.h` has a no-op
-  Speaker, so the site demo is silent.
 - **Phases 5, 7 and 8**: the pet, three units talking, off-device work. Those
   wait for hardware feedback.

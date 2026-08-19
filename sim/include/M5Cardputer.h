@@ -68,34 +68,21 @@ private:
 
 namespace m5 {
 
+// Real sound, mixed in sim/src/speaker_sim.cpp: SDL on the desktop, Web Audio
+// in the browser. Beat and Calm are half a view without it.
 class Speaker_Class {
 public:
-	bool begin()
-	{
-		return true;
-	}
-	void end() {}
-	void setVolume(uint8_t) {}
-	void setChannelVolume(uint8_t, uint8_t) {}
-	bool tone(float, uint32_t = 0, int = -1, bool = true)
-	{
-		return true;
-	}
-	bool playRaw(const int8_t *, size_t, uint32_t = 44100, bool = false, uint32_t = 1, int = -1,
-	             bool = false)
-	{
-		return true;
-	}
-	void stop() {}
-	void stop(uint8_t) {}
-	bool isPlaying() const
-	{
-		return false;
-	}
-	bool isEnabled() const
-	{
-		return false;
-	}
+	bool begin();
+	void end();
+	void setVolume(uint8_t volume);
+	void setChannelVolume(uint8_t channel, uint8_t volume);
+	bool tone(float frequency, uint32_t duration = 0, int channel = -1, bool stopCurrent = true);
+	bool playRaw(const int8_t *data, size_t length, uint32_t rate = 44100, bool stereo = false,
+	             uint32_t repeat = 1, int channel = -1, bool stopCurrent = false);
+	void stop();
+	void stop(uint8_t channel);
+	bool isPlaying() const;
+	bool isEnabled() const;
 };
 
 // The BMI270, simulated. The mouse is the wrist: how far the pointer sits from

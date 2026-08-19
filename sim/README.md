@@ -44,7 +44,13 @@ what a Coral score costs on a unit.
 ## What is real and what is not
 
 Real: everything above the driver layer. Layout, navigation, the exit
-convention, the row grid, NVS behaviour, every pixel the panel draws.
+convention, the row grid, NVS behaviour, every pixel the panel draws, and the
+speaker: tones and raw samples are mixed through SDL, so Beat keeps time and
+Calm has its gong on the desktop and in the browser both. A browser will not
+start audio until the page has been clicked, which the Start button covers.
+
+`SDL_AUDIODRIVER=disk SDL_DISKAUDIOFILE=out.raw` writes the mix to a file
+instead of a speaker, which is how a tone gets checked without ears.
 
 Simulated: the keyboard comes from SDL, the battery is a number, the IMU is
 the mouse, and the network answers from `net_sim.cpp` with a fixed list of access points. A
