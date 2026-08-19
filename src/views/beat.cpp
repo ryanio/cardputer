@@ -14,14 +14,18 @@ struct Track {
 	const char *name;
 	float hz;  // the speaker only does tones, so a drum is a short one
 	uint16_t ms;
-	uint16_t color;
+	// A small speaker is loudest in the middle of its range and nearly deaf at
+	// the bottom of it, so a hat at 1.5kHz buries a kick at 70Hz unless the mix
+	// says otherwise. Channel volume is squared before it is applied, so the hat
+	// at 88 lands near an eighth of the amplitude of a kick at 255, not a third.
+	uint8_t volume;
 };
 
 const Track TRACKS_DEF[TRACKS] = {
-    {"KICK", 70.0f, 90, 0},
-    {"SNARE", 220.0f, 60, 0},
-    {"HAT", 1500.0f, 25, 0},
-    {"BASS", 110.0f, 120, 0},
+    {"KICK", 70.0f, 90, 255},
+    {"SNARE", 220.0f, 60, 200},
+    {"HAT", 1500.0f, 25, 88},
+    {"BASS", 110.0f, 120, 235},
 };
 
 // Something you would nod to, so the view makes sense before anyone reads a
@@ -146,9 +150,13 @@ void draw()
 	drawGrid();
 }
 
+// One track to one of the speaker's virtual channels, which is what lets a
+// step play a kick and a hat at once instead of whichever of them happens to
+// be longer. Stopping the current sound is scoped to the channel, so a
+// retrigger cuts its own track and nothing else.
 void hit(int t)
 {
-	M5Cardputer.Speaker.tone(TRACKS_DEF[t].hz, TRACKS_DEF[t].ms);
+	M5Cardputer.Speaker.tone(TRACKS_DEF[t].hz, TRACKS_DEF[t].ms, t, true);
 }
 
 void enter()
@@ -156,7 +164,11 @@ void enter()
 	playing = false;
 	step = 0;
 	M5Cardputer.Speaker.begin();
-	M5Cardputer.Speaker.setVolume(120);
+	// Four channels can sum past full scale, so the master leaves them room.
+	M5Cardputer.Speaker.setVolume(100);
+	for (int t = 0; t < TRACKS; t++) {
+		M5Cardputer.Speaker.setChannelVolume(t, TRACKS_DEF[t].volume);
+	}
 }
 
 void leave()
@@ -174,16 +186,11 @@ void tick()
 	const int previous = step;
 	step = (step + 1) % STEPS;
 
-	// One tone per step. The speaker plays the loudest hit rather than a mix,
-	// which is what a single channel can honestly do.
-	int loudest = -1;
+	// Everything on this step sounds, each on its own channel.
 	for (int t = 0; t < TRACKS; t++) {
-		if (grid[t][step] && (loudest < 0 || TRACKS_DEF[t].ms > TRACKS_DEF[loudest].ms)) {
-			loudest = t;
+		if (grid[t][step]) {
+			hit(t);
 		}
-	}
-	if (loudest >= 0) {
-		hit(loudest);
 	}
 
 	// Only the two columns that changed get repainted.
