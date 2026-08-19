@@ -65,7 +65,7 @@ const Step TOUR[] = {
     {3400, ".", "and again"},
     {4200, "\n", "open Reef"},
     {6200, "`", "backtick backs out of anything"},
-    {7200, "5", "jump straight to Setup"},
+    {7200, "8", "jump straight to Setup"},
     {8600, "\n", "scan for networks"},
     {11000, ".", "pick the second one"},
     {12000, "\n", "it is open, so it joins without a passphrase"},

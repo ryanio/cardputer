@@ -12,11 +12,11 @@ screenshots and how to run it without hardware.
 
 | View | Source | Shows |
 |------|--------|-------|
-| Reef | coral | The daily Coral Score guessing round |
+| Reef | coral | Guess a Coral Score: a ticker, a random token, or the one everybody gets today |
 | Bankr | bankr | Agents by market cap and weekly revenue, scored through Coral |
-| Bot | glyphbots | A GlyphBot drawn from its Unicode, and the character sheet behind it |
+| Bot | glyphbots | A GlyphBot drawn from its Unicode, the sheet behind it, and four ways to browse |
 | Womp | voxels | In-world photos, newest first, decoded straight to the panel |
-| Gas | gwei | Base fee, three speed tiers, 24h sparkline, threshold alarm |
+| Gas | gwei | The tip you pick, the base fee under it, 24h sparkline, threshold alarm |
 
 - [docs/API.md](docs/API.md) the five APIs, verified shapes, rate limits
 - [sim/README.md](sim/README.md) the simulator, and how it takes screenshots

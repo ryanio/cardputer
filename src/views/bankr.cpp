@@ -159,7 +159,7 @@ void drawList()
 	char name[48];
 
 	if (listState == State::Waiting) {
-		ui::message("reading the leaderboard", "bankr agent profiles");
+		ui::message("the leaderboard", "bankr agents by market cap");
 		ui::spinner(ui::W / 2, 92);
 		waitingShown = true;
 		return;
