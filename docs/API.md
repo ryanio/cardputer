@@ -24,8 +24,15 @@ GET https://gwei.ryanio.com/api/gas/history
 
 Exactly three speeds, always ordered fast, normal, cheap. `ethPriceUsd` is
 `null` when no price could be fetched, never a placeholder, so the UI needs a
-no-price state. History points are already thinned to one a minute, which is a
-240px sparkline with no client-side downsampling.
+no-price state.
+
+History is about 190 points over 24 hours, one every five minutes at the
+median and irregular either side of that, which fits a 240px chart with no
+client-side downsampling. Every point carries `tip` as well as `gwei`, so the
+priority fee has its own 24h series and is not something the device has to
+infer from the base fee. `low24h` and `high24h` are the base fee's range
+alone, and labelling a tip line with them would name a range it never
+reaches.
 
 The server refreshes its snapshot at most once per 30s and does it lazily on
 request. Polling faster returns the same bytes.

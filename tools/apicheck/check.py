@@ -193,6 +193,17 @@ def history_spacing(data):
         return "median gap is %dms, so a 240px sparkline would need downsampling" % typical
 
 
+@rule("most history points carry a tip, not just a base fee")
+def history_tips(data):
+    points = data.get("points", [])
+    withTip = [p for p in points if isinstance(p.get("tip"), NUM)]
+    # The device draws the tip as its own series. Points written before it was
+    # recorded are legitimately without one, so this catches the field going
+    # away rather than an old point missing it.
+    if len(points) and len(withTip) * 2 < len(points):
+        return "only %d of %d points carry a tip" % (len(withTip), len(points))
+
+
 @rule("history points arrive in time order")
 def history_ordered(data):
     points = data.get("points", [])
@@ -375,7 +386,7 @@ def build_checks():
                 Field("low24h", NUM, nullable=True),
                 Field("high24h", NUM, nullable=True),
             ],
-            rules=[history_spacing, history_ordered],
+            rules=[history_spacing, history_ordered, history_tips],
         ),
         Check(
             "glyphbots", "https://www.glyphbots.com/api/bot/1",

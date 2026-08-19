@@ -16,7 +16,7 @@ screenshots and how to run it without hardware.
 | Bankr | bankr | Agents by market cap and weekly revenue, scored through Coral |
 | Bot | glyphbots | A GlyphBot drawn from its Unicode, the sheet behind it, and four ways to browse |
 | Womp | voxels | In-world photos, newest first, decoded straight to the panel |
-| Gas | gwei | The tip you pick, the base fee under it, 24h sparkline, threshold alarm |
+| Gas | gwei | The tip you pick, then the day it sits in: both series over 24h, and hour by hour |
 
 - [docs/API.md](docs/API.md) the five APIs, verified shapes, rate limits
 - [sim/README.md](sim/README.md) the simulator, and how it takes screenshots

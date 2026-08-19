@@ -7,10 +7,20 @@
 
 // What a transaction costs right now, and whether that is cheap for today.
 //
+// Three pages, because there are three questions and one screen cannot hold
+// them: what is it now, what has it been today, and what is a normal hour
+// worth. Left and right page between them, up and down pick the speed, and the
+// speed follows you across all three, which is what makes it one app rather
+// than three screens that happen to share a fetch.
+//
 // The tip leads, the way it does on gwei.ryanio.com. The base fee is the
 // network's price and everybody in the block pays the same one, so the tip is
 // the only figure anybody actually chooses: it is the number you came for and
 // the number you type into a wallet. The base fee sits under it as context.
+//
+// Every history point carries the tip as well as the base fee, which is the
+// whole reason there is more than one graph here: the two move together for
+// most of a day and then come apart, and the tip is the half you choose.
 //
 // This is the view the network stack was built for: the smallest payload of
 // the five, fetched on the tightest loop, so if HTTPS and JSON work anywhere
@@ -31,6 +41,7 @@ constexpr const char *HISTORY_URL = "https://gwei.ryanio.com/api/gas/history";
 constexpr const char *ALARM_KEY = "gas.alarm";
 constexpr const char *ARMED_KEY = "gas.armed";
 constexpr const char *SPEED_KEY = "gas.speed";
+constexpr const char *PAGE_KEY = "gas.page";
 
 constexpr uint32_t POLL_MS = 30000;         // the source's own window
 constexpr uint32_t HISTORY_MS = 5 * 60000;  // the shape of a day moves slowly
@@ -61,10 +72,13 @@ struct Tier {
 	bool hasUsd;
 };
 
-enum class Screen : uint8_t { Now, Alarm };
+enum class Screen : uint8_t { Now, Day, Hours, Alarm };
+constexpr int PAGES = 3;  // the alarm is a mode you enter, not a page you land on
+constexpr int BUCKETS = 24;
 enum class Job : uint8_t { None, Gas, History };
 
 Screen screen = Screen::Now;
+Screen back = Screen::Now;  // the page the alarm was opened from
 Job job = Job::None;
 bool waitingShown = false;
 int status = 0;
@@ -85,6 +99,7 @@ int tierCount = 0;
 int speed = 1;
 
 float gwei[MAX_POINTS];
+float tipAt[MAX_POINTS];   // the median tip at that moment, which the history carries
 uint32_t age[MAX_POINTS];  // seconds after the first point, so the x axis is time
 int pointCount = 0;
 float low24 = 0.0f;
@@ -219,6 +234,7 @@ void fetchHistory()
 	JsonObject point = filter["points"][0].to<JsonObject>();
 	point["t"] = true;
 	point["gwei"] = true;
+	point["tip"] = true;
 	filter["low24h"] = true;
 	filter["high24h"] = true;
 
@@ -248,6 +264,9 @@ void fetchHistory()
 		}
 		age[pointCount] = (uint32_t)((t - first) / 1000);
 		gwei[pointCount] = p["gwei"] | 0.0f;
+		// Points written before the tip was recorded are still worth charting,
+		// so a missing one is zero and the tip line simply does not start there.
+		tipAt[pointCount] = p["tip"] | 0.0f;
 		pointCount++;
 	}
 
@@ -285,50 +304,113 @@ void checkAlarm()
 
 // ---------------------------------------------------------------------- draw
 
-void drawSparkline(int top, int height)
+// Log, because gas moves multiplicatively. A day that spends twenty hours near
+// 0.04 and spikes once to 0.75 is a flat line along the floor on a linear axis:
+// the spike owns the whole height and the shape everybody actually reads is
+// gone. Printed numbers stay linear.
+float logOf(float v)
 {
-	M5GFX &g = ui::gfx();
-	if (pointCount < 2) {
-		ui::small(3, top + height / 2 - 4, "no history yet", ui::RULE);
-		return;
-	}
+	return logf(max(v, 1e-6f));
+}
 
-	// Log, because gas moves multiplicatively. A day that spends twenty hours
-	// near 0.04 and spikes once to 0.75 is a flat line along the floor on a
-	// linear axis: the spike owns the whole height and the shape everybody
-	// actually reads is gone. The printed low and high stay linear.
-	float lo = logf(max(gwei[0], 1e-6f));
-	float hi = lo;
-	for (int i = 1; i < pointCount; i++) {
-		const float v = logf(max(gwei[i], 1e-6f));
+// The window both series have to share, so the tip is drawn against the base
+// fee rather than against its own range, which is the only way the gap between
+// them means anything.
+void series(bool withTip, float &lo, float &hi)
+{
+	lo = logOf(gwei[0]);
+	hi = lo;
+	for (int i = 0; i < pointCount; i++) {
+		const float v = logOf(gwei[i]);
 		lo = min(lo, v);
 		hi = max(hi, v);
+		if (withTip && tipAt[i] > 0.0f) {
+			const float t = logOf(tipAt[i]);
+			lo = min(lo, t);
+			hi = max(hi, t);
+		}
 	}
 	if (hi - lo < 1e-4f) {
 		hi = lo + 1e-4f;
 	}
+}
 
-	// Three columns short of the edge, so the dot on the newest point has room
-	// to be a dot rather than half of one.
+// One series as a line. The x axis is time rather than sample number, because
+// the history arrives every five minutes on a good hour and every fifteen on a
+// bad one, and drawing those the same width would lie about when things moved.
+void plot(const float *values, int top, int height, float lo, float hi, uint16_t color, bool dot)
+{
+	M5GFX &g = ui::gfx();
 	const uint32_t span = age[pointCount - 1] == 0 ? 1 : age[pointCount - 1];
 	auto xAt = [&](int i) { return (int)((float)age[i] / (float)span * (ui::W - 4)); };
 	auto yAt = [&](float v) {
-		const float l = logf(max(v, 1e-6f));
-		return top + height - 1 - (int)((l - lo) / (hi - lo) * (float)(height - 1));
+		return top + height - 1 - (int)((logOf(v) - lo) / (hi - lo) * (float)(height - 1));
 	};
 
-	// The threshold sits behind the line, so a glance says how far off it is.
-	if (armed && alarm >= lo && alarm <= hi) {
-		const int y = yAt(alarm);
-		for (int x = 0; x < ui::W; x += 4) {
-			g.drawPixel(x, y, ui::RULE);
+	int last = -1;
+	for (int i = 0; i < pointCount; i++) {
+		if (values[i] <= 0.0f) {
+			continue;  // before this series was recorded, so it starts later
+		}
+		if (last >= 0) {
+			g.drawLine(xAt(last), yAt(values[last]), xAt(i), yAt(values[i]), color);
+		}
+		last = i;
+	}
+	if (dot && last >= 0) {
+		g.fillCircle(xAt(last), yAt(values[last]), 2, ui::FG);
+	}
+}
+
+// The threshold behind the line, so a glance says how far off it is. It is
+// compared in log space because that is the space the chart is drawn in.
+void plotAlarm(int top, int height, float lo, float hi)
+{
+	if (!armed || alarm <= 0.0f) {
+		return;
+	}
+	const float l = logOf(alarm);
+	if (l < lo || l > hi) {
+		return;
+	}
+	const int y = top + height - 1 - (int)((l - lo) / (hi - lo) * (float)(height - 1));
+	for (int x = 0; x < ui::W; x += 4) {
+		ui::gfx().drawPixel(x, y, ui::RULE);
+	}
+}
+
+// The line under the headline is the tip, so the numbers at its ends are the
+// tip's own day. low24h and high24h from the source are the base fee alone and
+// would label this line with a range it never touches.
+void tipRange(float &lo, float &hi)
+{
+	lo = 0.0f;
+	hi = 0.0f;
+	for (int i = 0; i < pointCount; i++) {
+		if (tipAt[i] <= 0.0f) {
+			continue;
+		}
+		if (lo == 0.0f || tipAt[i] < lo) {
+			lo = tipAt[i];
+		}
+		if (tipAt[i] > hi) {
+			hi = tipAt[i];
 		}
 	}
+}
 
-	for (int i = 1; i < pointCount; i++) {
-		g.drawLine(xAt(i - 1), yAt(gwei[i - 1]), xAt(i), yAt(gwei[i]), band().color);
+void drawSparkline(int top, int height)
+{
+	if (pointCount < 2) {
+		ui::small(3, top + height / 2 - 4, "no history yet", ui::RULE);
+		return;
 	}
-	g.fillCircle(xAt(pointCount - 1), yAt(gwei[pointCount - 1]), 2, ui::FG);
+	float lo = 0.0f;
+	float hi = 0.0f;
+	// The page above it leads with the tip, so the line under it is the tip.
+	series(true, lo, hi);
+	plotAlarm(top, height, lo, hi);
+	plot(tipAt, top, height, lo, hi, band().color, true);
 }
 
 void smallCentre(int y, const char *text, uint16_t color)
@@ -398,15 +480,196 @@ void drawNow()
 
 	const int p = percentile();
 	if (haveHistory) {
-		gweiText(low24, number, sizeof(number));
+		float tipLow = 0.0f;
+		float tipHigh = 0.0f;
+		tipRange(tipLow, tipHigh);
+		gweiText(tipLow, number, sizeof(number));
 		ui::small(3, 114, number, ui::DIM);
-		gweiText(high24, number, sizeof(number));
+		gweiText(tipHigh, number, sizeof(number));
 		smallRight(237, 114, number, ui::DIM);
 		snprintf(text, sizeof(text), "%s%s, %d%% of 24h", band().name, armed ? " armed" : "", p);
 		smallCentre(114, text, band().color);
 	} else {
 		snprintf(text, sizeof(text), "block %ld", block);
 		smallCentre(114, text, ui::RULE);
+	}
+}
+
+// ------------------------------------------------------------------ page two
+//
+// Both series over the day, on one axis, which is the point: for most of a day
+// the tip is a tenth of the base fee and tracks it, and the hours where it
+// comes loose are the hours worth knowing about.
+void drawDay()
+{
+	char text[48];
+	char number[16];
+	M5GFX &g = ui::gfx();
+
+	ui::clearBody();
+	ui::small(3, 4, "the last 24 hours", ui::FG);
+
+	if (pointCount < 2) {
+		ui::small(3, 56, "no history yet", ui::RULE);
+		return;
+	}
+
+	float lo = 0.0f;
+	float hi = 0.0f;
+	series(true, lo, hi);
+
+	constexpr int TOP = 26;
+	constexpr int TALL = 74;
+	// The axis is labelled at both ends of the drawn range rather than with the
+	// day's published low and high, because those are the base fee alone and
+	// this chart has the tip in it too.
+	gweiText(expf(hi), number, sizeof(number));
+	smallRight(237, TOP - 10, number, ui::RULE);
+	gweiText(expf(lo), number, sizeof(number));
+	smallRight(237, TOP + TALL + 2, number, ui::RULE);
+
+	g.drawFastHLine(0, TOP - 1, ui::W, ui::RULE);
+	g.drawFastHLine(0, TOP + TALL, ui::W, ui::RULE);
+	plotAlarm(TOP, TALL, lo, hi);
+	plot(gwei, TOP, TALL, lo, hi, ui::DIM, false);
+	plot(tipAt, TOP, TALL, lo, hi, band().color, true);
+
+	// A legend, and the two numbers the lines end on.
+	gweiText(baseFee, number, sizeof(number));
+	snprintf(text, sizeof(text), "base %s", number);
+	g.fillRect(3, 17, 8, 2, ui::DIM);
+	ui::small(14, 14, text, ui::DIM);
+
+	const Tier &t = tiers[speed < tierCount ? speed : 0];
+	gweiText(t.tip, number, sizeof(number));
+	snprintf(text, sizeof(text), "tip %s", number);
+	g.fillRect(123, 17, 8, 2, band().color);
+	ui::small(134, 14, text, band().color);
+
+	ui::small(3, 112, "24h ago", ui::RULE);
+	const int p = percentile();
+	snprintf(text, sizeof(text), "%s, %d%% of the day", band().name, p);
+	smallCentre(112, text, band().color);
+	smallRight(237, 112, "now", ui::RULE);
+}
+
+// ---------------------------------------------------------------- page three
+//
+// The same day as twenty four bars, which is the shape a line at this width
+// cannot show: whether the quiet hours are a run or a scatter, and how far the
+// cheap end really is from the dear one.
+float medianOf(float *values, int count)
+{
+	// Insertion sort. A bucket holds a handful of points and this runs once a
+	// repaint, so the simple one is the right one.
+	for (int i = 1; i < count; i++) {
+		const float key = values[i];
+		int j = i - 1;
+		while (j >= 0 && values[j] > key) {
+			values[j + 1] = values[j];
+			j--;
+		}
+		values[j + 1] = key;
+	}
+	return count % 2 ? values[count / 2] : (values[count / 2 - 1] + values[count / 2]) / 2.0f;
+}
+
+void drawHours()
+{
+	char text[48];
+	char number[16];
+	M5GFX &g = ui::gfx();
+
+	ui::clearBody();
+	ui::small(3, 4, "the day, hour by hour", ui::FG);
+
+	if (pointCount < 2) {
+		ui::small(3, 56, "no history yet", ui::RULE);
+		return;
+	}
+
+	// Hours back from the newest point, not clock hours: nothing on the device
+	// knows what time it is anywhere, and "six hours ago" is the question
+	// somebody standing here actually has.
+	const uint32_t newest = age[pointCount - 1];
+	float bar[BUCKETS];
+	int cheapest = -1;
+	int dearest = -1;
+	for (int b = 0; b < BUCKETS; b++) {
+		float samples[40];
+		int count = 0;
+		for (int i = 0; i < pointCount && count < (int)(sizeof(samples) / sizeof(samples[0]));
+		     i++) {
+			const uint32_t back = newest - age[i];
+			const int at = BUCKETS - 1 - (int)(back / 3600);
+			if (at == b) {
+				// What it would have cost, which is the pair added up rather
+				// than either half of it.
+				samples[count++] = gwei[i] + tipAt[i];
+			}
+		}
+		bar[b] = count > 0 ? medianOf(samples, count) : 0.0f;
+		if (bar[b] > 0.0f) {
+			if (cheapest < 0 || bar[b] < bar[cheapest]) {
+				cheapest = b;
+			}
+			if (dearest < 0 || bar[b] > bar[dearest]) {
+				dearest = b;
+			}
+		}
+	}
+	if (cheapest < 0) {
+		ui::small(3, 56, "not enough of the day yet", ui::RULE);
+		return;
+	}
+
+	constexpr int FLOOR = 100;
+	constexpr int TALL = 72;
+	const float lo = logOf(bar[cheapest]);
+	const float hi = logOf(bar[dearest]);
+	const float range = hi - lo < 1e-4f ? 1e-4f : hi - lo;
+	const int wide = ui::W / BUCKETS;  // ten columns each, which is the panel exactly
+
+	for (int b = 0; b < BUCKETS; b++) {
+		if (bar[b] <= 0.0f) {
+			continue;
+		}
+		// A floor of three rows, so an hour that happened reads as a bar and
+		// not as an hour with no data in it.
+		const int high = 3 + (int)((logOf(bar[b]) - lo) / range * (float)(TALL - 3));
+		const uint16_t color = b == BUCKETS - 1 ? ui::FG
+		                       : b == cheapest  ? ui::GOOD
+		                       : b == dearest   ? ui::BAD
+		                                        : ui::RULE;
+		g.fillRect(b * wide + 1, FLOOR - high, wide - 2, high, color);
+	}
+	g.drawFastHLine(0, FLOOR, ui::W, ui::RULE);
+
+	gweiText(bar[dearest], number, sizeof(number));
+	snprintf(text, sizeof(text), "dearest %s", number);
+	ui::small(3, 14, text, ui::BAD);
+	gweiText(bar[cheapest], number, sizeof(number));
+	snprintf(text, sizeof(text), "cheapest %s", number);
+	smallRight(237, 14, text, ui::GOOD);
+
+	ui::small(3, 104, "24h ago", ui::RULE);
+	smallRight(237, 104, "now", ui::RULE);
+	const int ago = BUCKETS - 1 - cheapest;
+	if (ago == 0) {
+		snprintf(text, sizeof(text), "%s", "this hour is the cheapest so far");
+	} else {
+		snprintf(text, sizeof(text), "cheapest %dh ago, bars are medians", ago);
+	}
+	ui::small(3, 114, text, ui::DIM);
+}
+
+// Which of the three you are on, in the corner every page leaves empty.
+void drawDots()
+{
+	M5GFX &g = ui::gfx();
+	const int here = screen == Screen::Now ? 0 : screen == Screen::Day ? 1 : 2;
+	for (int i = 0; i < PAGES; i++) {
+		g.fillCircle(ui::W - 26 + i * 9, 6, i == here ? 2 : 1, i == here ? ui::FG : ui::RULE);
 	}
 }
 
@@ -429,7 +692,17 @@ void drawAlarm()
 	ui::line(0, text, armed || entry[0] != '\0' ? ui::FG : ui::DIM);
 
 	ui::small(3, 54, "it watches while this screen is open.", ui::DIM);
-	ui::small(3, 64, "nothing here runs in the background.", ui::DIM);
+	// Picking a threshold needs to know what the day has been, and this is the
+	// base fee's own published range rather than anything drawn on a chart.
+	if (haveHistory && high24 > 0.0f) {
+		char lowText[16];
+		gweiText(low24, lowText, sizeof(lowText));
+		gweiText(high24, number, sizeof(number));
+		snprintf(text, sizeof(text), "the base fee ran %s to %s today", lowText, number);
+	} else {
+		snprintf(text, sizeof(text), "%s", "nothing here runs in the background.");
+	}
+	ui::small(3, 64, text, ui::DIM);
 
 	ui::gfx().drawFastHLine(0, 78, ui::W, ui::RULE);
 	snprintf(text, sizeof(text), "block %ld", block);
@@ -448,7 +721,7 @@ void drawAlarm()
 		snprintf(text, sizeof(text), "%s", net::statusText(status));
 	}
 	ui::small(3, 96, text, ui::DIM);
-	ui::small(3, 110, "enter arms, del erases, 0 is off", ui::DIM);
+	ui::small(3, 110, "enter arms, del goes back, 0 is off", ui::DIM);
 }
 
 void draw()
@@ -464,10 +737,22 @@ void draw()
 		return;
 	}
 
-	if (screen == Screen::Alarm) {
-		drawAlarm();
-	} else {
-		drawNow();
+	switch (screen) {
+		case Screen::Alarm:
+			drawAlarm();
+			break;
+		case Screen::Day:
+			drawDay();
+			drawDots();
+			break;
+		case Screen::Hours:
+			drawHours();
+			drawDots();
+			break;
+		default:
+			drawNow();
+			drawDots();
+			break;
 	}
 	if (job != Job::None) {
 		// A refresh repaints in place rather than blanking the screen: there is
@@ -480,7 +765,9 @@ void draw()
 
 void enter()
 {
-	screen = Screen::Now;
+	const int page = constrain(store::getInt(PAGE_KEY, 0), 0, PAGES - 1);
+	screen = page == 0 ? Screen::Now : page == 1 ? Screen::Day : Screen::Hours;
+	back = screen;
 	entry[0] = '\0';
 	alarm = store::getFloat(ALARM_KEY, 0.0f);
 	armed = store::getBool(ARMED_KEY, false);
@@ -550,11 +837,11 @@ bool alarmKey(const view::Key &k)
 			// thirty seconds when the next poll happens to come round.
 			checkAlarm();
 		} else {
-			screen = Screen::Now;
+			screen = back;
 		}
 	} else if (k.del) {
 		if (length == 0) {
-			screen = Screen::Now;
+			screen = back;
 		} else {
 			entry[length - 1] = '\0';
 		}
@@ -577,12 +864,19 @@ bool key(const view::Key &k)
 	}
 
 	if (k.up || k.down) {
-		// The tip is the number worth picking, so the arrows pick it.
+		// The tip is the number worth picking, so the arrows pick it, and the
+		// pick follows you onto the other two pages.
 		if (tierCount > 0) {
 			speed = k.up ? (speed + tierCount - 1) % tierCount : (speed + 1) % tierCount;
 			store::setInt(SPEED_KEY, speed);
 		}
-	} else if (k.ch == 'a' || k.ch == 'A' || k.enter || k.right) {
+	} else if (k.left || k.right) {
+		const int here = screen == Screen::Now ? 0 : screen == Screen::Day ? 1 : 2;
+		const int next = (here + (k.right ? 1 : PAGES - 1)) % PAGES;
+		screen = next == 0 ? Screen::Now : next == 1 ? Screen::Day : Screen::Hours;
+		store::setInt(PAGE_KEY, next);
+	} else if (k.ch == 'a' || k.ch == 'A' || k.enter) {
+		back = screen;
 		screen = Screen::Alarm;
 		entry[0] = '\0';
 	} else if (k.ch == 'r' || k.ch == 'R') {
