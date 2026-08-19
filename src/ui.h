@@ -139,7 +139,7 @@ void asciify(const char *src, char *out, size_t n);
 
 // Advances one frame per call. For a request that is slow by design, like a
 // Coral score.
-void spinner(int x, int y, uint16_t color = CORAL);
+void spinner(int x, int y, uint16_t color = CORAL, uint16_t background = BG);
 
 // Source name on the left, transient note in the middle, radio and battery on
 // the right. Only the view loop calls this, which is what keeps the source

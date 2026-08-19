@@ -17,6 +17,9 @@ constexpr int ROWS = 5;  // list rows on screen at once
 constexpr size_t SSID_MAX = 32;
 constexpr size_t PASSPHRASE_MAX = 63;
 constexpr uint32_t SPIN_MS = 120;
+constexpr int SPIN_X = ui::W / 2;
+constexpr int SPIN_PICKING_Y = 76;
+constexpr int SPIN_JOINING_Y = 84;
 
 constexpr const char *ACTIONS[] = {
     "scan for networks",
@@ -167,7 +170,7 @@ void drawPicking()
 	if (scanning) {
 		ui::title("Networks");
 		ui::line(1, "  looking around", ui::DIM);
-		ui::spinner(ui::W / 2, 76);
+		ui::spinner(SPIN_X, SPIN_PICKING_Y);
 		return;
 	}
 
@@ -250,7 +253,7 @@ void drawJoining()
 	ui::line(1, stateText(), stateColor());
 
 	if (net::state() == net::Wifi::Joining) {
-		ui::spinner(ui::W / 2, 84);
+		ui::spinner(SPIN_X, SPIN_JOINING_Y);
 		return;
 	}
 	if (net::online()) {
@@ -299,11 +302,14 @@ void leave()
 
 void tick()
 {
+	// The spinner is stepped where it stands, the way Calm draws its ring. A
+	// full repaint clears the body first, and eight of those a second is the
+	// whole screen strobing while it waits.
 	if (screen == Screen::Picking && scanning) {
 		collectScan();
-		if (millis() - lastSpin > SPIN_MS) {
+		if (scanning && millis() - lastSpin > SPIN_MS) {
 			lastSpin = millis();
-			view::repaint();
+			ui::spinner(SPIN_X, SPIN_PICKING_Y);
 		}
 		return;
 	}
@@ -313,7 +319,7 @@ void tick()
 			view::repaint();
 		} else if (net::state() == net::Wifi::Joining && millis() - lastSpin > SPIN_MS) {
 			lastSpin = millis();
-			view::repaint();
+			ui::spinner(SPIN_X, SPIN_JOINING_Y);
 		}
 	}
 }

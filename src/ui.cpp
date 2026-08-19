@@ -375,7 +375,7 @@ void message(const char *headline, const char *detail, uint16_t color)
 	}
 }
 
-void spinner(int x, int y, uint16_t color)
+void spinner(int x, int y, uint16_t color, uint16_t background)
 {
 	M5GFX &g = gfx();
 	constexpr int dots = 8;
@@ -385,7 +385,13 @@ void spinner(int x, int y, uint16_t color)
 		const int px = x + (int)lroundf(cosf(a) * radius);
 		const int py = y + (int)lroundf(sinf(a) * radius);
 		const bool lit = i == (spinnerFrame % dots);
-		g.fillCircle(px, py, lit ? 2 : 1, lit ? color : RULE);
+		// Every cell is painted to its full size each frame, lit or not, so a
+		// caller can animate this in place. Clearing the body eight times a
+		// second to move one dot is a strobe on the panel.
+		g.fillCircle(px, py, 2, lit ? color : background);
+		if (!lit) {
+			g.fillCircle(px, py, 1, RULE);
+		}
 	}
 	spinnerFrame++;
 }
