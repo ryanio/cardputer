@@ -38,11 +38,15 @@ constexpr uint32_t FACE_MS = 400;
 // has no case for a Cardputer at all: IMU_Class.cpp names AtomS3R, CoreS3,
 // ChainCaptain and CoreMatrix and stops. So this is a hardware question that
 // no amount of reading settles, and it is deliberately four constants in one
-// place. The boot report prints a raw sample face up on a desk, which is all
-// anybody needs to fix it: Z should be near +1, X and Y near 0, and tipping
-// the right hand edge down should push X positive.
+// place.
+//
+// Settled on a unit. Flat and screen up it reads 0, 0, +1g, so Z and the two
+// zeroes were already right, but a sample at rest cannot say which way X grows
+// and that one was inverted: tipping the right hand edge down rolled the
+// marble left and spun the menu backwards. One sign here, and every view that
+// reads motion:: turned round with it.
 constexpr bool SWAP_XY = false;
-constexpr float SIGN_X = 1.0f;
+constexpr float SIGN_X = -1.0f;  // settled on a unit: X reads the wrong way round
 constexpr float SIGN_Y = 1.0f;
 constexpr float SIGN_Z = 1.0f;
 
