@@ -76,11 +76,22 @@ public:
 	}
 	void end() {}
 	void setVolume(uint8_t) {}
-	bool tone(float, uint32_t = 0)
+	void setChannelVolume(uint8_t, uint8_t) {}
+	bool tone(float, uint32_t = 0, int = -1, bool = true)
+	{
+		return true;
+	}
+	bool playRaw(const int8_t *, size_t, uint32_t = 44100, bool = false, uint32_t = 1, int = -1,
+	             bool = false)
 	{
 		return true;
 	}
 	void stop() {}
+	void stop(uint8_t) {}
+	bool isPlaying() const
+	{
+		return false;
+	}
 	bool isEnabled() const
 	{
 		return false;
