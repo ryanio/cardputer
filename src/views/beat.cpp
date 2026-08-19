@@ -113,7 +113,10 @@ void drawChrome()
 
 	g.setFont(&fonts::Font0);
 	g.setTextDatum(textdatum_t::top_right);
-	snprintf(text, sizeof(text), "%d bpm  %s", bpm, playing ? "playing" : "stopped");
+	// The arrows either side of the number are the control: those two keys
+	// print , and . on their caps, so naming the characters taught nobody
+	// anything. Showing them where the number is does.
+	snprintf(text, sizeof(text), "< %d bpm >  %s", bpm, playing ? "playing" : "stopped");
 	g.setTextColor(playing ? ui::CORAL : ui::DIM, ui::BG);
 	g.drawString(text, ui::W - 4, 6);
 
@@ -138,7 +141,7 @@ void drawChrome()
 	g.setFont(&fonts::Font0);
 	g.setTextDatum(textdatum_t::top_left);
 	g.setTextColor(ui::DIM, ui::BG);
-	g.drawString("1-8 steps  space plays  , . tempo", 4, ui::H - 9);
+	g.drawString("1-8 steps  space plays  ^v track", 4, ui::H - 9);
 	g.setTextDatum(textdatum_t::top_right);
 	g.drawString("BEAT", ui::W - 4, ui::H - 9);
 }
