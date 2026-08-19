@@ -134,18 +134,20 @@ over a desktop's trust store.
 This was read by pulsing RTS on the port and listening, because PlatformIO's
 own monitor wants a terminal. `tools/serial/read.py` is that, if it helps.
 
+**Unknown 4, does the speaker work: yes.** Ryan heard Beat keep time on the
+unit. The gas alarm and Calm's gong go through the same `Speaker.tone` and
+`playRaw`, so all three are covered by that.
+
 ## Unknowns still open
 
-4. **Does the speaker work?** Beat, Calm and the gas alarm all call
-   `Speaker.tone`, and the simulator's speaker is a no-op.
 5. **Which way up is the IMU?** M5Unified fixes axes per board and has no case
    for a Cardputer, so the four constants at the top of `src/motion.cpp` are a
    guess until a unit prints a sample.
 
 ## What is left
 
-- **The rest of the flash gate.** Boot, Setup, Menu and Womp are done. The
-  speaker and the IMU axes need someone in front of the unit.
+- **The rest of the flash gate.** Only the IMU axes are left: tip the unit in
+  Maze or Rain and see whether the marble rolls the way it is leaning.
 - **OTA**, Phase 2, including image signing. The only piece of the original
   plan still unwritten.
 - **Phases 5, 7 and 8**: the pet, three units talking, off-device work. Those
