@@ -503,7 +503,6 @@ void drawGuess()
 
 void drawClues()
 {
-	char text[32];
 	ui::clearBody();
 	ui::title(daily ? "Today's round" : label, ui::CORAL);
 
