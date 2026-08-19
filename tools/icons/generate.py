@@ -19,24 +19,26 @@ OUT = pathlib.Path(__file__).resolve().parents[2] / "src" / "icons.h"
 CACHE = pathlib.Path(__file__).resolve().parent / "svg"
 
 # Lucide name, enum name, pixel size. Lucide draws on a 24px grid with a 2px
-# stroke; shrinking that to 16 leaves a stroke under half a pixel in places, so
-# the stroke is widened before rasterizing rather than after.
+# stroke; shrinking that leaves a stroke under half a pixel in places, so the
+# stroke is widened before rasterizing rather than after. The menu draws at 32,
+# which is above the source grid and needs no widening at all; the three drawn
+# inside Setup stay at 12.
 ICONS = [
-    ("waves", "WAVES", 16),
-    ("landmark", "LANDMARK", 16),
-    ("bot", "BOT", 16),
-    ("camera", "CAMERA", 16),
-    ("fuel", "FUEL", 16),
-    ("settings", "SETTINGS", 16),
-    ("music", "MUSIC", 16),
-    ("wind", "WIND", 16),
-    ("cloud-rain", "CLOUD_RAIN", 16),
-    ("route", "ROUTE", 16),
+    ("waves", "WAVES", 32),
+    ("landmark", "LANDMARK", 32),
+    ("bot", "BOT", 32),
+    ("camera", "CAMERA", 32),
+    ("fuel", "FUEL", 32),
+    ("settings", "SETTINGS", 32),
+    ("music", "MUSIC", 32),
+    ("wind", "WIND", 32),
+    ("cloud-rain", "CLOUD_RAIN", 32),
+    ("route", "ROUTE", 32),
     ("wifi", "WIFI", 12),
     ("keyboard", "KEYBOARD", 12),
     ("trash-2", "TRASH", 12),
 ]
-STROKE = {16: "2.6", 12: "3.0"}
+STROKE = {32: "2.0", 16: "2.6", 12: "3.0"}
 
 
 def fetch(name):

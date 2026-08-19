@@ -34,6 +34,10 @@ compiles both targets on a push and probes the sources on a schedule.
   NVS; gitignored `include/secrets.h` is a dev-unit fallback only.
 - **Never enable USB HID.** These units get given away. Serial only.
 - **Give every view an exit.**
+- **The menu is a carousel and it draws between repaints.** It is the only
+  screen that does. The 42KB sprite behind the slide is held while it moves and
+  handed back a second after it stops, because the boot probe opens a TLS
+  session while the menu is on screen.
 - **Which way up the IMU is glued has never been checked.** M5Unified fixes
   axes per board and has no case for a Cardputer, so the answer is four
   constants at the top of `src/motion.cpp` and a raw sample in the boot report.
