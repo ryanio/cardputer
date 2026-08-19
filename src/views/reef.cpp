@@ -1207,7 +1207,7 @@ void drawCalls()
 		}
 		const int y = 46 + row * 17;
 		char cut[20];
-		ui::fit(t.symbol, 96, cut, sizeof(cut));
+		ui::fit(t.symbol, 84, cut, sizeof(cut));
 		at(3, y, cut, ui::FG, &fonts::Font2);
 
 		if (t.calledMcap > 0.0f) {
@@ -1218,7 +1218,7 @@ void drawCalls()
 		} else {
 			snprintf(text, sizeof(text), "no cap on record");
 		}
-		ui::small(104, y + 4, text, ui::DIM);
+		ui::small(92, y + 4, text, ui::DIM);
 
 		const float m = multiple(t);
 		multipleText(m, text, sizeof(text));
