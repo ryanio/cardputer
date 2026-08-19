@@ -167,13 +167,13 @@ void simArgs(int argc, char **argv)
 		if (strcmp(argv[i], "--tour") == 0) {
 			tourRunning = true;
 		} else if (strcmp(argv[i], "--keys") == 0 && more) {
-			// \n is enter and \b is backspace, so a whole session fits in one
-			// argument: --keys "5\n\n.\n"
+			// \n is enter, \b is backspace and \t is tab, so a whole session
+			// fits in one argument: --keys "5\n\n.\n"
 			const std::string raw = argv[++i];
 			for (size_t c = 0; c < raw.size(); c++) {
 				if (raw[c] == '\\' && c + 1 < raw.size()) {
 					const char next = raw[++c];
-					script += next == 'n' ? '\n' : (next == 'b' ? '\b' : next);
+					script += next == 'n' ? '\n' : next == 'b' ? '\b' : next == 't' ? '\t' : next;
 				} else {
 					script += raw[c];
 				}

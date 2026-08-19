@@ -33,6 +33,7 @@ int listed = 0;
 int order[MAX_LISTED];
 bool scanning = false;
 bool typingSsid = false;
+bool reveal = false;  // a passphrase is drawn as dots until tab peeks at it
 String targetSsid;
 String entry;
 uint32_t lastSpin = 0;
@@ -113,6 +114,7 @@ void beginTyping(const String &ssid, bool forSsid)
 	targetSsid = ssid;
 	typingSsid = forSsid;
 	entry = "";
+	reveal = false;
 	screen = Screen::Typing;
 	view::repaint();
 }
@@ -203,7 +205,7 @@ void drawPicking()
 
 void drawTyping()
 {
-	char text[64];
+	char text[PASSPHRASE_MAX + 20];
 	ui::clearBody();
 
 	if (typingSsid) {
@@ -213,13 +215,28 @@ void drawTyping()
 		ui::title(text);
 	}
 
-	snprintf(text, sizeof(text), "%s_", entry.c_str());
+	// A passphrase is dots until it is asked for. The unit is held in front of
+	// whoever is nearby and the screen is the only place it exists in the
+	// clear, so anything secret typed here is drawn this way. A network name
+	// is not secret and is drawn as it is typed.
+	const char *shown = entry.c_str();
+	char dots[PASSPHRASE_MAX + 1];
+	if (!typingSsid && !reveal) {
+		const size_t n = entry.length();
+		memset(dots, '*', n);
+		dots[n] = '\0';
+		shown = dots;
+	}
+	snprintf(text, sizeof(text), "%s_", shown);
 	ui::line(1, text);
 
 	ui::line(3, "enter saves and joins", ui::DIM);
 	ui::line(4, "del erases   esc cancels", ui::DIM);
 	if (!typingSsid) {
-		ui::line(5, "fn esc for a backtick", ui::DIM);
+		ui::line(5,
+		         reveal ? "tab hides it   fn esc for a backtick"
+		                : "tab shows it   fn esc for a backtick",
+		         ui::DIM);
 	}
 }
 
@@ -269,6 +286,7 @@ void enter()
 	screen = Screen::Status;
 	action = 0;
 	entry = "";
+	reveal = false;
 }
 
 void leave()
@@ -276,6 +294,7 @@ void leave()
 	net::scanClear();
 	scanning = false;
 	entry = "";
+	reveal = false;
 }
 
 void tick()
@@ -375,6 +394,13 @@ bool typingKey(const view::Key &k)
 			entry.remove(entry.length() - 1);
 			view::repaint();
 		}
+		return true;
+	}
+	// Tab peeks at what has been typed. It cannot be part of a passphrase, so
+	// nothing is given up by spending it here.
+	if (k.tab && !typingSsid) {
+		reveal = !reveal;
+		view::repaint();
 		return true;
 	}
 	if (k.space && entry.length() < limit) {

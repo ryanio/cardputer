@@ -171,6 +171,8 @@ void Keyboard_Class::update()
 			_state.enter = true;
 		} else if (c == '\b') {
 			_state.del = true;
+		} else if (c == '\t') {
+			_state.tab = true;
 		} else {
 			_state.word.push_back(c);
 			_state.space = c == ' ';
