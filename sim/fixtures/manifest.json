@@ -26,6 +26,30 @@
       "fixture": "gwei-gas"
     },
     {
+      "match": "www.glyphbots.com/api/bots/search?limit=*&sort=rarity&cursor=*",
+      "fixture": "glyphbots-search-rare"
+    },
+    {
+      "match": "www.glyphbots.com/api/bots/search?limit=*&sort=rarity",
+      "fixture": "glyphbots-search-common"
+    },
+    {
+      "match": "www.glyphbots.com/api/bots/search?limit=*",
+      "fixture": "glyphbots-search-new"
+    },
+    {
+      "match": "www.glyphbots.com/api/artifacts/recent",
+      "fixture": "glyphbots-recent"
+    },
+    {
+      "match": "www.glyphbots.com/api/bot/11111/story",
+      "fixture": "glyphbots-story-11111"
+    },
+    {
+      "match": "www.glyphbots.com/api/bot/6950/story",
+      "fixture": "glyphbots-story-6950"
+    },
+    {
       "match": "www.glyphbots.com/api/bot/7/story",
       "fixture": "glyphbots-story-7"
     },
@@ -48,6 +72,14 @@
     {
       "match": "www.glyphbots.com/api/bot/1/story",
       "fixture": "glyphbots-story"
+    },
+    {
+      "match": "www.glyphbots.com/api/bot/11111",
+      "fixture": "glyphbots-bot-11111"
+    },
+    {
+      "match": "www.glyphbots.com/api/bot/6950",
+      "fixture": "glyphbots-bot-6950"
     },
     {
       "match": "www.glyphbots.com/api/bot/7",

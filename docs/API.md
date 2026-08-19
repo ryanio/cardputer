@@ -50,8 +50,29 @@ GET https://www.glyphbots.com/api/bot/1/story
      "cooldown":"6 seconds"}, ...]}}}
 
 GET https://www.glyphbots.com/api/bots/facets       trait values, and the glyph alphabet
-GET https://www.glyphbots.com/api/artifacts/recent  collection-wide mint activity
+
+GET https://www.glyphbots.com/api/bots/search?limit=6&sort=rarity&cursor=11105
+{"bots":[{"tokenId":9200,"name":"Binary the Unstoppable","rarityRank":3,
+          "traits":[...],"unicode":{...},"burnedAt":null}, ...],
+ "total":11111,"nextCursor":null}
+
+GET https://www.glyphbots.com/api/artifacts/recent
+{"ok":true,"items":[{"botTokenId":5815,"title":"Photon Emerging From The Neon Fracture",
+   "mintedAt":"2026-08-11T06:25:37.929Z","mintQuantity":137,
+   "imageUrl":"...","minter":"0x4A30...","type":"character"}, ...]}
 ```
+
+`search` takes exactly one sort, `rarity`, and runs it from the most ordinary
+bot towards rank 1, so the rarest page is the tail of it: `cursor` is a plain
+offset and `total` comes back on every answer, which is what the cursor for
+that page is counted from. Anything else passed as `sort` is ignored and the
+default applies, which is token id descending. A cursor past the end answers
+with an empty list and the true `total` rather than an error. Every hit already
+carries the art and the rank, so a list costs one request.
+
+`artifacts/recent` is mint activity, not sales: nothing public prices a bot.
+Ten items, no `limit`, and they are sparse enough that the same bot appears
+several times over a few weeks.
 
 The story is a separate endpoint, easy to miss: `/api/bot/1` carries none of
 it. Every bot has a faction, a role, a mission with an objective and a threat,
@@ -131,8 +152,8 @@ retry.
 
 `tokens/index` returns just `{chain, address}` per entry, which makes a random
 round a single extra fetch: pick one, then score it. Together with `resolve`
-that gives the Reef view three ways in, a daily round everyone shares, a ticker
-someone types, and a random token from the graded corpus.
+that gives the Reef view three ways in: a ticker someone types, a random token
+from the graded corpus, and the token of the day everybody shares.
 
 `guess/daily` is the game path and it sidesteps all of that. One token a day, the
 same for everybody, precomputed once into KV, so it answers from the edge instead

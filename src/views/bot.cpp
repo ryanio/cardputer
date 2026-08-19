@@ -13,6 +13,11 @@
 // of every bot, 3000x2250, and the device never fetches one: that is a large
 // raster of four lines of text it already has.
 //
+// Browsing is four lists rather than the id underneath the last one: newest,
+// rarest, most common, and what has been minted lately. The search endpoint
+// sorts on rarity and nothing else, so the rarest page is the tail of that
+// sort read backwards, and the mint feed is a separate endpoint again.
+//
 // Behind the art is a character sheet the API keeps on a separate endpoint,
 // which is easy to miss, so it is fetched only when somebody pages into it.
 // Every bot has a faction, a role, a mission with an objective and a threat,
@@ -21,13 +26,25 @@ namespace {
 
 constexpr const char *BOT_URL = "https://www.glyphbots.com/api/bot/%d";
 constexpr const char *STORY_URL = "https://www.glyphbots.com/api/bot/%d/story";
+// Browsing. The search endpoint honours exactly one sort, rarity, and runs it
+// from the most ordinary bot towards the rarest, so the rarest page is the
+// tail of it rather than the head. Everything else it is given falls back to
+// token id descending, which is the newest first and is worth having anyway.
+constexpr const char *LIST_NEW_URL = "https://www.glyphbots.com/api/bots/search?limit=%d";
+constexpr const char *LIST_COMMON_URL =
+    "https://www.glyphbots.com/api/bots/search?limit=%d&sort=rarity";
+constexpr const char *LIST_RARE_URL =
+    "https://www.glyphbots.com/api/bots/search?limit=%d&sort=rarity&cursor=%d";
+constexpr const char *RECENT_URL = "https://www.glyphbots.com/api/artifacts/recent";
 
 constexpr int MAX_ID = 11111;  // the collection's size
 constexpr int MAX_LINES = 4;
 constexpr int MAX_ABILITIES = 3;
 constexpr size_t LINE_BYTES = 32;  // seven glyphs of UTF-8, and room to spare
 constexpr size_t ID_MAX = 5;
+constexpr int LIST_MAX = 6;  // rows that fit under a title
 constexpr const char *ID_KEY = "bot.id";
+constexpr const char *ORDER_KEY = "bot.order";
 
 struct Ability {
 	char name[24];
@@ -35,9 +52,25 @@ struct Ability {
 	char cost[20];
 };
 
-enum class Screen : uint8_t { Art, Sheet, Mission, Abilities, Goto };
+enum class Screen : uint8_t { Art, Sheet, Mission, Abilities, Goto, Browse };
 enum class State : uint8_t { Idle, Waiting, Ready, Failed };
-enum class Job : uint8_t { None, Bot, Story };
+enum class Job : uint8_t { None, Bot, Story, List };
+
+// Four ways through 11,111 of them, so browsing is something other than
+// walking ids one at a time. The last is not a sort at all: it is what the
+// collection has actually been doing lately, which is the only list here that
+// changes on its own.
+constexpr int ORDERS = 4;
+enum Order : int { ORDER_NEW, ORDER_RARE, ORDER_COMMON, ORDER_MINTED };
+const char *const ORDER_NAME[ORDERS] = {"Newest", "Rarest", "Most common", "Minted lately"};
+const char *const ORDER_NOTE[ORDERS] = {"the highest token ids", "rarity rank 1 and down",
+                                        "the most ordinary bots", "artifacts minted on a bot"};
+
+struct Entry {
+	int tokenId;
+	char note[8];   // a rarity rank, or the day it was minted
+	char text[44];  // the bot's name, or what was minted
+};
 
 Screen screen = Screen::Art;
 State state = State::Idle;
@@ -68,6 +101,17 @@ Ability abilities[MAX_ABILITIES];
 int abilityCount = 0;
 
 char entry[ID_MAX + 1] = {0};
+
+int order = ORDER_NEW;
+Entry list[LIST_MAX];
+int listCount = 0;
+int listAt = 0;
+bool haveList = false;
+int listOrder = -1;  // the order the rows on screen were fetched in
+// The collection's size as the source last stated it. Burns can only take it
+// down, and the rarest page is counted back from the end, so this is read off
+// every search rather than assumed.
+int collection = MAX_ID;
 
 // ------------------------------------------------------------------ helpers
 
@@ -241,6 +285,138 @@ void fetchStory()
 	state = State::Ready;
 }
 
+// A day out of an ISO timestamp: 2026-08-11T06:25:37.929Z reads as 08-11 in
+// the six characters a list row can spare for it.
+void shortDay(const char *iso, char *out, size_t n)
+{
+	if (strlen(iso) < 10) {
+		snprintf(out, n, "%s", "");
+		return;
+	}
+	snprintf(out, n, "%c%c-%c%c", iso[5], iso[6], iso[8], iso[9]);
+}
+
+// The mint feed. Not sales: nothing public says what a bot changed hands for,
+// and this is what the collection publishes instead, which is every artifact
+// minted on a bot with the day and how many went out.
+bool fetchRecent()
+{
+	JsonDocument filter;
+	JsonObject item = filter["items"][0].to<JsonObject>();
+	item["botTokenId"] = true;
+	item["title"] = true;
+	item["mintedAt"] = true;
+	item["mintQuantity"] = true;
+
+	JsonDocument doc;
+	const net::Result r = net::getJson(RECENT_URL, doc, &filter);
+	status = r.status;
+	if (!r.ok()) {
+		return false;
+	}
+
+	listCount = 0;
+	for (JsonObjectConst i : doc["items"].as<JsonArrayConst>()) {
+		if (listCount >= LIST_MAX) {
+			break;
+		}
+		Entry &e = list[listCount];
+		e.tokenId = i["botTokenId"] | 0;
+		if (e.tokenId < 1) {
+			continue;
+		}
+		shortDay(i["mintedAt"] | "", e.note, sizeof(e.note));
+		copyField(i["title"], e.text, sizeof(e.text), "an artifact");
+		const long quantity = i["mintQuantity"] | 0L;
+		if (quantity > 1) {
+			// A run of a hundred is the interesting part of a row, so it goes
+			// in front of the title rather than off the end of it.
+			char titled[sizeof(e.text)];
+			snprintf(titled, sizeof(titled), "x%ld %s", quantity, e.text);
+			snprintf(e.text, sizeof(e.text), "%s", titled);
+		}
+		listCount++;
+	}
+	return listCount > 0;
+}
+
+bool fetchSearch(int which)
+{
+	char url[112];
+	if (which == ORDER_RARE) {
+		const int from = collection > LIST_MAX ? collection - LIST_MAX : 0;
+		snprintf(url, sizeof(url), LIST_RARE_URL, LIST_MAX, from);
+	} else if (which == ORDER_COMMON) {
+		snprintf(url, sizeof(url), LIST_COMMON_URL, LIST_MAX);
+	} else {
+		snprintf(url, sizeof(url), LIST_NEW_URL, LIST_MAX);
+	}
+
+	JsonDocument filter;
+	filter["total"] = true;
+	JsonObject b = filter["bots"][0].to<JsonObject>();
+	b["tokenId"] = true;
+	b["name"] = true;
+	b["rarityRank"] = true;
+
+	JsonDocument doc;
+	const net::Result r = net::getJson(url, doc, &filter);
+	status = r.status;
+	if (!r.ok()) {
+		return false;
+	}
+
+	const int total = doc["total"] | 0;
+	if (total > 0) {
+		collection = total;
+	}
+
+	listCount = 0;
+	for (JsonObjectConst hit : doc["bots"].as<JsonArrayConst>()) {
+		if (listCount >= LIST_MAX) {
+			break;
+		}
+		Entry &e = list[listCount];
+		e.tokenId = hit["tokenId"] | 0;
+		const int rank = hit["rarityRank"] | 0;
+		snprintf(e.note, sizeof(e.note), "r%d", rank);
+		copyField(hit["name"], e.text, sizeof(e.text), "unnamed");
+		listCount++;
+	}
+
+	// The rarest page is the tail of an ascending sort, so it arrives with the
+	// rarest bot last. A list called Rarest puts it first.
+	if (which == ORDER_RARE) {
+		for (int i = 0, j = listCount - 1; i < j; i++, j--) {
+			const Entry swap = list[i];
+			list[i] = list[j];
+			list[j] = swap;
+		}
+	}
+	return listCount > 0;
+}
+
+void fetchList()
+{
+	const int which = order;
+	bool ok = which == ORDER_MINTED ? fetchRecent() : fetchSearch(which);
+	// An empty rarest page means the collection is smaller than it was, and
+	// the answer says by how much. Counting back from the new end is one more
+	// request and only ever happens after a burn.
+	if (!ok && which == ORDER_RARE && collection > LIST_MAX) {
+		ok = fetchSearch(which);
+	}
+	if (!ok) {
+		haveList = false;
+		state = State::Failed;
+		return;
+	}
+	listOrder = which;
+	listAt = 0;
+	haveList = true;
+	state = State::Ready;
+}
+
 void openBot(int next)
 {
 	pending = next < 1 ? MAX_ID : (next > MAX_ID ? 1 : next);
@@ -298,6 +474,7 @@ void drawSheet()
 
 	if (!haveStory) {
 		ui::small(3, 56, "left and right page the sheet", ui::DIM);
+		ui::small(3, 66, "b browses the collection", ui::DIM);
 		return;
 	}
 
@@ -347,6 +524,33 @@ void drawAbilities()
 	}
 }
 
+void drawBrowse()
+{
+	char text[64];
+	page(ORDER_NAME[order]);
+	ui::small(3, 22, ORDER_NOTE[order], ui::DIM);
+
+	if (!haveList || listCount == 0) {
+		ui::small(3, 56, "nothing came back", ui::DIM);
+		return;
+	}
+
+	for (int i = 0; i < listCount; i++) {
+		const bool here = i == listAt;
+		const uint16_t color = here ? ui::FG : ui::DIM;
+		const int y = 36 + i * 12;
+		if (here) {
+			ui::gfx().fillRect(0, y - 2, ui::W, 11, ui::PANEL);
+		}
+		snprintf(text, sizeof(text), "%d", list[i].tokenId);
+		ui::small(9, y, text, here ? ui::CORAL : ui::DIM);
+		ui::small(51, y, list[i].note, ui::RULE);
+		ui::small(87, y, list[i].text, color);
+	}
+
+	ui::small(3, 112, "enter opens   left right reorder", ui::DIM);
+}
+
 void drawGoto()
 {
 	char text[48];
@@ -355,7 +559,7 @@ void drawGoto()
 	ui::line(1, text);
 	snprintf(text, sizeof(text), "1 to %d, enter opens it", MAX_ID);
 	ui::small(3, 76, text, ui::DIM);
-	ui::small(3, 88, "del erases, r is a random one", ui::DIM);
+	ui::small(3, 88, "del erases, r random, b browses", ui::DIM);
 }
 
 void draw()
@@ -364,7 +568,7 @@ void draw()
 		ui::clearAll(ui::BG);
 		char text[40];
 		snprintf(text, sizeof(text), "bot %d", pending);
-		ui::message("reading", text);
+		ui::message(text, job == Job::Story ? "the character sheet" : "art, traits and rarity");
 		ui::spinner(ui::W / 2, 100);
 		waitingShown = true;
 		return;
@@ -374,12 +578,12 @@ void draw()
 		char text[40];
 		snprintf(text, sizeof(text), "bot %d", pending);
 		ui::message(text, net::statusText(status), ui::WARN);
-		ui::lineAt(108, "r is a random one", ui::DIM, textdatum_t::top_center);
+		ui::lineAt(108, "r is a random one, b browses", ui::DIM, textdatum_t::top_center);
 		return;
 	}
 	if (state == State::Idle) {
 		ui::clearAll(ui::BG);
-		ui::message("glyphbots", net::online() ? "r opens one" : "needs wifi");
+		ui::message("glyphbots", net::online() ? "r opens one, b browses" : "needs wifi");
 		return;
 	}
 
@@ -396,6 +600,9 @@ void draw()
 		case Screen::Goto:
 			drawGoto();
 			break;
+		case Screen::Browse:
+			drawBrowse();
+			break;
 		default:
 			drawArt();
 			break;
@@ -408,6 +615,7 @@ void enter()
 {
 	screen = Screen::Art;
 	entry[0] = '\0';
+	order = constrain((int)store::getInt(ORDER_KEY, ORDER_NEW), 0, ORDERS - 1);
 	if (net::online() && state != State::Ready) {
 		// The one you were last looking at, because coming back to a different
 		// bot every time makes the collection feel like a slot machine. r is
@@ -437,6 +645,8 @@ void tick()
 	waitingShown = false;
 	if (running == Job::Bot) {
 		fetchBot();
+	} else if (running == Job::List) {
+		fetchList();
 	} else {
 		fetchStory();
 	}
@@ -489,6 +699,51 @@ bool gotoKey(const view::Key &k)
 	return false;
 }
 
+// Opening the list only fetches when what is on screen is not what is asked
+// for, so paging back into it costs nothing.
+void showList(int next)
+{
+	order = ((next % ORDERS) + ORDERS) % ORDERS;
+	store::setInt(ORDER_KEY, order);
+	screen = Screen::Browse;
+	if (haveList && listOrder == order) {
+		view::repaint();
+	} else if (net::online()) {
+		want(Job::List);
+	} else {
+		haveList = false;
+		view::repaint();
+	}
+}
+
+bool browseKey(const view::Key &k)
+{
+	if (k.left || k.right) {
+		showList(order + (k.right ? 1 : ORDERS - 1));
+		return true;
+	}
+	if (k.up || k.down) {
+		if (listCount > 0) {
+			listAt = (listAt + (k.down ? 1 : listCount - 1)) % listCount;
+			view::repaint();
+		}
+		return true;
+	}
+	if (k.enter) {
+		if (listCount > 0) {
+			screen = Screen::Art;
+			openBot(list[listAt].tokenId);
+		}
+		return true;
+	}
+	if (k.del) {
+		screen = Screen::Art;
+		view::repaint();
+		return true;
+	}
+	return false;
+}
+
 bool key(const view::Key &k)
 {
 	if (state == State::Waiting) {
@@ -496,6 +751,13 @@ bool key(const view::Key &k)
 	}
 	if (screen == Screen::Goto) {
 		return gotoKey(k);
+	}
+	if (screen == Screen::Browse) {
+		return browseKey(k);
+	}
+	if (k.ch == 'b' || k.ch == 'B') {
+		showList(order);
+		return true;
 	}
 
 	if (k.ch == 'r' || k.ch == 'R') {

@@ -215,6 +215,41 @@ def color_shape(data):
             return "%s is %r, which is neither hsl() nor #rrggbb" % (key, value)
 
 
+@rule("rarity sort runs from the most ordinary towards rank 1")
+def rarity_ascends(data):
+    ranks = [b.get("rarityRank") for b in data.get("bots", [])]
+    ranks = [r for r in ranks if isinstance(r, int)]
+    if len(ranks) < 2:
+        return "fewer than two ranked bots came back"
+    if ranks != sorted(ranks, reverse=True):
+        return "ranks are not descending: %s" % ranks
+    return None
+
+
+@rule("the tail of the rarity sort is the rarest end")
+def rarity_tail(data):
+    ranks = [b.get("rarityRank") for b in data.get("bots", [])]
+    ranks = [r for r in ranks if isinstance(r, int)]
+    # The cursor is counted back from a total that only burns can move, so the
+    # last page lands on rank 1 or a little short of it. Far from 1 means the
+    # collection changed size and the fixture is stale.
+    if not ranks or min(ranks) > 6:
+        return "the last page of the rarity sort stops at rank %s" % (min(ranks) if ranks else "?")
+    return None
+
+
+@rule("every minted artifact names the bot it came off")
+def recent_bots(data):
+    items = data.get("items", [])
+    if not items:
+        return "no recent mints at all"
+    for i, item in enumerate(items):
+        token = item.get("botTokenId")
+        if not isinstance(token, int) or token < 1:
+            return "items[%d].botTokenId is %r" % (i, token)
+    return None
+
+
 @rule("the art still fits the four by seven grid the panel draws")
 def art_grid(data):
     lines = data.get("bot", {}).get("unicode", {}).get("textContent", [])
@@ -388,6 +423,52 @@ def build_checks():
                 Field("story.arc.abilities[].resource", str, sometimes=True),
             ],
             rules=[ability_cost],
+        ),
+        # Browsing. The list is six wide on a panel this size, so that is what
+        # gets asked for and what the fixtures carry.
+        Check(
+            "glyphbots", "https://www.glyphbots.com/api/bots/search?limit=6",
+            fixture="glyphbots-search-new",
+            fields=[
+                Field("total", int),
+                Field("bots[].tokenId", int),
+                Field("bots[].name", str),
+                Field("bots[].rarityRank", int, nullable=True),
+            ],
+        ),
+        Check(
+            "glyphbots", "https://www.glyphbots.com/api/bots/search?limit=6&sort=rarity",
+            fixture="glyphbots-search-common",
+            fields=[
+                Field("total", int),
+                Field("bots[].tokenId", int),
+                Field("bots[].name", str),
+                Field("bots[].rarityRank", int),
+            ],
+            rules=[rarity_ascends],
+        ),
+        Check(
+            "glyphbots",
+            "https://www.glyphbots.com/api/bots/search?limit=6&sort=rarity&cursor=11105",
+            fixture="glyphbots-search-rare",
+            fields=[
+                Field("total", int),
+                Field("bots[].tokenId", int),
+                Field("bots[].name", str),
+                Field("bots[].rarityRank", int),
+            ],
+            rules=[rarity_ascends, rarity_tail],
+        ),
+        Check(
+            "glyphbots", "https://www.glyphbots.com/api/artifacts/recent",
+            fixture="glyphbots-recent",
+            fields=[
+                Field("items[].botTokenId", int),
+                Field("items[].title", str),
+                Field("items[].mintedAt", str),
+                Field("items[].mintQuantity", int),
+            ],
+            rules=[recent_bots],
         ),
         Check(
             "coral", "https://api.0xcoral.com/api/v1/resolve?q=MEME",
