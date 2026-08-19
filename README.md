@@ -1,7 +1,8 @@
 # flint
 
-Firmware for the M5Stack Cardputer ADV. Eight apps: a drum machine, a breathing
-coach, and six views over
+Firmware for the M5Stack Cardputer ADV. Ten apps: a drum machine, a breathing
+coach, a marble maze and a glyph downpour you steer by tipping the unit, and
+six views over
 [coral](https://0xcoral.com), [bankr](https://bankr.bot),
 [glyphbots](https://www.glyphbots.com), [voxels](https://www.voxels.com) and
 [gwei](https://gwei.ryanio.com).
@@ -65,10 +66,13 @@ Older versions read no keys.
 | `src/ui.*` | the 240x135 layout, colors, status bar |
 | `src/view.*` | view registry, menu, input, the exit convention |
 | `src/store.*` | NVS settings |
+| `src/motion.*` | the IMU, filtered once: tilt, shake, face down |
+| `src/rest.*` | face down sleeps the panel, a key or turning it over wakes it |
 | `src/views/*.cpp` | one file per view, each registering itself |
 | `src/coral.*` | a Coral score and the two screens it is shown through |
 | `src/jpeg.*` | a photo decoded off the socket, split per target like net |
 | `src/glyphs.h` | generated: the 105 characters a GlyphBot is drawn from |
+| `tools/icons/` | builds the menu icon atlas from Lucide |
 | `src/ca_roots.h` | the root CAs every host chains to |
 | `sim/` | the simulator, and the captured fixtures its network answers from |
 | `tools/apicheck/` | the contract check over all five sources |

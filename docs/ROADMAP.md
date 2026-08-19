@@ -9,7 +9,10 @@ built around those rather than around the screen.
 
 **Where it stands.** Phases 0, 1, 3, 4 and 6 are built, and 6 was pulled
 forward because Coral is the story. Phase 2, OTA, is the only piece of the
-original plan still unwritten. Nothing here has run on hardware: see the flash
+original plan still unwritten. The IMU arrived ahead of phase 5 and is a layer
+rather than a feature: `src/motion.*` filters it once, `src/rest.*` sleeps the
+panel when the unit is face down, and Maze, Rain and the dial under a Coral
+guess are what it bought. The pet inherits all of it. Nothing here has run on hardware: see the flash
 gate in [PLAN.md](PLAN.md), which nobody has been through yet.
 
 ## Phase 0: skeleton
@@ -129,6 +132,8 @@ activity is the rare event.
   runs with WiFi off and through sleep.
 - **The IMU is the interaction.** Pick it up and the pet wakes. Shake it and the
   pet objects. Tilt to pet it. Set it face down and it sleeps. No keyboard.
+  `motion::` already answers all four of those, and face down already sleeps the
+  panel, so this bullet is now a matter of what the pet does about it.
 - Poll `GET /api/bot/{tokenId}` every few minutes for the two fields that move:
   `royalties.mintCount` and `burnedAt`.
 - A mint against your bot is a celebration: its own tone, animation, a permanent

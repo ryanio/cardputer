@@ -46,18 +46,24 @@ pio device monitor
 
 ```
 psram none                                       or psram yes, N KB
+imu yes, accel 0.00 0.00 1.00 g                  or imu none
 heap N KB free of N KB, largest block N KB
 probe: tls ok, heap N KB before, N KB after, N KB low water
 probe: base fee 0.0983 gwei
 ```
 
 `psram none` is expected and settles unknown 1. The low water mark settles
-unknown 2.
+unknown 2. The accel line settles unknown 5, and it has to be read with the
+unit flat on a desk and the screen up: Z near +1, X and Y near 0. Then tip the
+right hand edge down, which should push X positive, and tip the top edge away,
+which should push Y positive. Whichever is not is a sign to flip in
+`src/motion.cpp`, and nothing else in the firmware has to change.
 
 **2. Setup.** Scan, pick, type, join, power cycle. No keys read at all means an
 M5Cardputer older than 1.1.1 got linked.
 
-**3. Menu.** Eight cards, every one opens and exits on the backtick. A screen
+**3. Menu.** Ten cards over two screens, every one opens and exits on the
+backtick. A screen
 that traps you is a spine bug, since the loop enforces the exit, not the view.
 
 **4. Gas.** Live fee, three tiers, a sparkline with a shape in it. Then arm the
@@ -69,7 +75,14 @@ a few seconds; a blank screen and an allocation message settles unknown 3. Walk
 one id down to confirm the first did not leak.
 
 **6. Bot and Reef.** A bot should look like the site's version of the same bot,
-in its own two colors. Play one Reef round to the reveal.
+in its own two colors. Play one Reef round to the reveal, and lean the unit to
+pick the number rather than typing it.
+
+**7. Maze, Rain, and face down.** Both are the axis check made visible: a
+marble that rolls the way the unit is tipped and glyphs that pour downhill mean
+the constants are right. Shake the maze title screen for the maze that is not
+in the count. Then put the unit face down for three seconds, which should black
+the panel, and turn it back over, which should bring it straight back.
 
 All of the above is verified in the simulator, so anything that differs is a
 driver, a memory or a TLS difference.
@@ -83,6 +96,9 @@ driver, a memory or a TLS difference.
    3.9KB work pool and nothing else by construction.
 4. **Does the speaker work?** Beat, Calm and the gas alarm all call
    `Speaker.tone`, and the simulator's speaker is a no-op.
+5. **Which way up is the IMU?** M5Unified fixes axes per board and has no case
+   for a Cardputer, so the four constants at the top of `src/motion.cpp` are a
+   guess until a unit prints a sample.
 
 ## What is left
 

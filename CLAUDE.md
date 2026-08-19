@@ -19,7 +19,7 @@ tools/fmt.sh            # house style, --check enforces it
 tools/apicheck/check.py # ask the five sources whether they still fit
 ```
 
-Green as of 2026-08-18: RAM 17.8%, flash 36.7% of the 3.3MB app slot. CI
+Green as of 2026-08-18: RAM 18.0%, flash 36.7% of the 3.3MB app slot. CI
 compiles both targets on a push and probes the sources on a schedule.
 
 ## Traps
@@ -33,6 +33,11 @@ compiles both targets on a push and probes the sources on a schedule.
   NVS; gitignored `include/secrets.h` is a dev-unit fallback only.
 - **Never enable USB HID.** These units get given away. Serial only.
 - **Give every view an exit.**
+- **Which way up the IMU is glued has never been checked.** M5Unified fixes
+  axes per board and has no case for a Cardputer, so the answer is four
+  constants at the top of `src/motion.cpp` and a raw sample in the boot report.
+  Read motion through `motion::`, never `M5.Imu` directly, and a wrong sign
+  stays one edit rather than one per view.
 - **Poll windows.** gwei refreshes at most every 30s. Coral's `/guess/daily` is
   one round per ET day: fetch once, play offline. Never loop `/score`.
 - **Three headers are generated, never hand edited**: `src/icons.h`,
