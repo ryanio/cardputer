@@ -5,9 +5,9 @@ of the sources it reads, not the name of the thing.
 `AGENTS.md` is a symlink to this file.
 
 - [README.md](README.md) hardware, build, layout
-- [docs/API.md](docs/API.md) the four APIs, verified shapes, rate limits, CA roots
+- [docs/API.md](docs/API.md) the five sources, verified shapes, rate limits, CA roots
 - [docs/ROADMAP.md](docs/ROADMAP.md) phases
-- [docs/PLAN.md](docs/PLAN.md) how the work is split, and the flash gates
+- [docs/PLAN.md](docs/PLAN.md) what is built, and the flash gate nobody has run
 
 ## Build
 
@@ -15,48 +15,41 @@ of the sources it reads, not the name of the thing.
 pio run                 # compile
 pio run -t upload       # flash
 pio device monitor      # serial
+tools/fmt.sh            # house style, --check enforces it
+tools/apicheck/check.py # ask the five sources whether they still fit
 ```
 
-Green as of 2026-08-18: RAM 17.8%, flash 36.7% of the 3.3MB app slot.
-
-`tools/fmt.sh` applies the house style and `--check` enforces it.
-`tools/apicheck/check.py` asks all five sources whether they still answer the
-way the firmware reads, and `--save` refreshes the simulator's fixtures.
-Both run in CI, the second on a schedule.
+Green as of 2026-08-18: RAM 17.8%, flash 36.7% of the 3.3MB app slot. CI
+compiles both targets on a push and probes the sources on a schedule.
 
 ## Traps
 
 - **M5Cardputer 1.1.1+.** The ADV keyboard is a TCA8418; the original was a
   74HC138. Older versions compile fine and read no keys.
 - **Nobody in the build loop can flash.** Agents compile. Only Ryan verifies.
-  "Compiles" is never "works", and a phase is not done until he has looked.
-- **No secrets on the device.** All four APIs are public and unauthenticated. If
-  something seems to need a key, the design is wrong. WiFi is typed on the unit
-  and kept in NVS. Gitignored `include/secrets.h` is a fallback for a dev unit
-  only, and a unit you hand to someone else has none compiled in.
-- **Never enable USB HID.** The ESP32-S3 can present as a keyboard. These units
-  get given away and may come back. Serial only.
-- **Give every view an exit.** A screen you cannot leave is the bug that annoys
-  you every session.
+  "Compiles" is never "works".
+- **No secrets on the device.** All five sources are public. If something seems
+  to need a key, the design is wrong. WiFi is typed on the unit and kept in
+  NVS; gitignored `include/secrets.h` is a dev-unit fallback only.
+- **Never enable USB HID.** These units get given away. Serial only.
+- **Give every view an exit.**
 - **Poll windows.** gwei refreshes at most every 30s. Coral's `/guess/daily` is
-  one round per ET day: fetch once, play offline. Never loop `/score`; three
-  devices hammering it get all three blocked.
-- **The glyph atlas is generated, never hand edited.** `tools/glyphs/generate.py`
-  reads the alphabet from the collection itself, so a new trait glyph fails the
-  scheduled check rather than drawing a blank square.
+  one round per ET day: fetch once, play offline. Never loop `/score`.
+- **Three headers are generated, never hand edited**: `src/icons.h`,
+  `src/glyphs.h`, `sim/src/fixtures.h`. Each has `--check` and CI runs it.
+- **Sample more than one of anything.** Bot 1 is the exception, not the shape.
 - **A GlyphBot is text, not an image.** Render `unicode.textContent` with
-  `unicode.colors`. Never fetch a PNG for a bot.
-- **Womp JPEGs are 45KB to 152KB and RAM is 320KB with TLS inside it.** The
-  decode streams through `src/jpeg.cpp`, which is split per target the way
-  `net.cpp` is: only the device gets M5GFX's drawJpg(Stream*). Never
-  fetch-then-decode.
+  `unicode.colors`, which come as `#rrggbb` or `hsl()`. Never fetch a PNG.
+- **Womp JPEGs are 45KB to 152KB against 320KB of RAM with TLS inside it.**
+  Decode from the stream through `src/jpeg.cpp`, never fetch-then-decode.
 - **Anything showing a Coral score shows its caveats and the Coral name.**
-  `src/coral.*` is the one place that draws one, so the rule has one
-  implementation rather than one per view.
+  `src/coral.*` is the only place that draws one.
+- **The simulator answers from real captures**, routed per URL in
+  `sim/fixtures/manifest.json`. An unmatched URL fails rather than serving a
+  different token's numbers.
 - **The status bar names the source of the current view** (GLYPHBOTS, GWEI,
-  CORAL, VOXELS), not the app. It costs 10 rows, and a view that skips the
-  title gets the other eight lines. A full screen view has no bar and paints
-  the source name over its own corner instead.
+  CORAL, VOXELS), not the app. It costs 10 rows. A full screen view has no bar
+  and paints the source name into its own corner.
 
 ## Screen
 

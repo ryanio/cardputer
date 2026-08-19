@@ -1,22 +1,14 @@
 # The five sources
 
-Every endpoint below was probed live on 2026-08-17, and
+All five are public, unauthenticated JSON over HTTPS, so no key ever reaches
+the device and there is nothing to rotate. Bodies below are trimmed to the
+fields the firmware reads.
+
 [tools/apicheck/check.py](../tools/apicheck/check.py) asks all of them again on
-demand and every morning in CI. It asserts the fields and the invariants the
-firmware reads, over TLS trusted by the exact roots in `src/ca_roots.h`, so a
-source that changes shape or rotates onto a root we do not carry fails there
-first. `--save` writes each answer into `sim/fixtures`, which is what the
-simulator serves.
-
- Response bodies are trimmed
-to the fields the firmware reads.
-
-All five are public, unauthenticated JSON over HTTPS. No API key ever reaches
-the device, so there is nothing to leak in a flashed binary and nothing to
-rotate.
-
-Two roots cover every host between them, including the CDN the womp images come
-from. See [TLS roots](#tls-roots) at the end.
+demand and every morning in CI, asserting these fields and invariants over TLS
+trusted by the exact roots in `src/ca_roots.h`. A source that changes shape, or
+rotates onto a root we do not carry, fails there first. `--save` writes each
+answer into `sim/fixtures`, which is what the simulator serves.
 
 ## gwei
 
@@ -61,43 +53,35 @@ GET https://www.glyphbots.com/api/bots/facets       trait values, and the glyph 
 GET https://www.glyphbots.com/api/artifacts/recent  collection-wide mint activity
 ```
 
-The story is a separate endpoint from the bot, which is easy to miss: `/api/bot/1`
-does not carry any of it. Every bot has an arc with a faction, a role, a mission
-with an objective and a threat, and three named abilities. Two of them cost
-time and carry a `cooldown`; the third costs a `resource` instead and has no
-cooldown field at all, which is easy to miss and is checked for. That is a
-character sheet, and it is what the pet is built on rather than a bare hunger bar.
+The story is a separate endpoint, easy to miss: `/api/bot/1` carries none of
+it. Every bot has a faction, a role, a mission with an objective and a threat,
+and three abilities. Two cost time and carry a `cooldown`; the third costs a
+`resource` instead and has no cooldown field at all.
 
-A GlyphBot is not an image. It is four short lines of Unicode plus a foreground
-and background color, which is already a display format for a 240x135 screen.
-Always four lines, never more than seven characters wide, which is what makes a
-32 pixel cell the largest that fits the panel.
+A GlyphBot is not an image. It is four lines of Unicode, never more than seven
+characters wide, plus two colors, which is already a display format for a
+240x135 screen and is what makes a 32 pixel cell the largest that fits.
 
-**The colors come in two forms.** Sampled across the collection, two of every
-three bots state them as `#rrggbb` and the rest as `hsl()`, so a parser that
-knows only one draws a bot nobody can see. The art also contains the odd ASCII
-character, a caret or a lower case o, which the panel's own font already has.
+**The colors come in two forms.** Two of every three bots state them as
+`#rrggbb` and the rest as `hsl()`, so a parser that knows one draws a bot
+nobody can see. The art also carries the odd ASCII character, a caret or a
+lower case o, which the panel's own font has.
 
 There is a rendered PNG per bot at
-`https://media.glyphbots.com/bots/pngs/{tokenId}.png`, 3000x2250, and it is
-what an unfurl or a marketplace shows. The device never fetches one, since that
-is a 3000x2250 raster of four lines of text it already has. It matters as the
-reference the glyph atlas is measured against on a host, where it pins the
-advance, the line pitch and the centering. See [ROADMAP.md](ROADMAP.md).
+`https://media.glyphbots.com/bots/pngs/{tokenId}.png`, 3000x2250, which is what
+an unfurl shows. The device never fetches one: it is a raster of four lines of
+text it already has. It matters only as the layout reference, where it pins the
+monospace advance, the centering and the line pitch.
 
-The collection's full alphabet is 105 distinct non-ASCII glyphs across all
-11,111 bots, counted from `/api/bots/facets`, which
+The alphabet is 105 non-ASCII glyphs across all 11,111 bots, counted from
+`/api/bots/facets`, which
 [tools/glyphs/generate.py](../tools/glyphs/generate.py) reads directly so a
-trait added later shows up as a missing glyph rather than a blank square. Stock ESP32 fonts carry none of
-them, so the firmware ships a generated bitmap atlas of those 105. See the
-atlas rule in [../CLAUDE.md](../CLAUDE.md).
+trait added later fails a check rather than drawing a blank square. Stock ESP32
+fonts carry none of them.
 
 `royalties.mintCount` and `burnedAt` are the only per-bot fields that change
-over time on this endpoint. They are what drives the pet.
-
-Mints are infrequent. The most recent across the whole collection was
-2026-08-11, six days before this was written, which is why the pet is not fed
-by them. See [ROADMAP.md](ROADMAP.md).
+over time, and mints are infrequent: the most recent across the collection was
+2026-08-11. See [ROADMAP.md](ROADMAP.md) for why the pet is not fed by them.
 
 ## coral
 
@@ -137,13 +121,13 @@ character contract address is miserable; typing `MEME` is not.
 The first returns the market facts a person would reason from, the second
 returns the answer. Show one, hide the other.
 
-`explanation.bullets` come back as five short lines already sized for a narrow
-column. The `caveats` array is not decoration, and the API sets an
-`x-coral-attribution` header stating the same thing. Both get screen space.
+`explanation.bullets` are five short lines already sized for a narrow column.
+`caveats` is not decoration, and the API repeats it in an
+`x-coral-attribution` header. Both get screen space.
 
-Score is a heavy full lookup that self-rate-limits and took several seconds when
-probed. It is request-response with a spinner, never a poll. Typing a ticker into
-`/resolve` and scoring the result is the on-demand path.
+Score is a heavy lookup that self rate limits and takes seconds. It is request
+and response behind a spinner, never a poll, and a 429 means wait rather than
+retry.
 
 `tokens/index` returns just `{chain, address}` per entry, which makes a random
 round a single extra fetch: pick one, then score it. Together with `resolve`
@@ -177,24 +161,21 @@ GET https://api.bankr.bot/agent-profiles/{slug}          one profile
 GET https://api.bankr.bot/agent-profiles/{slug}/tweets   recent posts
 ```
 
-Probed live 2026-08-18: 113 agents, ordered by market cap, `limit` and `offset`
-both honoured, and `limit` refuses anything over 100. This is the one Bankr surface that needs no key, which is the
-only reason the device can read it: the Agent and Wallet APIs are `X-API-Key`
-and would put a secret on a unit we give away.
+113 agents ordered by market cap. `limit` and `offset` are both honoured and
+`limit` refuses anything over 100. This is the one Bankr surface needing no
+key, which is the only reason the device can read it: the Agent and Wallet APIs
+are `X-API-Key` and would put a secret on a unit we give away.
 
 **Almost every profile carries `tokenAddress` and a `tokenChainId`, which is
-exactly what Coral's score endpoint takes.** Two things the shape does not
-promise: 12 of the 113 are on `robinhood` rather than `base`, and one profile
-has no token at all, so `tokenAddress`, `tokenSymbol` and `marketCapUsd` are
-absent rather than null. Coral answers for both chains. A view that assumes
-every row has a token draws a blank line for that one. That cross is the point of the
-view: Bankr says which agents are earning, Coral says what its own read of the
-token is. Scoring one took 6.6s when probed, so it needs a spinner and it
-carries the caveats like any other score.
+what Coral's score endpoint takes.** That cross is the point of the view: Bankr
+says which agents are earning, Coral says what its own read of the token is.
+Two things the shape does not promise: 12 of the 113 are on `robinhood` rather
+than `base`, and one carries no token at all, with `tokenAddress`,
+`tokenSymbol` and `marketCapUsd` absent rather than null. Coral answers for
+both chains.
 
-If a personal view is ever wanted, Bankr keys can be scoped `readOnly` with an
-IP allowlist, so a leaked one cannot move money. Typed on the device, never
-compiled in, same as WiFi. Not built.
+Bankr keys can be scoped `readOnly` with an IP allowlist if a personal view is
+ever wanted. Typed on the device, never compiled in. Not built.
 
 ## voxels
 
@@ -210,38 +191,31 @@ GET https://www.voxels.com/api/womps.json?limit=1
   "created_at":"2026-08-18T00:08:46.530Z"}]}
 ```
 
-A womp is an in-world photo. The whole read API is unauthenticated GET and
-well documented at [voxels.com/api](https://www.voxels.com/api): 6 womp routes,
-7 wearable, 13 avatar, 20 parcel. Answers come wrapped as
-`{"success":true,"<field>":...}`, and a failed lookup returns `success:false`
-sometimes with status 200, so check the flag rather than the status.
+A womp is an in-world photo. The read API is unauthenticated GET and well
+documented at [voxels.com/api](https://www.voxels.com/api). Answers wrap as
+`{"success":true,"<field>":...}` and a failed lookup returns `success:false`,
+sometimes with a 200, so check the flag rather than the status.
 
 `/api/womps/{id}.jpg` does not exist. The picture is whatever `image_url`
 points at on `media.crvox.com`.
 
-`limit` works and `offset` is ignored: asking for offset 3 returns the same
-three newest womps. But `GET /api/womps/{id}.json` resolves any single womp and
-ids are sequential, so browsing backwards means taking the newest id and
-walking down. There is no popularity or view count in the payload, so "notable"
-is not something this API can answer.
+`limit` works and `offset` is ignored, so browsing backwards means taking the
+newest id and walking down: `GET /api/womps/{id}.json` resolves any single one
+and ids are sequential. No popularity or view count in the payload, so
+"notable" is not something this API can answer.
 
-Those images are 45KB to 152KB, always 1024x1024. The device has 320KB of RAM
-in total with the TLS stack already inside it, so this has to be a streaming
-block decode straight to the display, never a fetch-then-decode.
+Images are 45KB to 152KB, always 1024x1024, against 320KB of RAM with the TLS
+stack inside it. M5GFX handles this: `drawJpg(Stream*, ...)` wraps the body and
+the decoder pulls a few bytes at a time, holding nothing but its own 3.9KB work
+pool. A zoom of -1 on the width fills the panel and keeps the aspect, cropping
+a square womp rather than leaving a 135 pixel picture between black bars.
 
-M5GFX already does exactly that: `drawJpg(Stream*, ...)` wraps the body in a
-`StreamWrapper` and the decoder pulls a few bytes at a time, pushing each
-finished block at the panel and holding nothing but its own 3.9KB work pool.
-Passing a zoom of -1 on the width fills the panel and keeps the aspect, which
-crops a square womp top and bottom rather than leaving a 135 pixel picture
-between two black bars. The overloads only exist when `Stream_h` and `ARDUINO`
-are both defined, which is true on the device and cannot be made true in the
-simulator without swapping its panel driver, so `src/jpeg.cpp` and
-`sim/src/jpeg_sim.cpp` split along that line.
+Those overloads exist only when `Stream_h` and `ARDUINO` are both defined,
+which cannot be made true in the simulator without swapping its panel driver.
+Hence `src/jpeg.cpp` and `sim/src/jpeg_sim.cpp`.
 
-Live presence is the one thing the API does not cover, and deliberately: the
-docs say livekit, radio, metrics and the internal `/grid/*` routes are not
-described. Do not scrape it.
+Live presence is deliberately not covered: livekit, radio, metrics and the
+internal `/grid/*` routes are undocumented. Do not scrape them.
 
 ## TLS roots
 

@@ -13,14 +13,18 @@ screenshots and how to run it without hardware.
 |------|--------|-------|
 | Reef | coral | The daily Coral Score guessing round |
 | Bankr | bankr | Agents by market cap and weekly revenue, scored through Coral |
-| Bot | glyphbots | A GlyphBot from its Unicode genome, raised as a pet |
-| Womp | voxels | The latest in-world photo, as a desk frame |
+| Bot | glyphbots | A GlyphBot drawn from its Unicode, and the character sheet behind it |
+| Womp | voxels | In-world photos, newest first, decoded straight to the panel |
 | Gas | gwei | Base fee, three speed tiers, 24h sparkline, threshold alarm |
 
 - [docs/API.md](docs/API.md) the five APIs, verified shapes, rate limits
 - [sim/README.md](sim/README.md) the simulator, and how it takes screenshots
+- [docs/PLAN.md](docs/PLAN.md) what is built, and the flash gate nobody has run
 - [docs/ROADMAP.md](docs/ROADMAP.md) build order
 - [CLAUDE.md](CLAUDE.md) rules
+
+Every view is written and none of it has run on hardware. The screenshots came
+out of the simulator, which is why the simulator exists.
 
 ## Hardware
 
@@ -36,25 +40,21 @@ GPS and LoRa are Grove/EXT modules, not onboard.
 ## Build
 
 ```bash
-pio run -t upload
-pio device monitor
-```
-
-Three checks, all runnable without a device:
-
-```bash
-tools/fmt.sh                  # apply the house style, --check to enforce it
-tools/apicheck/check.py       # ask the five sources whether they still fit
+pio run -t upload             # flash, then pio device monitor
 pio run -e sim -t exec        # the simulator, which is how a view gets looked at
+tools/fmt.sh                  # house style, --check enforces it
+tools/apicheck/check.py       # ask the five sources whether they still fit
 ```
 
-WiFi is typed on the device, under Setup in the menu, and kept in NVS. That is
-what makes a unit usable by whoever you give it to. For a dev unit that joins
-on first boot, `cp include/secrets.h.example include/secrets.h` and fill it in;
-anything typed on the device wins over it.
+Everything but the first line runs without a device.
+
+WiFi is typed on the device under Setup and kept in NVS, so a unit works for
+whoever holds it. For a dev unit that joins on first boot,
+`cp include/secrets.h.example include/secrets.h`; anything typed on the device
+wins over it.
 
 M5Cardputer 1.1.1 is the first release that drives the ADV's TCA8418 keyboard.
-Older versions read no keys on this board.
+Older versions read no keys.
 
 ## Layout
 
@@ -66,7 +66,7 @@ Older versions read no keys on this board.
 | `src/view.*` | view registry, menu, input, the exit convention |
 | `src/store.*` | NVS settings |
 | `src/views/*.cpp` | one file per view, each registering itself |
-| `src/coral.*` | a Coral score, and the two screens it is always shown through |
+| `src/coral.*` | a Coral score and the two screens it is shown through |
 | `src/jpeg.*` | a photo decoded off the socket, split per target like net |
 | `src/glyphs.h` | generated: the 105 characters a GlyphBot is drawn from |
 | `src/ca_roots.h` | the root CAs every host chains to |
@@ -82,8 +82,6 @@ and never edits them.
 
 The device ships with M5Stack's
 [UserDemo](https://github.com/m5stack/M5Cardputer-UserDemo) (`CardputerADV`
-branch, MIT), which is a useful HAL reference and is on the `upstream` remote.
-Flashing ours replaces it; M5Burner puts it back. With three units, keeping one
-stock costs nothing.
-
-In that firmware, home is the G0 button on the top edge, not a key.
+branch, MIT), a useful HAL reference, on the `upstream` remote. Flashing ours
+replaces it and M5Burner puts it back, so with three units keeping one stock
+costs nothing. In that firmware home is the G0 button, not a key.

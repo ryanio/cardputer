@@ -1,83 +1,95 @@
 # Engineering plan
 
-Execution plan for Phases 0 to 3 of [ROADMAP.md](ROADMAP.md). Scope was cut to
-those four deliberately; everything past Phase 3 waits for feedback from real
-hardware.
+What is built, and the flash gate that has not been run.
 
-## The constraint that shapes everything
+## The constraint
 
-**Nobody in the build loop can flash.** Agents and the manager can compile;
-only Ryan can put a binary on a device and look at it. So an agent's definition
-of done is "compiles clean", never "works", and wide fan-out is the wrong move:
-it produces unverified firmware faster than it can be verified, and unverified
-firmware compounds.
+**Nobody in the build loop can flash.** Agents and the manager compile; only
+Ryan can put a binary on a device and look at it. Every view is now written and
+none of it has ever run on hardware.
 
-Hence a small team, sequenced around flash-and-look gates.
+## What got built
 
-## Stage 1: the spine (serial, manager)
-
-Everything depends on it, so it is not delegated.
+The spine landed as planned. The three-agent fan-out behind frozen headers did
+not happen: the views were built one at a time, each driven and screenshotted
+in the simulator before the next started. Four of the five sources contradicted
+their documentation somewhere, and every one of those was found by looking at a
+real payload.
 
 ```
-src/net.{h,cpp}    WiFi join, HTTPS GET with the CA bundle, fetch-and-parse JSON
-src/ui.{h,cpp}     title, big number, status bar, battery, hsl -> RGB565
-src/view.{h,cpp}   view registry, menu, input loop, the exit convention
-src/store.{h,cpp}  NVS settings
-src/ca_roots.h     the two roots, and the commands to refresh them
-src/version.h      one string, compared against the release tag
-src/views/*.cpp    a placeholder per view, so the menu is walkable now
-src/views/setup.cpp  scan, pick, type: the network lives in NVS, not the binary
+src/net.{h,cpp}      WiFi join, HTTPS GET with the CA bundle, JSON and streams
+src/ui.{h,cpp}       the 240x135 layout, colors, text, the atlas
+src/view.{h,cpp}     view registry, menu, input loop, the exit convention
+src/store.{h,cpp}    NVS settings
+src/coral.{h,cpp}    a score and the two screens it is shown through
+src/jpeg.{h,cpp}     a photo decoded off the socket, split per target
+src/glyphs.h         generated: the 105 characters a GlyphBot is drawn from
+src/views/*.cpp      eight views, none of them a stub
 ```
 
-Headers are frozen at the end of this stage. Stage 2 cannot start before that,
-because frozen headers are the only thing keeping three parallel agents off each
-other.
+Three things not in the original plan, all because a desktop cannot flash and
+so has to check everything else: `tools/apicheck/check.py` probes all five
+sources over the device's own CA roots, `sim/fixtures` answers the simulator
+from real captures, and `tools/glyphs/generate.py` builds the atlas from the
+collection's own alphabet.
 
-## Stage 2: three agents in parallel
+## The flash gate
 
-Run through `/subagent-team`. One directory each, no shared files beyond the
-spine's headers.
+Ten minutes, and it settles every open unknown.
 
-| Agent | Owns | Delivers |
-|-------|------|----------|
-| A | `src/views/gas.*` | Two endpoints, sparkline, congestion banding, alarm tone |
-| B | `src/views/womp.*` | womps.json, streaming JPEG decode, caption |
-| C | `src/ota.*` | Version check against a GitHub release, download, rollback, version on the menu |
+```bash
+pio run -t upload
+pio device monitor
+```
 
-Agents A and B replace a placeholder that is already there, and a view reaches
-the menu through `VIEW_REGISTER` rather than through a shared list.
+**1. Boot report.** Four lines answer the oldest questions here:
 
-Each agent runs `pio run` and stops. No agent flashes, and no agent edits the
-spine; a spine change is a request back to the manager.
+```
+psram none                                       or psram yes, N KB
+heap N KB free of N KB, largest block N KB
+probe: tls ok, heap N KB before, N KB after, N KB low water
+probe: base fee 0.0983 gwei
+```
 
-## Stage 3: integration (manager)
+`psram none` is expected and settles unknown 1. The low water mark settles
+unknown 2.
 
-Merge, resolve, keep `pio run` green, then write the flash gate: what to do,
-what you should see, and what failure looks like. A hardware check should take
-two minutes, not a debugging session.
+**2. Setup.** Scan, pick, type, join, power cycle. No keys read at all means an
+M5Cardputer older than 1.1.1 got linked.
 
-## Flash gates
+**3. Menu.** Eight cards, every one opens and exits on the backtick. A screen
+that traps you is a spine bug, since the loop enforces the exit, not the view.
 
-| After | You check |
-|-------|-----------|
-| Stage 1 | Setup joins a network you type on the device. Menu appears, five entries, every one exits. Serial prints free heap, whether PSRAM exists, and whether one TLS fetch lands. |
-| Agent A | Live gas, correct banding, alarm fires at a typed threshold. |
-| Agent C | A pushed release installs itself, and a deliberately broken build rolls back. |
-| Agent B | A womp draws without an allocation failure. |
+**4. Gas.** Live fee, three tiers, a sparkline with a shape in it. Then arm the
+alarm above the current fee: nobody has heard the arpeggio. Leave it a minute
+to watch it poll at 30s.
+
+**5. Womp.** The one that can fail on memory. A photo should fill the panel in
+a few seconds; a blank screen and an allocation message settles unknown 3. Walk
+one id down to confirm the first did not leak.
+
+**6. Bot and Reef.** A bot should look like the site's version of the same bot,
+in its own two colors. Play one Reef round to the reveal.
+
+All of the above is verified in the simulator, so anything that differs is a
+driver, a memory or a TLS difference.
 
 ## Unknowns only hardware can settle
 
-1. **Is there PSRAM?** M5 does not list any for the Stamp-S3A and the first
-   build reported 320KB, which reads as internal SRAM alone. Decides whether
-   Phase 3 is easy or fiddly.
-2. **Does TLS fit** beside the display buffer in 320KB? The Phase 1 risk.
-3. **Does streaming JPEG decode hold** at ~128KB per image? Phase 3's core bet.
+1. **Is there PSRAM?** M5 does not list any for the Stamp-S3A.
+2. **Does TLS fit** beside the display buffer in 320KB? Every network view
+   depends on yes.
+3. **Does the streaming decode hold** at 45KB to 152KB an image? It holds a
+   3.9KB work pool and nothing else by construction.
+4. **Does the speaker work?** Beat, Calm and the gas alarm all call
+   `Speaker.tone`, and the simulator's speaker is a no-op.
 
-The Stage 1 gate answers 1 and 2. It prints the heap on an otherwise empty
-skeleton, then makes one fetch when WiFi lands, which costs a boot and saves
-agent A a cycle. Sequence 1 before 3 for that reason.
+## What is left
 
-## Not in this plan
-
-Phases 4 to 8 wait for hardware feedback. Ask Coral and the script layer are
-coral-side work and are planned there.
+- **The flash gate.** Nothing else should be built first.
+- **OTA**, Phase 2, including image signing. The only piece of the original
+  plan still unwritten.
+- **Sound in the browser build.** `sim/include/M5Cardputer.h` has a no-op
+  Speaker, so the site demo is silent.
+- **Phases 5, 7 and 8**: the pet, three units talking, off-device work. Those
+  wait for hardware feedback.

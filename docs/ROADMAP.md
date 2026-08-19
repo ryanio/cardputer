@@ -7,6 +7,11 @@ The ADV has hardware the original lacked: a BMI270 IMU, an ES8311 codec driving
 a real 1W speaker, a decent MEMS mic, and a 1750mAh battery. Phases 3 and 5 are
 built around those rather than around the screen.
 
+**Where it stands.** Phases 0, 1, 3, 4 and 6 are built, and 6 was pulled
+forward because Coral is the story. Phase 2, OTA, is the only piece of the
+original plan still unwritten. Nothing here has run on hardware: see the flash
+gate in [PLAN.md](PLAN.md), which nobody has been through yet.
+
 ## Phase 0: skeleton
 
 - `pio run -t upload`, boot, clock via SNTP.
@@ -19,32 +24,26 @@ built around those rather than around the screen.
   the last owner's. It also keeps the passphrase out of the binary, which
   anyone can read back off the flash with a cable.
 
-Done when: it boots, joins a network nobody compiled in, and you can move
-between four empty views and back out.
+**Built.** Eight cards rather than five, none of them empty.
 
 ## Phase 1: gas, which is really the network stack
 
-Smallest payload, so it proves HTTPS + JSON before anything depends on them.
+Smallest payload, so it proved HTTPS and JSON before anything else depended on
+them. Base fee large, three tiers, a 24h sparkline, a threshold alarm through
+the ES8311, `GET /api/gas` every 30s to match the server's own window.
 
-- `WiFiClientSecure` + ArduinoJson. `GET /api/gas` every 30s, matching the
-  server's own refresh window.
-- Base fee large, three tiers under it. `ethPriceUsd: null` is its own state,
-  never a zero.
-- Background banded by congestion (gwei's own Chill / Busy / Chaos / Whale).
-- `GET /api/gas/history` as a 240px sparkline. Points arrive thinned to one a
-  minute already.
-- **Threshold alarm through the ES8311.** Type a number, it plays a tone when
-  base fee drops under it. A real speaker, so use it: a short rising arpeggio,
-  not a beep.
-
-Built, except for the part only hardware can settle: the arpeggio has never
-been heard. Congestion is a percentile of the day rather than four constants,
-because the API publishes no bands and base fees have moved by two orders of
-magnitude inside a year.
-
-Done when: it sits on the desk showing live gas and wakes you when gas is cheap.
+**Built.** Two departures from this plan. Congestion is a percentile of the
+day rather than the four named constants, because the API publishes no bands
+and base fees have moved by two orders of magnitude inside a year. The
+sparkline is logarithmic, because one spike otherwise owns the whole height.
+The arpeggio has never been heard.
 
 ## Phase 2: OTA, before the phases that need iterating
+
+**Not built**, and the only piece of the original plan that is not. Everything
+that would benefit from iterating is already written, so this is now simply
+what makes the next flash cheap.
+
 
 Small, and it pays for itself immediately: every phase after this one is edited
 far more than it is designed.
@@ -76,78 +75,40 @@ and an image signed with the wrong key is refused.
 
 ## Phase 3: the womp frame
 
-The cheapest fun in the whole plan. It reuses Phase 1's network stack and adds
-one new idea: pictures.
+The cheapest fun in the plan: Phase 1's network stack plus pictures. The JPEGs
+run 45KB to 152KB against 320KB of RAM with TLS in it, so the decode has to
+stream block by block straight to the panel, scaling as it goes.
 
-- `GET https://www.voxels.com/api/womps.json?limit=1`, then draw whatever
-  `image_url` points at. Refresh on a slow timer; womps arrive in minutes, not
-  seconds.
-- **Stream the decode.** The JPEGs run about 128KB and the device has 320KB of
-  RAM with TLS already living in it. Decode block by block straight to the
-  panel, scaling during the decode. A fetch-then-decode will not fit.
-- Caption underneath: photographer, parcel address, island. The API gives all
-  three on the same row, so it costs nothing.
-- Check for PSRAM on the real hardware. M5 does not list any for the Stamp-S3A,
-  and the first build reported 320KB, which looks like internal SRAM alone. If
-  there is PSRAM after all, this phase gets much easier.
-
-Built, apart from the cycling, and apart from the part only hardware settles:
-the decode streams through M5GFX's own drawJpg(Stream*) and holds nothing but
-its 3.9KB work pool, but whether that survives beside a live TLS session in
-320KB is unknown 3 and has never been run on a unit.
+**Built**, apart from the cycling. The decode goes through M5GFX's own
+`drawJpg(Stream*)` and holds nothing but its 3.9KB work pool; whether that
+survives beside a live TLS session is unknown 3 and has never run on a unit.
 
 Done when: a unit on the shelf quietly cycles the newest pictures in Voxels.
 
 ## Phase 4: the glyph atlas
 
-The only part with real unknowns.
+The only part that had real unknowns.
 
 Every bot has a canonical render at
 `media.glyphbots.com/bots/pngs/{tokenId}.png`, 3000x2250, and that is how
 anyone who has seen a GlyphBot has seen it. The device never fetches one, but
-it is the reference the atlas gets checked against, and measuring three of them
-settles the layout:
+it is the layout reference: a monospace advance, a space as a full empty cell,
+every line centered whatever its length, and never more than four lines of
+seven cells.
 
-- Character advance 144.5px, uniform. A space is a full empty cell, never
-  collapsed.
-- Line pitch exactly 300px, so a cell is 1 by 2.076 and **not square**. A `│`
-  draws the full 300px of its line box while a `■` fills 144x144 inside it. A
-  square atlas breaks every vertical connector in the collection.
-- Every line is centered on the canvas center, whatever its length.
-- Colors are exactly the payload's `hsl()` values. Through RGB565 a background
-  of (19,24,16) comes back (16,24,16), which nobody can see.
-- Every bot sampled is four lines and at most seven cells wide (12 bots,
-  2026-08-17).
+**Built.** `tools/glyphs/generate.py` reads the 105 non-ASCII glyphs from the
+collection's facets endpoint and renders them at one size on a shared baseline
+into 32x32 cells, which is the largest that fits four lines of seven on the
+panel. Two redistributable fonts cover them between them, DejaVu Sans and
+Unifont, since no system font here had all 105.
 
-That sizes the cell against the screen rather than the font. The bot is what
-the view is for, so it takes the whole panel and paints its own source name
-rather than leaving a status bar in the way. Four lines across 135 rows puts
-the pitch at 33, so the advance is about 16 and the cell is roughly 16x33. A
-bot then occupies about 112x135 and leaves 128px beside it for name and rank.
-Inside a normal view with the status bar, the same arithmetic over 125 rows
-gives a 15x31 cell.
+Two things the plan had wrong. The colors are `#rrggbb` about twice as often as
+`hsl()`, and the art carries the occasional ASCII character, which the panel's
+own font draws. The question of which font the PNG generator uses turned out
+not to matter: the site ships a four glyph subset of Fira Code and leaves the
+rest to each viewer's OS, so there is no canonical face to match.
 
-- Generator fetches `GET /api/bots/facets`, extracts the distinct non-ASCII
-  glyphs across every trait value (105 as of 2026-08-17), renders each to a mono
-  bitmap, emits a C header plus a codepoint lookup.
-- All 105 are single width, but 71 are East Asian Ambiguous, the class that
-  goes double width in some contexts. The reference renders them narrow, so the
-  atlas does too.
-- `GET /api/bot/{tokenId}`, render `unicode.textContent` through the atlas,
-  `unicode.colors` converted from `hsl()` to RGB565.
-
-Checking it needs no hardware. Put the bot layout in one pure function over a
-small canvas interface and compile it for the host as well as the firmware,
-then compare against the reference in cell units, since 240x135 against
-3000x2250 makes a pixel diff meaningless. Four assertions per bot: line
-centering offset, advance and pitch ratios, ink coverage per cell, and ink
-centroid within the cell. The last two catch a wrong glyph, one drawn too small
-in its cell, or a space that collapsed. Run it over tokenIds picked to cover
-all 105 glyphs.
-
-Open: which font the PNG generator uses. Spacing is settled, shapes are not,
-and the same harness answers it by rendering candidates and comparing ink
-signatures per glyph.
+The part about three units is not built.
 
 Done when: three units each hold a different bot and look good enough to hand
 someone.
@@ -192,9 +153,9 @@ everyone, market facts as the clue and the score as the answer, one payload.
 - Free play: type a ticker into `/resolve` and score it. Live and slow, needs a
   spinner.
 
-Built, ahead of phases 1 to 5, because Coral is the story the broadcast tells.
-The streak counts from the dates the rounds carry rather than from the device
-clock, so it holds on a unit whose clock never landed.
+**Built**, ahead of phases 1 to 5, because Coral is the story. The streak
+counts from the dates the rounds carry rather than the device clock, so it
+holds on a unit whose clock never landed.
 
 Done when: a round is genuinely hard and you want another.
 
