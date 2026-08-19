@@ -54,6 +54,59 @@ void drawStatus()
 	statusDrawn = millis();
 }
 
+// Scroll by whole rows, so a seventh view pushes the grid rather than
+// reflowing it. Called before drawing rather than during it, so moving the
+// selection can tell whether the grid moved under it.
+void applyScroll()
+{
+	const int selectedRow = selected / COLS;
+	const int firstRow = scroll / COLS;
+	if (selectedRow < firstRow) {
+		scroll = selectedRow * COLS;
+	} else if (selectedRow >= firstRow + GRID_ROWS) {
+		scroll = (selectedRow - GRID_ROWS + 1) * COLS;
+	}
+}
+
+// One card, in place, over whatever is already there. The card is opaque and
+// covers its own rectangle, so moving the selection never has to clear first.
+void drawCard(int i)
+{
+	const View *v = at(i);
+	const int slot = i - scroll;
+	if (v == nullptr || slot < 0 || slot >= VISIBLE) {
+		return;
+	}
+
+	M5GFX &g = ui::gfx();
+	const int x = MARGIN + (slot % COLS) * (CARD_W + GAP);
+	const int y = MARGIN + (slot / COLS) * (CARD_H + GAP);
+	const bool on = i == selected;
+
+	g.startWrite();
+	ui::card(x, y, CARD_W, CARD_H, on);
+	const uint16_t background = on ? ui::CORAL : ui::PANEL;
+
+	char number[4];
+	snprintf(number, sizeof(number), "%d", i + 1);
+	g.setFont(&fonts::Font0);
+	g.setTextColor(on ? ui::BG : ui::RULE, background);
+	g.setTextDatum(textdatum_t::top_left);
+	g.drawString(number, x + 4, y + 3);
+
+	ui::icon(v->icon, x + (CARD_W - 16) / 2, y + 4, on ? ui::BG : ui::CORAL);
+
+	g.setFont(&fonts::Font2);
+	g.setTextColor(on ? ui::BG : ui::FG, background);
+	g.setTextDatum(textdatum_t::top_center);
+	g.drawString(v->name, x + CARD_W / 2, y + 21);
+
+	g.setFont(&fonts::Font0);
+	g.setTextColor(on ? ui::BG : ui::DIM, background);
+	g.drawString(v->source, x + CARD_W / 2, y + CARD_H - 11);
+	g.endWrite();
+}
+
 void drawMenu()
 {
 	ui::clearBody();
@@ -65,46 +118,9 @@ void drawMenu()
 		return;
 	}
 
-	// Scroll by whole rows, so a seventh view pushes the grid rather than
-	// reflowing it.
-	const int selectedRow = selected / COLS;
-	const int firstRow = scroll / COLS;
-	if (selectedRow < firstRow) {
-		scroll = selectedRow * COLS;
-	} else if (selectedRow >= firstRow + GRID_ROWS) {
-		scroll = (selectedRow - GRID_ROWS + 1) * COLS;
-	}
-
+	applyScroll();
 	for (int slot = 0; slot < VISIBLE; slot++) {
-		const int i = scroll + slot;
-		if (i >= total) {
-			break;
-		}
-		const View *v = at(i);
-		const int x = MARGIN + (slot % COLS) * (CARD_W + GAP);
-		const int y = MARGIN + (slot / COLS) * (CARD_H + GAP);
-		const bool on = i == selected;
-
-		ui::card(x, y, CARD_W, CARD_H, on);
-		const uint16_t background = on ? ui::CORAL : ui::PANEL;
-
-		char number[4];
-		snprintf(number, sizeof(number), "%d", i + 1);
-		g.setFont(&fonts::Font0);
-		g.setTextColor(on ? ui::BG : ui::RULE, background);
-		g.setTextDatum(textdatum_t::top_left);
-		g.drawString(number, x + 4, y + 3);
-
-		ui::icon(v->icon, x + (CARD_W - 16) / 2, y + 4, on ? ui::BG : ui::CORAL);
-
-		g.setFont(&fonts::Font2);
-		g.setTextColor(on ? ui::BG : ui::FG, background);
-		g.setTextDatum(textdatum_t::top_center);
-		g.drawString(v->name, x + CARD_W / 2, y + 21);
-
-		g.setFont(&fonts::Font0);
-		g.setTextColor(on ? ui::BG : ui::DIM, background);
-		g.drawString(v->source, x + CARD_W / 2, y + CARD_H - 11);
+		drawCard(scroll + slot);
 	}
 
 	g.setFont(&fonts::Font0);
@@ -171,6 +187,9 @@ void menuKey(const Key &k)
 		return;
 	}
 
+	const int was = selected;
+	const int wasScroll = scroll;
+
 	if (k.left) {
 		selected = (selected + total - 1) % total;
 	} else if (k.right) {
@@ -192,7 +211,17 @@ void menuKey(const Key &k)
 	} else {
 		return;
 	}
-	repaint();
+
+	// Moving the selection repaints two cards, not the screen. Clearing the
+	// body first is a black frame the panel is slow enough to show, and on
+	// hardware that reads as the whole screen flashing on every arrow key.
+	applyScroll();
+	if (scroll != wasScroll) {
+		repaint();
+		return;
+	}
+	drawCard(was);
+	drawCard(selected);
 }
 
 }  // namespace
