@@ -127,10 +127,16 @@ void setup()
 void loop()
 {
 	M5Cardputer.update();
+
 	motion::update();
-	// A key wakes the panel as surely as turning the unit back over, so a unit
-	// face down in a bag is not a unit anybody has to rescue.
-	rest::loop(M5Cardputer.Keyboard.isChange());
+	// isPressed rather than isChange: isChange is consuming. It compares the
+	// key count against the last time anybody asked and updates that count as
+	// it answers, so the first caller in a pass is the only one who hears
+	// about a keypress. view::loop is the one that has to hear it, so nothing
+	// else on the way there is allowed to ask. A key being held is all this
+	// needs to know anyway.
+	rest::loop(M5Cardputer.Keyboard.isPressed() != 0);
+
 	net::loop();
 
 	if (!probed && net::online()) {

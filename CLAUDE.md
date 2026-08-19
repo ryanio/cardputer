@@ -34,6 +34,11 @@ compiles both targets on a push and probes the sources on a schedule.
   NVS; gitignored `include/secrets.h` is a dev-unit fallback only.
 - **Never enable USB HID.** These units get given away. Serial only.
 - **Give every view an exit.**
+- **`Keyboard.isChange()` is consuming.** It compares the key count against
+  the last time anybody asked and updates it while answering, so the first
+  caller in a loop pass is the only one told about a press. `view::loop` is
+  that caller. Anything else that peeks at it eats every keypress on the
+  device, and the simulator's shim now consumes too so this cannot hide there.
 - **The menu is a carousel and it draws between repaints.** It is the only
   screen that does. The 42KB sprite behind the slide is held while it moves and
   handed back a second after it stops, because the boot probe opens a TLS

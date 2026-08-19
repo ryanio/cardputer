@@ -46,9 +46,19 @@ public:
 	{
 		return _pressed;
 	}
+	// Consuming, the way the real one is: it compares how many keys are down
+	// against the last time anybody asked and updates that count as it
+	// answers. So the first caller in a pass is the only one told about a
+	// press. The device library does exactly this, and a shim that answered
+	// politely to everybody hid a bug where the keypress was eaten before any
+	// view saw it.
 	bool isChange()
 	{
-		return _changed;
+		if (_lastSize != _pressed) {
+			_lastSize = _pressed;
+			return true;
+		}
+		return false;
 	}
 	KeysState &keysState()
 	{
@@ -62,6 +72,7 @@ public:
 private:
 	KeysState _state;
 	uint8_t _pressed = 0;
+	uint8_t _lastSize = 0;
 	bool _changed = false;
 	std::vector<char> _queued;
 };
