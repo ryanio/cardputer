@@ -5,7 +5,6 @@
 #include <new>
 #include <vector>
 
-#include "motion.h"
 #include "store.h"
 #include "ui.h"
 #include "version.h"
@@ -20,8 +19,7 @@ namespace {
 // A grid of eight fits on 240x135 and reads fine, which is what this was. What
 // it could not do is say that there is more: the tenth view sat on a second
 // page nobody had a reason to look for. One card at a time shows less at a
-// glance and is far clearer about which way the rest of them live, and it is
-// the shape a wrist can turn, which is the other half of why it changed.
+// glance and is far clearer about which way the rest of them live.
 constexpr int STRIP_H = 84;     // the part that moves, and the sprite over it
 constexpr int CARD_BIG = 80;    // the one in the middle
 constexpr int CARD_SMALL = 52;  // the ones leaning in
@@ -40,14 +38,6 @@ constexpr float SETTLED = 0.02f;
 constexpr uint32_t FRAME_MS = 8;
 constexpr int SKIM = 3;  // up and down take three cards at a time
 
-// Tilt spins it. Past the threshold it steps one card and waits, and the wait
-// shortens the further the unit goes over, so a lean walks and a flick runs.
-// The threshold is deliberately past where a unit sits in a hand: a menu that
-// creeps while somebody is reading it would be a fault, not a feature.
-constexpr float SPIN_ON = 0.45f;
-constexpr uint32_t SPIN_SLOW_MS = 600;
-constexpr uint32_t SPIN_FAST_MS = 110;
-
 // Registration runs before setup, so the list lives inside the function and is
 // built on first use rather than at static init time.
 std::vector<const View *> &registry()
@@ -63,7 +53,6 @@ bool dirty = true;
 // Where the strip actually is, in cards, while it catches up with selected.
 float position = 0.0f;
 uint32_t framedAt = 0;
-uint32_t spunAt = 0;
 int textFor = -1;  // which card the rows under the strip are describing
 
 // The strip is drawn here and pushed in one write. Cards drawn straight onto
@@ -329,35 +318,6 @@ void menuFrame(bool force)
 	}
 }
 
-// The wrist, on the menu. Nothing here opens anything: a lean moves the
-// selection and a shake throws it somewhere else, and enter is still the only
-// way in.
-void menuMotion()
-{
-	if (!motion::available() || count() == 0) {
-		return;
-	}
-	if (motion::shaken()) {
-		selected = (int)(millis() % (uint32_t)count());
-		return;
-	}
-
-	const float lean = motion::steerX();
-	const float mag = fabsf(lean);
-	if (mag < SPIN_ON) {
-		spunAt = 0;
-		return;
-	}
-	const float over = (mag - SPIN_ON) / (1.0f - SPIN_ON);
-	const uint32_t wait = SPIN_SLOW_MS - (uint32_t)((float)(SPIN_SLOW_MS - SPIN_FAST_MS) * over);
-	const uint32_t now = millis();
-	if (spunAt != 0 && now - spunAt < wait) {
-		return;
-	}
-	spunAt = now;
-	selected += lean > 0.0f ? 1 : -1;
-}
-
 void drawMenu()
 {
 	ui::clearBody();
@@ -522,7 +482,7 @@ void menuKey(const Key &k)
 	}
 
 	// Nothing is drawn here. The frame that follows carries the strip over,
-	// which is what makes a keypress and a lean look like the same movement.
+	// which is what turns a keypress into a slide rather than a jump.
 	selected = next;
 }
 
@@ -594,8 +554,6 @@ void loop()
 	const View *v = active();
 	if (v != nullptr && v->tick != nullptr) {
 		v->tick();
-	} else if (v == nullptr) {
-		menuMotion();
 	}
 
 	const bool wantsBar = v == nullptr || !v->fullScreen;

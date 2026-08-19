@@ -73,7 +73,8 @@ only while the strip is moving, which the 271KB largest block at boot says
 fits, and pushed at 40MHz, which says a frame costs about 8ms. So it should
 look like motion rather than a series of positions. A unit that could not get
 the sprite steps between cards and prints `menu: no sprite` once. Digits 1 to 9
-and 0 jump straight to a card, and leaning the unit spins it.
+and 0 jump straight to a card. The keys move the menu and nothing else does:
+the IMU is for the views that are about motion, not for getting to them.
 
 **4. Gas.** Live fee, three tiers, a sparkline with a shape in it. Then arm the
 alarm above the current fee: nobody has heard the arpeggio. Leave it a minute
