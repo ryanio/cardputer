@@ -155,7 +155,9 @@ void simLoop()
 {
 	M5Cardputer.update();
 	motion::update();
-	rest::loop(M5Cardputer.Keyboard.isChange());
+	// isPressed, not isChange: isChange is consuming, and view::loop is the
+	// one that has to hear about a key. See src/main.cpp.
+	rest::loop(M5Cardputer.Keyboard.isPressed() != 0);
 	net::loop();
 	runTour();
 	runScript();
