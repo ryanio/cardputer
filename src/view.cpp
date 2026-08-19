@@ -92,6 +92,18 @@ void drawStatus()
 	statusDrawn = millis();
 }
 
+// Which card an index means once the strip is allowed to run past its own
+// ends. `position` and `selected` are free to walk off either side; this is
+// what turns that back into a view.
+int wrapIndex(int i)
+{
+	const int total = count();
+	if (total <= 0) {
+		return 0;
+	}
+	return ((i % total) + total) % total;
+}
+
 // Two colors, some of the way between. Everything on a card that is neither
 // in the middle nor out at the edge is drawn with this, so a card arriving
 // takes on its colour as it comes rather than at the moment it lands.
@@ -169,21 +181,26 @@ void drawCard(lgfx::LovyanGFX &g, int i, float away)
 	}
 }
 
-// Neighbours first, so the card in the middle keeps its edges.
+// Neighbours first, so the card in the middle keeps its edges. The strip runs
+// round: past the last card the first one is already leaning in, which is the
+// whole reason to draw four slots for ten views. Fewer than four views would
+// mean drawing the same card twice in one frame, so that case stops at the
+// ends instead.
 void paintStrip(lgfx::LovyanGFX &g)
 {
 	const int total = count();
+	const bool round = total >= 4;
 	const int first = (int)floorf(position) - 1;
 	g.fillRect(0, 0, ui::W, STRIP_H, ui::BG);
 	for (int pass = 0; pass < 2; pass++) {
 		for (int i = first; i <= first + 3; i++) {
-			if (i < 0 || i >= total) {
+			if (!round && (i < 0 || i >= total)) {
 				continue;
 			}
 			const float away = (float)i - position;
 			const bool near = fabsf(away) < 0.5f;
 			if (near == (pass == 1)) {
-				drawCard(g, i, away);
+				drawCard(g, wrapIndex(i), away);
 			}
 		}
 	}
@@ -296,10 +313,19 @@ void menuFrame(bool force)
 		paintStrip(ui::gfx());
 	}
 
-	const int nearest = (int)lroundf(position);
+	const int nearest = wrapIndex((int)lroundf(position));
 	if (nearest != textFor) {
 		textFor = nearest;
 		drawRows(nearest);
+	}
+
+	// Once it has landed, bring both numbers back inside the list. They only
+	// ever leave it by one lap, and doing this at rest is what keeps the slide
+	// itself free to run off the end.
+	if (position == target && (selected < 0 || selected >= count())) {
+		const int fixed = wrapIndex(selected);
+		position += (float)(fixed - selected);
+		selected = fixed;
 	}
 }
 
@@ -329,7 +355,7 @@ void menuMotion()
 		return;
 	}
 	spunAt = now;
-	selected = constrain(selected + (lean > 0.0f ? 1 : -1), 0, count() - 1);
+	selected += lean > 0.0f ? 1 : -1;
 }
 
 void drawMenu()
@@ -402,10 +428,9 @@ void menuKey(const Key &k)
 		return;
 	}
 
-	// The ends are ends rather than a wrap. A strip that jumps the whole way
-	// back when you step off the last card reads as a glitch, and the wrap was
-	// only ever a way to reach the far end of a grid quickly, which up and
-	// down now do three at a time.
+	// It runs round. Stepping off the last card brings the first one in from
+	// the same side it was already leaning in from, so the wrap costs nothing
+	// to read: the strip never jumps, it just keeps going.
 	int next = selected;
 	if (k.left) {
 		next--;
@@ -416,7 +441,7 @@ void menuKey(const Key &k)
 	} else if (k.down) {
 		next += SKIM;
 	} else if (k.enter || k.space) {
-		open(selected);
+		open(wrapIndex(selected));
 		return;
 	} else if (k.ch >= '0' && k.ch <= '9') {
 		// The badge drawn on the card, which is why it stops at ten.
@@ -432,7 +457,7 @@ void menuKey(const Key &k)
 
 	// Nothing is drawn here. The frame that follows carries the strip over,
 	// which is what makes a keypress and a lean look like the same movement.
-	selected = constrain(next, 0, total - 1);
+	selected = next;
 }
 
 }  // namespace
