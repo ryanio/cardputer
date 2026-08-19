@@ -52,8 +52,10 @@ char imageUrl[192] = {0};
 // fetching it again, so the view tracks whether it is up there and never
 // clears the screen out from under it for no reason.
 bool painted = false;
-size_t imageBytes = 0;
-uint32_t imageMs = 0;
+// True while a photo is the thing on the panel. The next one is decoded
+// straight over it rather than over a cleared screen, so browsing wipes from
+// one picture to the next instead of blinking through black.
+bool onPanel = false;
 
 // ------------------------------------------------------------------ helpers
 
@@ -165,7 +167,12 @@ void fetchImage()
 	}
 
 	painted = false;
-	ui::gfx().fillScreen(ui::BG);
+	// A womp is square and the decoder fills the panel across, so every pixel
+	// gets written and there is nothing to clear first. What is up there stays
+	// up there until the new picture reaches it, row by row.
+	if (!onPanel) {
+		ui::gfx().fillScreen(ui::BG);
+	}
 
 	// The decode happens inside here, while the body is still arriving, which
 	// is the whole reason net::get hands the sink a Stream rather than a
@@ -176,12 +183,13 @@ void fetchImage()
 	});
 
 	status = r.status;
-	imageBytes = r.bytes;
-	imageMs = r.ms;
+	Serial.printf("womp: %ld, %uKB in %ums\n", id, (unsigned)(r.bytes / 1024), (unsigned)r.ms);
 	if (!painted) {
+		onPanel = false;
 		state = State::Failed;
 		return;
 	}
+	onPanel = true;
 	state = State::Ready;
 }
 
@@ -221,8 +229,7 @@ void drawCaption()
 	if (caption == 0) {
 		snprintf(left, sizeof(left), "%s  %s", author, created);
 	} else {
-		snprintf(left, sizeof(left), "%uKB decoded in %ums", (unsigned)(imageBytes / 1024),
-		         (unsigned)imageMs);
+		snprintf(left, sizeof(left), "%s", "up down browse   n is newest");
 	}
 	ui::small(3, top + 12, left, ui::DIM);
 	// A full screen view carries its own source name, and this is the corner
@@ -230,23 +237,64 @@ void drawCaption()
 	ui::small(ui::W - 3 - 6 * 6, top + 12, "VOXELS", ui::RULE);
 }
 
+// Who and where, for the strip under a picture that is on its way.
+void whose(char *out, size_t n)
+{
+	if (parcel[0] != '\0') {
+		snprintf(out, n, "%s in %s", author, parcel);
+	} else {
+		snprintf(out, n, "%s", author);
+	}
+}
+
+void drawWaiting()
+{
+	char text[64];
+	char detail[64];
+
+	// Name what is on its way. During the lookup the metadata still belongs to
+	// the womp on the panel, so only the id is safe to say; by the time the
+	// picture is being fetched, who took it and where is already in.
+	if (job == Job::Newest) {
+		snprintf(text, sizeof(text), "%s", "the newest womp");
+		snprintf(detail, sizeof(detail), "%s", "asking voxels which that is");
+	} else if (job == Job::Image) {
+		snprintf(text, sizeof(text), "womp %ld", id);
+		whose(detail, sizeof(detail));
+	} else {
+		snprintf(text, sizeof(text), "womp %ld", id);
+		snprintf(detail, sizeof(detail), "%s", "looking it up");
+	}
+
+	// A picture already up is better company than a black screen, so the wait
+	// takes the caption strip and leaves the photo alone. The next one wipes
+	// down over both as it decodes.
+	if (onPanel) {
+		M5GFX &g = ui::gfx();
+		const int top = ui::H - CAPTION_H;
+		g.fillRect(0, top, ui::W, CAPTION_H, ui::BG);
+		g.drawFastHLine(0, top, ui::W, ui::RULE);
+		ui::small(3, top + 3, text, ui::FG);
+		ui::small(3, top + 12, detail, ui::DIM);
+		ui::spinner(ui::W - 10, top + 7);
+		return;
+	}
+
+	ui::clearAll(ui::BG);
+	ui::message(text, detail);
+	ui::spinner(ui::W / 2, 100);
+}
+
 void draw()
 {
 	if (state == State::Waiting) {
-		ui::clearAll(ui::BG);
-		char text[48];
-		if (job == Job::Image) {
-			snprintf(text, sizeof(text), "womp %ld", id);
-			ui::message("decoding", text);
-		} else {
-			ui::message("reading", job == Job::Newest ? "the newest womp" : "a womp");
-		}
-		ui::spinner(ui::W / 2, 100);
+		drawWaiting();
 		waitingShown = true;
 		return;
 	}
 	if (state == State::Failed) {
 		ui::clearAll(ui::BG);
+		onPanel = false;
 		char text[48];
 		snprintf(text, sizeof(text), "womp %ld", id);
 		ui::message(text, net::statusText(status), ui::WARN);
@@ -255,6 +303,7 @@ void draw()
 	}
 	if (state == State::Idle) {
 		ui::clearAll(ui::BG);
+		onPanel = false;
 		ui::message("voxels", net::online() ? "loading the newest" : "needs wifi");
 		return;
 	}
@@ -274,6 +323,7 @@ void enter()
 {
 	caption = 0;
 	painted = false;
+	onPanel = false;
 	if (!net::online()) {
 		state = State::Idle;
 		return;
@@ -291,6 +341,7 @@ void leave()
 {
 	job = Job::None;
 	painted = false;
+	onPanel = false;  // the next view owns the panel now
 }
 
 void tick()
