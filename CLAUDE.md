@@ -38,11 +38,10 @@ compiles both targets on a push and probes the sources on a schedule.
   screen that does. The 42KB sprite behind the slide is held while it moves and
   handed back a second after it stops, because the boot probe opens a TLS
   session while the menu is on screen.
-- **Which way up the IMU is glued has never been checked.** M5Unified fixes
-  axes per board and has no case for a Cardputer, so the answer is four
-  constants at the top of `src/motion.cpp` and a raw sample in the boot report.
-  Read motion through `motion::`, never `M5.Imu` directly, and a wrong sign
-  stays one edit rather than one per view.
+- **Read motion through `motion::`, never `M5.Imu` directly.** The axes are
+  settled now (flat and screen up a unit reads 0, 0, +1g, which is what the
+  constants at the top of `src/motion.cpp` assume), and keeping every view on
+  one path is what made settling it a single edit rather than ten.
 - **Poll windows.** gwei refreshes at most every 30s. Coral's `/guess/daily` is
   one round per ET day: fetch once, play offline. Never loop `/score`.
 - **Three headers are generated, never hand edited**: `src/icons.h`,

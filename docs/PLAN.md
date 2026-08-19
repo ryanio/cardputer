@@ -145,16 +145,33 @@ own monitor wants a terminal. `tools/serial/read.py` is that, if it helps.
 unit. The gas alarm and Calm's gong go through the same `Speaker.tone` and
 `playRaw`, so all three are covered by that.
 
+**Unknown 5, which way up is the IMU: the way motion.cpp already assumed.**
+Flat on a desk with the screen up, a unit reports
+
+```
+imu yes, accel -0.02 -0.00 1.01 g
+imu: g -0.02 -0.00 1.01, roll -1.2, pitch -0.1, steer 0.00, still 17862
+```
+
+which is X and Y at nothing and Z at one gravity, exactly what the four axis
+constants were written for. The dead zone holds too: a unit sitting on a desk
+reads a steer of zero and stays still, so nothing tilt driven creeps on its
+own. No sign needed flipping.
+
+**And what the menu costs.** The strip drawn straight onto the panel is 23ms a
+frame and shows its own redraw; through the sprite it is 9, which means
+`pushSprite` is going out over DMA. That is the difference between a slide and
+a flicker, and it is why the sprite is held for as long as the menu is up.
+
 ## Unknowns still open
 
-5. **Which way up is the IMU?** M5Unified fixes axes per board and has no case
-   for a Cardputer, so the four constants at the top of `src/motion.cpp` are a
-   guess until a unit prints a sample.
+None from the original list. What is left is not knowledge, it is work.
 
 ## What is left
 
-- **The rest of the flash gate.** Only the IMU axes are left: tip the unit in
-  Maze or Rain and see whether the marble rolls the way it is leaning.
+- **The rest of the flash gate by hand.** The numbers are all in. What nobody
+  has sat down with yet is the feel: a maze played to the end, glyphs poured
+  into a corner, a round of Reef guessed by leaning.
 - **OTA**, Phase 2, including image signing. The only piece of the original
   plan still unwritten.
 - **Phases 5, 7 and 8**: the pet, three units talking, off-device work. Those
