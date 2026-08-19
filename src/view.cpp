@@ -22,7 +22,7 @@ namespace {
 // page nobody had a reason to look for. One card at a time shows less at a
 // glance and is far clearer about which way the rest of them live, and it is
 // the shape a wrist can turn, which is the other half of why it changed.
-constexpr int STRIP_H = 88;     // the part that moves, and the sprite over it
+constexpr int STRIP_H = 84;     // the part that moves, and the sprite over it
 constexpr int CARD_BIG = 80;    // the one in the middle
 constexpr int CARD_SMALL = 52;  // the ones leaning in
 constexpr int CARD_MID_Y = 44;  // every card is centred on this row
@@ -35,9 +35,9 @@ constexpr const char *SELECTED_KEY = "sys.view";
 
 // How much of the remaining distance the strip closes each frame. A constant
 // fraction is an ease out for free: fast off the mark, slow into the detent.
-constexpr float EASE = 0.30f;
-constexpr float SETTLED = 0.004f;
-constexpr uint32_t FRAME_MS = 16;
+constexpr float EASE = 0.42f;
+constexpr float SETTLED = 0.02f;
+constexpr uint32_t FRAME_MS = 8;
 constexpr int SKIM = 3;  // up and down take three cards at a time
 
 // Tilt spins it. Past the threshold it steps one card and waits, and the wait
@@ -47,11 +47,6 @@ constexpr int SKIM = 3;  // up and down take three cards at a time
 constexpr float SPIN_ON = 0.45f;
 constexpr uint32_t SPIN_SLOW_MS = 600;
 constexpr uint32_t SPIN_FAST_MS = 110;
-
-// The sprite is held while the strip is moving and handed back once it has sat
-// still for this long. Nothing else on the device wants 42KB more than a TLS
-// handshake does, and the boot probe runs while the menu is on screen.
-constexpr uint32_t IDLE_FREE_MS = 1200;
 
 // Registration runs before setup, so the list lives inside the function and is
 // built on first use rather than at static init time.
@@ -68,16 +63,16 @@ bool dirty = true;
 // Where the strip actually is, in cards, while it catches up with selected.
 float position = 0.0f;
 uint32_t framedAt = 0;
-uint32_t settledAt = 0;
 uint32_t spunAt = 0;
 int textFor = -1;  // which card the rows under the strip are describing
 
 // The strip is drawn here and pushed in one write. Cards drawn straight onto
-// the panel tear, because the panel shows a frame while it is still being
-// built and a slide is exactly when that shows. 240x88 at 16 bits is 42KB,
-// taken when the menu opens and given back when a view does. If it cannot be
-// had, the same drawing goes to the panel and the slide is choppy rather than
-// missing.
+// the panel tear and flicker, because the panel shows a frame while it is
+// still being built, and a slide is exactly when that shows: the unit reports
+// 23ms to draw one that way. 240x84 at 16 bits is 40KB, taken when the menu
+// opens and given back when a view does, which a unit with 271KB of largest
+// block and 183KB of low water under TLS can spare. Without it the menu still
+// works: it steps to the next card rather than sliding.
 M5Canvas *strip = nullptr;
 
 uint32_t statusDrawn = 0;
@@ -277,23 +272,17 @@ void menuFrame(bool force)
 	if (!force && now - framedAt < FRAME_MS) {
 		return;
 	}
+	// Without the sprite there is nothing to animate into, and a slide drawn
+	// straight onto the panel is a flicker per frame. Better to arrive.
+	if (strip == nullptr) {
+		position = (float)selected;
+	}
 	const float target = (float)selected;
 	const bool moving = fabsf(target - position) > SETTLED;
 	if (!moving && !force) {
-		// Sitting still. Hold the sprite a moment in case another key is on
-		// its way, then give the memory back.
-		if (settledAt == 0) {
-			settledAt = now;
-		} else if (strip != nullptr && now - settledAt > IDLE_FREE_MS) {
-			closeStrip();
-		}
 		return;
 	}
 	framedAt = now;
-	settledAt = 0;
-	if (moving) {
-		openStrip();
-	}
 
 	position += (target - position) * EASE;
 	if (fabsf(target - position) <= SETTLED) {
@@ -350,6 +339,7 @@ void drawMenu()
 		ui::message("no views", "nothing registered");
 		return;
 	}
+	openStrip();
 	textFor = -1;
 	menuFrame(true);
 }
