@@ -11,7 +11,7 @@ set -euo pipefail
 
 cd "$(dirname "$0")/.."
 
-GENERATED=(src/icons.h sim/src/fixtures.h)
+GENERATED=(src/icons.h src/glyphs.h sim/src/fixtures.h)
 
 find_clang_format() {
 	if command -v clang-format >/dev/null 2>&1; then
