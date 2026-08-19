@@ -16,13 +16,15 @@
 // landing near the number is a judgment call. Recognizing a ticker is not,
 // which is why the daily round is deliberately anonymous.
 //
-// Three ways in. The daily round is one token an ET day, the same for
-// everybody, and it arrives with its answer already inside it, so the round is
-// one fetch and then plays with the radio off. A ticker goes through /resolve,
-// because typing 42 hex characters on 56 keys is nobody's idea of a game. A
-// random token comes out of the graded corpus. Both of those hide the answer
-// behind a live score lookup, which is slow and self rate limiting, so it
-// happens once, after the guess.
+// Three ways in. A ticker goes through /resolve, because typing 42 hex
+// characters on 56 keys is nobody's idea of a game, and a random token comes
+// out of the graded corpus. Both hide the answer behind a live score lookup,
+// which is slow and self rate limiting, so it happens once, after the guess.
+// The token of the day is last: one token an ET day, the same one for
+// everybody, arriving with its answer already inside it, so it is one fetch
+// and then it plays with the radio off. It is also the one that is finished
+// for the day once it has been played, which is why it is not the first thing
+// the cursor lands on.
 namespace {
 
 constexpr const char *DAILY_URL = "https://api.0xcoral.com/api/v1/guess/daily";
@@ -61,7 +63,19 @@ Job job = Job::None;
 bool waitingShown = false;
 int status = 0;
 
-int mode = 0;  // the three ways in, in the order they are drawn
+// The three ways in, in the order they are offered. The daily is last because
+// it is the one that is over for the day once it is played, and it is named
+// for what it is rather than for the word round, which explained nothing.
+constexpr int MODES = 3;
+enum ModeId : int { MODE_TICKER, MODE_RANDOM, MODE_DAILY };
+const char *const MODE_NAME[MODES] = {"type a ticker", "a random token", "the token of the day"};
+const char *const MODE_NOTE[MODES][2] = {
+    {"a symbol like MEME, resolved by Coral", "so nobody types a contract address"},
+    {"one out of the corpus Coral has", "already graded, picked at random"},
+    {"one token an ET day, the same one for", "everybody, and it plays with wifi off"},
+};
+
+int mode = MODE_TICKER;
 
 // The round in play.
 bool daily = false;
@@ -431,11 +445,16 @@ void drawHome()
 	}
 	ui::small(3, ui::TITLE_H + 3, text, ui::DIM);
 
-	const char *modes[] = {"today's round", "type a ticker", "a random token"};
-	for (int i = 0; i < 3; i++) {
-		snprintf(text, sizeof(text), "%s%s", i == mode ? "> " : "  ", modes[i]);
+	for (int i = 0; i < MODES; i++) {
+		snprintf(text, sizeof(text), "%s%s", i == mode ? "> " : "  ", MODE_NAME[i]);
 		ui::line(i + 1, text, i == mode ? ui::CORAL : ui::FG);
 	}
+
+	// A line about whichever one is under the cursor. "The daily" said nothing
+	// about what it is or why it is worth coming back to, and neither did the
+	// other two.
+	ui::small(3, 82, MODE_NOTE[mode][0], ui::DIM);
+	ui::small(3, 92, MODE_NOTE[mode][1], ui::DIM);
 
 	if (streak > 0) {
 		snprintf(text, sizeof(text), "streak %d, inside %d keeps it", streak, STREAK_BAND);
@@ -571,7 +590,7 @@ void draw()
 {
 	if (state == State::Waiting) {
 		const bool slow = job == Job::Scoring;
-		ui::message(slow ? "asking Coral" : "reading the round",
+		ui::message(slow ? "asking Coral for the score" : "the clues",
 		            slow ? "a full lookup takes a few seconds" : "one fetch, then it plays offline",
 		            ui::CORAL);
 		ui::spinner(ui::W / 2, 96);
@@ -606,7 +625,7 @@ void enter()
 {
 	screen = Screen::Home;
 	state = State::Idle;
-	mode = 0;
+	mode = MODE_TICKER;
 	loadStats();
 }
 
@@ -671,19 +690,19 @@ void tick()
 bool homeKey(const view::Key &k)
 {
 	if (k.up) {
-		mode = (mode + 2) % 3;
+		mode = (mode + MODES - 1) % MODES;
 	} else if (k.down) {
-		mode = (mode + 1) % 3;
+		mode = (mode + 1) % MODES;
 	} else if (k.enter || k.right) {
 		if (!net::online()) {
 			view::note("needs wifi");
 			return true;
 		}
-		if (mode == 1) {
+		if (mode == MODE_TICKER) {
 			entry[0] = '\0';
 			screen = Screen::Ticker;
 		} else {
-			want(mode == 0 ? Job::Daily : Job::Index);
+			want(mode == MODE_DAILY ? Job::Daily : Job::Index);
 			return true;
 		}
 	} else {
