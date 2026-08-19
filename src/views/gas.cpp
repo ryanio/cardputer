@@ -7,6 +7,11 @@
 
 // What a transaction costs right now, and whether that is cheap for today.
 //
+// The tip leads, the way it does on gwei.ryanio.com. The base fee is the
+// network's price and everybody in the block pays the same one, so the tip is
+// the only figure anybody actually chooses: it is the number you came for and
+// the number you type into a wallet. The base fee sits under it as context.
+//
 // This is the view the network stack was built for: the smallest payload of
 // the five, fetched on the tightest loop, so if HTTPS and JSON work anywhere
 // they work here. It is also the only view that polls, and it polls at exactly
@@ -25,6 +30,7 @@ constexpr const char *HISTORY_URL = "https://gwei.ryanio.com/api/gas/history";
 
 constexpr const char *ALARM_KEY = "gas.alarm";
 constexpr const char *ARMED_KEY = "gas.armed";
+constexpr const char *SPEED_KEY = "gas.speed";
 
 constexpr uint32_t POLL_MS = 30000;         // the source's own window
 constexpr uint32_t HISTORY_MS = 5 * 60000;  // the shape of a day moves slowly
@@ -49,6 +55,7 @@ constexpr Band BANDS[] = {
 struct Tier {
 	char label[10];
 	char eta[10];
+	float tip;  // the priority fee, which is the part you pick
 	float total;
 	float usd;
 	bool hasUsd;
@@ -73,6 +80,9 @@ bool hasPrice = false;
 long block = 0;
 Tier tiers[TIERS];
 int tierCount = 0;
+// The source sends fast, normal, cheap in that order. Normal is the one most
+// people want and the one the site opens on.
+int speed = 1;
 
 float gwei[MAX_POINTS];
 uint32_t age[MAX_POINTS];  // seconds after the first point, so the x axis is time
@@ -160,11 +170,12 @@ void fetchGas()
 	filter["baseFeeGwei"] = true;
 	filter["ethPriceUsd"] = true;
 	filter["blockNumber"] = true;
-	JsonObject speed = filter["speeds"][0].to<JsonObject>();
-	speed["label"] = true;
-	speed["eta"] = true;
-	speed["totalGwei"] = true;
-	speed["usdPerTransfer"] = true;
+	JsonObject option = filter["speeds"][0].to<JsonObject>();
+	option["label"] = true;
+	option["eta"] = true;
+	option["priorityFeeGwei"] = true;
+	option["totalGwei"] = true;
+	option["usdPerTransfer"] = true;
 
 	JsonDocument doc;
 	const net::Result r = net::getJson(GAS_URL, doc, &filter);
@@ -188,12 +199,16 @@ void fetchGas()
 		Tier &t = tiers[tierCount];
 		ui::asciify(s["label"] | "", t.label, sizeof(t.label));
 		ui::asciify(s["eta"] | "", t.eta, sizeof(t.eta));
+		t.tip = s["priorityFeeGwei"] | 0.0f;
 		t.total = s["totalGwei"] | 0.0f;
 		t.hasUsd = !s["usdPerTransfer"].isNull();
 		t.usd = t.hasUsd ? s["usdPerTransfer"].as<float>() : 0.0f;
 		tierCount++;
 	}
 
+	if (speed >= tierCount) {
+		speed = tierCount > 1 ? 1 : 0;
+	}
 	haveGas = true;
 	gasAt = millis();
 }
@@ -316,48 +331,82 @@ void drawSparkline(int top, int height)
 	g.fillCircle(xAt(pointCount - 1), yAt(gwei[pointCount - 1]), 2, ui::FG);
 }
 
+void smallCentre(int y, const char *text, uint16_t color)
+{
+	ui::small(ui::W / 2 - (int)strlen(text) * 3, y, text, color);
+}
+
+// The three speeds on one row, because the headline already shows the one that
+// is picked and this row is for comparing and switching. Up and down move it.
+void drawSpeeds(int y)
+{
+	M5GFX &g = ui::gfx();
+	char number[16];
+	g.fillRect(0, y - 2, ui::W, 12, ui::BG);
+
+	const int cell = ui::W / (tierCount > 0 ? tierCount : 1);
+	for (int i = 0; i < tierCount; i++) {
+		char text[24];
+		gweiText(tiers[i].tip, number, sizeof(number));
+		snprintf(text, sizeof(text), "%s %s", tiers[i].label, number);
+		const int width = (int)strlen(text) * 6;
+		const int x = i * cell + (cell - width) / 2;
+		if (i == speed) {
+			g.fillRoundRect(x - 4, y - 2, width + 8, 12, 3, ui::PANEL);
+		}
+		ui::small(x, y, text, i == speed ? band().color : ui::DIM);
+	}
+}
+
 void drawNow()
 {
 	char text[48];
 	char number[16];
+	char tip[16];
+	char total[16];
 
 	ui::clearBody();
 
+	// The tip is the headline. Everybody in the block pays the same base fee,
+	// so this is the only figure on the screen anybody gets to choose.
+	const Tier &t = tiers[speed < tierCount ? speed : 0];
+	gweiText(t.tip, tip, sizeof(tip));
+	ui::bigNumber(tip, band().color, "gwei tip", 12);
+
+	// What it is a tip for, and what it costs, on one row.
+	snprintf(text, sizeof(text), "%s, %s", t.label, t.eta);
+	ui::small(3, 60, text, ui::DIM);
+	if (t.hasUsd) {
+		usdText(t.usd, number, sizeof(number));
+		snprintf(text, sizeof(text), "%s to send eth", number);
+	} else {
+		snprintf(text, sizeof(text), "%s", "no eth price");
+	}
+	smallRight(237, 60, text, ui::DIM);
+
+	// The sum, which is the part a wallet asks for and the part the base fee
+	// explains. Nothing else on the screen says what you actually pay.
 	gweiText(baseFee, number, sizeof(number));
-	ui::bigNumber(number, band().color, "gwei", 2);
+	gweiText(t.total, total, sizeof(total));
+	snprintf(text, sizeof(text), "%s base + %s tip = %s total", number, tip, total);
+	smallCentre(72, text, ui::FG);
+
+	drawSpeeds(83);
+
+	ui::gfx().drawFastHLine(0, 96, ui::W, ui::RULE);
+	drawSparkline(99, 14);
 
 	const int p = percentile();
-	if (haveHistory && p >= 0) {
-		snprintf(text, sizeof(text), "%s, over %d%% of the last 24h", band().name, p);
-	} else {
-		snprintf(text, sizeof(text), "block %ld", block);
-	}
-	ui::small(3, 48, text, band().color);
-
-	for (int i = 0; i < tierCount; i++) {
-		const int y = 60 + i * 11;
-		ui::small(3, y, tiers[i].label, ui::FG);
-		ui::small(46, y, tiers[i].eta, ui::DIM);
-		gweiText(tiers[i].total, number, sizeof(number));
-		smallRight(160, y, number, ui::FG);
-		if (tiers[i].hasUsd) {
-			usdText(tiers[i].usd, text, sizeof(text));
-			smallRight(237, y, text, ui::DIM);
-		} else if (i == 0) {
-			// One line about it, not three: the price is missing, not the fee.
-			smallRight(237, y, "no eth price", ui::RULE);
-		}
-	}
-
-	ui::gfx().drawFastHLine(0, 92, ui::W, ui::RULE);
-	drawSparkline(95, 16);
-
 	if (haveHistory) {
 		gweiText(low24, number, sizeof(number));
 		ui::small(3, 114, number, ui::DIM);
 		gweiText(high24, number, sizeof(number));
 		smallRight(237, 114, number, ui::DIM);
-		ui::small(ui::W / 2 - 21, 114, armed ? "24h armed" : "24h", ui::RULE);
+		snprintf(text, sizeof(text), "%s%s, %d%% of 24h", band().name, armed ? " armed" : "", p);
+		smallCentre(114, text, band().color);
+	} else {
+		snprintf(text, sizeof(text), "block %ld", block);
+		smallCentre(114, text, ui::RULE);
 	}
 }
 
@@ -406,7 +455,7 @@ void draw()
 {
 	if (!haveGas) {
 		if (job != Job::None) {
-			ui::message("reading gas", "the smallest payload of the five");
+			ui::message("gas prices", "the smallest payload of the five");
 			ui::spinner(ui::W / 2, 96);
 		} else {
 			ui::message("no gas", net::online() ? net::statusText(status) : "needs wifi", ui::WARN);
@@ -435,6 +484,7 @@ void enter()
 	entry[0] = '\0';
 	alarm = store::getFloat(ALARM_KEY, 0.0f);
 	armed = store::getBool(ARMED_KEY, false);
+	speed = constrain(store::getInt(SPEED_KEY, 1), 0, TIERS - 1);
 	sounded = false;
 	M5Cardputer.Speaker.begin();
 	M5Cardputer.Speaker.setVolume(110);
@@ -526,7 +576,13 @@ bool key(const view::Key &k)
 		return alarmKey(k);
 	}
 
-	if (k.ch == 'a' || k.ch == 'A' || k.enter || k.right) {
+	if (k.up || k.down) {
+		// The tip is the number worth picking, so the arrows pick it.
+		if (tierCount > 0) {
+			speed = k.up ? (speed + tierCount - 1) % tierCount : (speed + 1) % tierCount;
+			store::setInt(SPEED_KEY, speed);
+		}
+	} else if (k.ch == 'a' || k.ch == 'A' || k.enter || k.right) {
 		screen = Screen::Alarm;
 		entry[0] = '\0';
 	} else if (k.ch == 'r' || k.ch == 'R') {
