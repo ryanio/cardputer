@@ -20,7 +20,7 @@ tools/fmt.sh            # house style, --check enforces it
 tools/apicheck/check.py # ask the five sources whether they still fit
 ```
 
-Green as of 2026-08-18: RAM 20.5%, flash 37.6% of the 3.3MB app slot. CI
+Green as of 2026-08-18: RAM 20.5%, flash 37.7% of the 3.3MB app slot. CI
 compiles both targets on a push and probes the sources on a schedule.
 
 ## Traps
@@ -42,12 +42,19 @@ compiles both targets on a push and probes the sources on a schedule.
 - **Give every view an exit.**
 - **A profile decides which apps a build ships**, never a deletion. `src/profile.cpp`
   holds the table; a view never mentions a profile and a profile never edits a
-  view. A profile that reads no network brings no radio up.
-- **An app whose data comes from a desktop reads `cable::`, not `Serial`.** The
-  simulator swaps that file for a replayed capture, the same way it swaps
-  `net.cpp`, which is what lets such a view be looked at with nothing plugged
-  in. Anchor is the case: its data service binds loopback, so no unit could
-  hold a credential for it and none should try.
+  view. A profile that reads no network brings no radio up. A build outside
+  this tree declares its profile in flags instead: see `src/profile.cpp`.
+- **An app can live in another repository.** `flint.ini` is the half flint
+  owns, `view::appBegin` is where such an app starts what it owns, and
+  `view::View::art` is how it draws a menu icon that is not in the atlas.
+  Anchor is the case, in `ryanio/anchor`. Read `docs/APPS.md` before changing
+  any of the three: they are somebody else's build interface now, and a rename
+  here is a red build there.
+- **An app whose data comes from a desktop brings its own transport**, and
+  swaps it for a replayed capture in the simulator the same way `net.cpp` is
+  swapped, which is what lets such a view be looked at with nothing plugged in.
+  Anchor is the case: its data service binds loopback, so no unit could hold a
+  credential for it and none should try.
 - **`Keyboard.isChange()` is consuming.** It compares the key count against
   the last time anybody asked and updates it while answering, so the first
   caller in a loop pass is the only one told about a press. `view::loop` is

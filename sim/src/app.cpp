@@ -8,6 +8,7 @@
 #include "motion.h"
 #include "net.h"
 #include "net_sim.h"
+#include "profile.h"
 #include "rest.h"
 #include "store.h"
 #include "ui.h"
@@ -146,7 +147,12 @@ void simSetup()
 	Serial.println("      home or F1 is the G0 button");
 	Serial.println("imu:  the mouse tilts it, the left button shakes it, F2 is face down\n");
 
-	net::begin();
+	// The same rule main.cpp follows: a profile whose apps read no network
+	// brings no radio up. Faking one here that a unit would not have is how a
+	// simulator ends up disagreeing with the thing it stands in for.
+	if (profile::network()) {
+		net::begin();
+	}
 	view::begin();
 	view::repaint();
 }
@@ -158,7 +164,9 @@ void simLoop()
 	// isPressed, not isChange: isChange is consuming, and view::loop is the
 	// one that has to hear about a key. See src/main.cpp.
 	rest::loop(M5Cardputer.Keyboard.isPressed() != 0);
-	net::loop();
+	if (profile::network()) {
+		net::loop();
+	}
 	runTour();
 	runScript();
 	view::loop();

@@ -7,30 +7,36 @@
 // app, from the same source, with no view edited or deleted to do it.
 //
 // The profile is chosen at build time, because the reason to want one is a
-// unit that boots as an Anchor panel rather than a menu:
+// unit that boots as one app rather than a menu:
 //
 //   pio run -e cardputer-adv          every view, the default
-//   pio run -e cardputer-adv-anchor   the Anchor panel, and no radio
 //   pio run -e sim -t exec            every view, on the desktop
-//   pio run -e sim-anchor -t exec     the Anchor panel, on the desktop
 //
 // A view never mentions a profile. view::add asks here, and a name no profile
 // lists is never registered, so nothing it left out can be opened, shown, or
 // asked to tick.
 //
-// What a profile is not is a way to make an image smaller. Every view is still
-// compiled and linked: measured on the ADV target, the anchor profile came out
-// 140 bytes larger than the full build, which is the table. A profile decides
-// what a unit does, not what it carries.
+// A profile can come from the table in profile.cpp, or entirely from build
+// flags, which is what an app pack in another repository uses:
 //
-// Adding a profile is one array and one row in the table in profile.cpp.
+//   -DFLINT_PROFILE='"anchor"'
+//   -DFLINT_PROFILE_VIEWS='"Anchor"'
+//   -DFLINT_PROFILE_NETWORK=0
+//
+// What a profile is not is a way to make an image smaller. Every view in the
+// build is still compiled and linked: measured on the ADV target, a one app
+// profile came out 140 bytes larger than the full build, which is the table. A
+// profile decides what a unit does, not what it carries. An app pack is the
+// other lever, and it does make the image smaller, because it leaves flint's
+// views out of the build entirely. See docs/APPS.md.
 namespace view {
 struct View;
 }
 
 namespace profile {
 
-// The profile this build was compiled with: "full", "anchor".
+// The profile this build was compiled with: "full", or whatever an app pack
+// named itself.
 const char *name();
 
 // True when this build ships that view. Called once per view, before setup.

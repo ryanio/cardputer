@@ -77,14 +77,16 @@ Rules the loop enforces so a view cannot get them wrong:
 | Input | `view.h` | one `Key` per pass, with the arrows already decoded |
 | Motion | `motion.h` | tilt and shake, on settled axes. Never read `M5.Imu` directly |
 | Network | `net.h`, `rest.h` | TLS, JSON with a filter so a payload never lands whole in RAM |
-| Host link | `cable.h` | newline delimited JSON over the USB C cable, for an app whose data comes from a desktop rather than an API |
 | Notes | `view::note` | a short line in the status bar: fetching, saved, no wifi |
 
-Two of these are transports and the choice between them is the design
-question, not a preference. `net` reaches a public API over WiFi. `cable` reads
-a program on the other end of the cable. The Anchor panel uses `cable` because
-its data service binds `127.0.0.1` and never the LAN: no credential exists that
-a unit could hold, and holding one would be the wrong answer anyway.
+An app is free to bring a transport of its own, and one has. Anchor's data
+comes down the USB C cable from a desktop rather than from an API, because the
+service behind it binds `127.0.0.1` and never the LAN: no credential exists
+that a unit could hold, and holding one would be the wrong answer anyway. That
+link, newline delimited JSON with a simulator half beside it, is a file in the
+Anchor repository, not here. flint learned two things from hosting it before it
+moved out, and both are in this file: `view::appBegin`, and the fact that a
+transport is exactly the sort of thing an app pack should own.
 
 ## Profiles: which apps a build ships
 
@@ -93,7 +95,6 @@ firmware can be the whole of flint or a single app appliance.
 
 ```bash
 pio run -e cardputer-adv          # every view
-pio run -e cardputer-adv-anchor   # the Anchor panel, and no radio
 ```
 
 `src/profile.cpp` holds the table: a profile is a name, a list of view names,
@@ -101,37 +102,96 @@ and whether the spine brings up WiFi. A profile with one app in it opens that
 app at boot rather than a menu with one card, and the backtick still comes back
 out to it. Adding a profile is one array and one row.
 
-It is not a way to make the image smaller. Every view is still compiled and
-linked; measured on the ADV target the anchor profile came out 140 bytes larger
-than the full build, which is the table itself. A profile decides what a unit
-does, not what it carries.
+A profile is also declarable entirely in build flags, which is what an app pack
+uses, because it cannot add a row to a table in this repository:
+
+```
+-DFLINT_PROFILE='"anchor"'
+-DFLINT_PROFILE_VIEWS='"Anchor"'    # comma separated menu names
+-DFLINT_PROFILE_NETWORK=0
+```
+
+`FLINT_PROFILE_VIEWS` is what tells the two apart. Define it and the table is
+never consulted, so an app pack never has to know what is in it.
+
+A profile is not a way to make the image smaller. Every view in the build is
+still compiled and linked; measured on the ADV target a one app profile came
+out 140 bytes larger than the full build, which is the table itself. An app
+pack is the other lever and it does shrink the image, because flint's own views
+are not in the build at all: the Anchor unit measures 33.5% of the app slot
+against the full firmware's 37.7%.
 
 An app never mentions a profile, and a profile never edits an app.
+
+## An app in another repository
+
+An **app pack** is a directory of views in someone else's tree, built against
+flint rather than added to it. Anchor is the first one, and the reason it
+exists is not technical: somebody who installs Anchor should not find ten
+unrelated flint apps on the unit, and somebody reading flint should not find
+Anchor's wire protocol in it. Each repository holds what it owns.
+
+Three things make it work, and none of them is Anchor shaped.
+
+**1. flint.ini.** The board, the libraries and the flags live there rather than
+in `platformio.ini`, so a project that vendors flint as a submodule gets them
+by including one file and cannot drift from them. It defines `flint_adv` and
+`flint_sim` as plain sections, not environments, so an including project does
+not inherit two builds it never asked for. Read the header of that file: it is
+the reference for the two layout rules, of which the load bearing one is that
+`src_dir` is the project root, because a source filter that climbs out of
+`src_dir` with `..` puts its objects in a directory every environment shares.
+
+**2. The profile flags above**, which say which views ship and whether a radio
+comes up, without either repository editing the other.
+
+**3. `view::appBegin`.** Views register themselves, so an app whose views only
+draw needs no hook at all. An app that owns a transport, a fixture or a store
+prefix needs somewhere to start it and cannot edit `main.cpp`, so define this
+and `view::begin` calls it once, after every view has registered and before the
+first one opens. It is weak: a build with no app pack links exactly as before.
+
+An app pack also has no id in the generated icon atlas, so it carries its own
+art. `view::View::art` takes an `icons::Icon` directly, and the same generator
+writes one:
+
+```bash
+python3 tools/icons/generate.py --pack anchor:ANCHOR:32 \
+    --namespace anchorart --out ../app/src/art.h
+```
+
+The whole of the consuming side is one `platformio.ini`. Anchor's is at
+`devices/firmware/cardputer/platformio.ini` in `ryanio/anchor`, and it is
+worth reading before writing a second one.
 
 ## Seeing it without hardware
 
 The simulator runs this same view, ui and store code against M5GFX's SDL panel
 at the real 240x135, so a new app works there the day it is written. There is
-nothing to register: the sim builds `src/views/` as it stands.
+nothing to register: the sim builds `src/views/` as it stands, and an app pack
+adds its own directory to the filter.
 
 ```bash
-pio run -e sim -t exec            # a window you can drive
-pio run -e sim-anchor -t exec     # the Anchor profile
+pio run -e sim -t exec            # a window you can drive, every view in it
 ```
 
 As a test harness it writes a PPM before each scripted key, which is how a
 screen gets checked without anybody watching a window:
 
 ```bash
-.pio/build/sim-anchor/program --keys "aaa" --shot /tmp/frame --quit-after 9000
+.pio/build/sim/program --keys "aaa" --shot /tmp/frame --quit-after 9000
 ```
 
+The first shot fires at 700ms and one every 420ms after, on scripted keys, so
+`--shot` with no `--keys` photographs the first screen and nothing else.
+
 What is faked is the ring around the firmware: keys come from SDL, the battery
-is a number, the IMU is the mouse, fetches answer from captures in
-`sim/fixtures`, and the host link replays a capture in `sim/src/cable_sim.cpp`.
-Every capture is real bytes off the real source, because a fixture that was
-typed by hand agrees with whatever the code happens to do, which is the one
-thing a fixture must never do.
+is a number, the IMU is the mouse, and fetches answer from captures in
+`sim/fixtures`. A profile that brings no radio up brings none up here either,
+the same as on a unit. Every capture is real bytes off the real source, because
+a fixture that was typed by hand agrees with whatever the code happens to do,
+which is the one thing a fixture must never do. An app pack that brings its own
+transport brings its own capture too, and swaps the file the same way this does.
 
 ## What adding an app taught this file
 
@@ -145,8 +205,12 @@ there:
 - **`ui::asciify` folds an em dash to a hyphen.** It used to drop it. Anchor
   writes one where it has no reading, so dropping it turned "no answer" into an
   empty space, which is a different claim and a worse one.
-- **`cable.*` exists at all.** An app whose data comes from a desktop had
-  nowhere to read from, and the answer was a seam beside `net`, with a
-  simulator half, rather than a view holding a serial port open.
+- **A host link exists at all.** An app whose data comes from a desktop had
+  nowhere to read from, and the answer was a transport beside `net`, with a
+  simulator half, rather than a view holding a serial port open. It lived here
+  first and now lives with the app, which is the right home for a protocol only
+  one program speaks.
 - **Profiles exist at all.** A unit meant to be one app had no way to be one
   without deleting the other ten.
+- **App packs exist at all.** A profile answered which of flint's apps ship. It
+  could not answer where an app lives, and that turned out to be the question.

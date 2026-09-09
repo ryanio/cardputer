@@ -300,13 +300,20 @@ bool parseColor(const char *css, uint16_t &out)
 	return true;
 }
 
+void icon(const icons::Icon &art, int x, int y, uint16_t color)
+{
+	if (art.data == nullptr) {
+		return;
+	}
+	gfx().drawBitmap(x, y, art.data, art.width, art.height, color);
+}
+
 void icon(uint8_t id, int x, int y, uint16_t color)
 {
 	if (id >= icons::COUNT) {
 		return;
 	}
-	const icons::Icon &glyph = icons::ALL[id];
-	gfx().drawBitmap(x, y, glyph.data, glyph.width, glyph.height, color);
+	icon(icons::ALL[id], x, y, color);
 }
 
 bool glyph(uint32_t codepoint, int x, int y, uint16_t color)

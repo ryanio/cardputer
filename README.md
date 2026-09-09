@@ -1,12 +1,17 @@
 # flint
 
-Firmware for the M5Stack Cardputer ADV. Eleven apps: a drum machine, a
-breathing coach, a marble maze and a glyph downpour you steer by tipping the
-unit, an Anchor wallet panel a desktop paints over the cable, and six views
-over
+Firmware for the M5Stack Cardputer ADV. Ten apps: a drum machine, a breathing
+coach, a marble maze and a glyph downpour you steer by tipping the unit, and
+six views over
 [coral](https://0xcoral.com), [bankr](https://bankr.bot),
 [glyphbots](https://www.glyphbots.com), [voxels](https://www.voxels.com) and
 [gwei](https://gwei.ryanio.com).
+
+It is also a platform for apps kept somewhere else. [Anchor's Cardputer
+panel](https://github.com/ryanio/anchor) is one: it vendors flint as a
+submodule and builds its own view against it, so an Anchor unit ships that one
+screen and nothing from the list above. See
+[docs/APPS.md](docs/APPS.md#an-app-in-another-repository).
 
 **[ryanio.github.io/cardputer](https://ryanio.github.io/cardputer/)** has the
 screenshots and how to run it without hardware.
@@ -18,7 +23,6 @@ screenshots and how to run it without hardware.
 | Bot | glyphbots | A GlyphBot drawn from its Unicode, the sheet behind it, and four ways to browse |
 | Womp | voxels | In-world photos, newest first, decoded straight to the panel |
 | Gas | gwei | The tip you pick, then the day it sits in: both series over 24h, and hour by hour |
-| Anchor | a desktop | An Anchor wallet panel, painted over the USB cable by the Omarchy desktop that holds the keys |
 
 - [docs/APPS.md](docs/APPS.md) how to write an app, and what the platform gives it
 - [docs/API.md](docs/API.md) the five APIs, verified shapes, rate limits
@@ -53,15 +57,13 @@ tools/apicheck/check.py       # ask the five sources whether they still fit
 ```
 
 A build can ship a subset of the apps. Every view stays in the tree; the
-profile decides which ones register, so a unit can be one app rather than a
-menu, and one that reads no network brings no radio up:
+profile in `src/profile.cpp` decides which ones register, so a unit can be one
+app rather than a menu, and one that reads no network brings no radio up. A
+profile can also be declared in build flags, which is how an app pack in
+another repository ships one screen and no radio without editing anything here.
+`flint.ini` holds the board, the libraries and the flags for both.
 
-```bash
-pio run -e cardputer-adv-anchor -t upload   # the Anchor panel alone
-pio run -e sim-anchor -t exec               # the same profile on the desktop
-```
-
-Everything but the first line runs without a device.
+Everything but the flashing line runs without a device.
 
 WiFi is typed on the device under Setup and kept in NVS, so a unit works for
 whoever holds it. For a dev unit that joins on first boot,
@@ -80,8 +82,8 @@ Older versions read no keys.
 | `src/ui.*` | the 240x135 layout, colors, status bar |
 | `src/view.*` | view registry, menu, input, the exit convention |
 | `src/store.*` | NVS settings |
-| `src/cable.*` | the host link: newline delimited JSON over the USB C cable |
 | `src/profile.*` | which apps a build ships, and whether the spine brings up a radio |
+| `flint.ini` | the board, the libraries and the flags, for this build and for an app pack |
 | `src/motion.*` | the IMU, filtered once: tilt, shake, face down |
 | `src/rest.*` | face down sleeps the panel, a key or turning it over wakes it |
 | `src/views/*.cpp` | one file per view, each registering itself |

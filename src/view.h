@@ -62,6 +62,12 @@ struct View {
 	int order;
 	uint8_t icon = icons::COUNT;  // drawn on the menu card, COUNT for none
 
+	// An app that is not in this tree has no id in the generated atlas, so it
+	// carries its own art instead. Set this and `icon` is ignored. Generate
+	// one with tools/icons/generate.py, the same tool that writes icons.h, so
+	// an out of tree card is the same bitmap format at the same weight.
+	const icons::Icon *art = nullptr;
+
 	// A view whose content is the whole point, a picture or a bot, takes the
 	// panel and the loop draws no status bar. It then owns the rule that a
 	// screen names its source, and paints the name over its own corner.
@@ -104,6 +110,18 @@ struct Registrar {
 
 void begin();
 void loop();
+
+// The hook an out of tree app hangs its own setup on.
+//
+// Views register themselves before setup runs, which is enough for a view that
+// only needs to draw. An app that also owns a transport, a fixture or a store
+// prefix needs somewhere to start it, and it cannot edit main.cpp because it
+// does not live in this tree. Define this in your app and view::begin calls it
+// once, after every view has registered and before the first one opens. It is
+// weak: a build with no app pack in it links exactly as before.
+//
+// Anchor is the case it was added for. See docs/APPS.md.
+void appBegin() __attribute__((weak));
 
 void open(int index);
 void back();

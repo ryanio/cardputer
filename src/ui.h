@@ -107,6 +107,10 @@ void banner(int y, int h, uint16_t color);
 // One of the generated Lucide bitmaps, drawn in a single color.
 void icon(uint8_t id, int x, int y, uint16_t color);
 
+// The same, for art an app brought with it. An app that is not in this tree
+// has no id in the generated atlas, so it hands over the bitmap instead.
+void icon(const icons::Icon &art, int x, int y, uint16_t color);
+
 // One glyph from the generated atlas, drawn in a single color at its top left
 // corner. Returns false when the collection has a character the atlas does not,
 // which means the atlas needs regenerating rather than the view working around

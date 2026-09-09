@@ -144,12 +144,17 @@ void drawCard(lgfx::LovyanGFX &g, int i, float away)
 	}
 
 	const uint16_t ink = mix(ui::BG, ui::CORAL, t);
-	if (v->icon < icons::COUNT) {
-		const icons::Icon &art = icons::ALL[v->icon];
+	// An app from outside this tree brings its own art, because it has no id
+	// in the generated atlas. Either way the card draws one bitmap.
+	const icons::Icon *art = v->art;
+	if (art == nullptr && v->icon < icons::COUNT) {
+		art = &icons::ALL[v->icon];
+	}
+	if (art != nullptr && art->data != nullptr) {
 		// High in the card while it is big enough to carry a name under the
 		// icon, centred once it is not.
-		const int top = t < 0.5f ? y + 12 : y + (size - art.height) / 2;
-		g.drawBitmap(cx - art.width / 2, top, art.data, art.width, art.height, ink);
+		const int top = t < 0.5f ? y + 12 : y + (size - art->height) / 2;
+		g.drawBitmap(cx - art->width / 2, top, art->data, art->width, art->height, ink);
 	}
 
 	// The badge is the key that opens it: 1 to 9, then 0 for the tenth.
@@ -531,6 +536,11 @@ void begin()
 	activeIndex = -1;
 	dirty = true;
 	Serial.printf("view: %d views registered, profile %s\n", count(), profile::name());
+	// An app pack's own setup, once every view has registered. Weak, so a
+	// build with no app pack in it has nothing to call. See view.h.
+	if (appBegin != nullptr) {
+		appBegin();
+	}
 	// A profile with one app in it is an appliance, not a menu. Opening it here
 	// costs the exit convention nothing: backtick still comes back out, to a
 	// menu holding the one card.
