@@ -16,7 +16,7 @@ concurrency:
 
 jobs:
   build:
-    name: both builds compile
+    name: every build compiles
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -37,8 +37,15 @@ jobs:
       - run: sudo apt-get update && sudo apt-get install -y libsdl2-dev
       - name: firmware
         run: pio run
+      # The profile builds are the same sources with a different app list, and
+      # they are exactly where a view that only the full build compiles would
+      # hide.
+      - name: firmware, anchor profile
+        run: pio run -e cardputer-adv-anchor
       - name: simulator
         run: pio run -e sim
+      - name: simulator, anchor profile
+        run: pio run -e sim-anchor
 
   format:
     name: the code matches .clang-format

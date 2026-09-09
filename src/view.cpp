@@ -5,6 +5,7 @@
 #include <new>
 #include <vector>
 
+#include "profile.h"
 #include "store.h"
 #include "ui.h"
 #include "version.h"
@@ -493,6 +494,12 @@ void add(const View *v)
 	if (v == nullptr || v->name == nullptr) {
 		return;
 	}
+	// A build can ship a subset of the apps. The view still compiles and still
+	// works; this profile just does not carry it, so nothing downstream has to
+	// know that a name is missing.
+	if (!profile::enabled(v)) {
+		return;
+	}
 	std::vector<const View *> &views = registry();
 	auto slot = views.begin();
 	while (slot != views.end() && (*slot)->order <= v->order) {
@@ -523,7 +530,13 @@ void begin()
 	position = (float)selected;
 	activeIndex = -1;
 	dirty = true;
-	Serial.printf("view: %d views registered\n", count());
+	Serial.printf("view: %d views registered, profile %s\n", count(), profile::name());
+	// A profile with one app in it is an appliance, not a menu. Opening it here
+	// costs the exit convention nothing: backtick still comes back out, to a
+	// menu holding the one card.
+	if (profile::single() && count() == 1) {
+		open(0);
+	}
 }
 
 void loop()

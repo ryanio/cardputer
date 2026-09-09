@@ -34,6 +34,7 @@ ICONS = [
     ("wind", "WIND", 32),
     ("cloud-rain", "CLOUD_RAIN", 32),
     ("route", "ROUTE", 32),
+    ("anchor", "ANCHOR", 32),
     ("wifi", "WIFI", 12),
     ("keyboard", "KEYBOARD", 12),
     ("trash-2", "TRASH", 12),

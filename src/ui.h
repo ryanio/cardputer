@@ -85,6 +85,17 @@ int rows();
 void lineAt(int y, const char *text, uint16_t color = FG,
             textdatum_t datum = textdatum_t::top_left);
 
+// Text inside a box: drawn at x and y with that datum, trimmed to maxWidth and
+// ended with a period when it does not fit.
+//
+// The font is whatever the caller last set, and the colors are given rather
+// than assumed, which is what the row helpers above cannot do: they draw in
+// Font2 on the black ground. Anything painting inside a card of its own needs
+// this instead, and every view that drew one had been writing its own copy of
+// the same trimming loop.
+void clip(const char *text, int x, int y, int maxWidth, uint16_t color, uint16_t background,
+          textdatum_t datum = textdatum_t::top_left);
+
 // The one number a view exists to show. Picks the largest font that fits and
 // centers it, with an optional unit beside it in small type.
 void bigNumber(const char *text, uint16_t color = FG, const char *suffix = nullptr,
@@ -131,10 +142,12 @@ void usd(float value, char *out, size_t n);
 // sitting to its right.
 void fit(const char *text, int budget, char *out, size_t n);
 
-// The panel's fonts are ASCII. Sources write middle dots and curly quotes,
-// which arrive as UTF-8 and would draw as rubble, so anything above ASCII is
-// folded down or dropped. A middle dot becomes a bar, because it is a
-// separator and the views that draw one read it as such.
+// The panel's fonts are ASCII. Sources write middle dots, dashes and curly
+// quotes, which arrive as UTF-8 and would draw as rubble, so anything above
+// ASCII is folded down or dropped. A middle dot becomes a bar, because it is a
+// separator and the views that draw one read it as such, and an em or en dash
+// becomes a hyphen: Anchor writes one where it has no reading, and dropping it
+// would turn "no answer" into an empty space, which is a different claim.
 void asciify(const char *src, char *out, size_t n);
 
 // Advances one frame per call. For a request that is slow by design, like a

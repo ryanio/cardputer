@@ -7,6 +7,7 @@
 
 #include "motion.h"
 #include "net.h"
+#include "profile.h"
 #include "rest.h"
 #include "store.h"
 #include "ui.h"
@@ -76,7 +77,11 @@ void bootCard()
 	ui::line(2, text);
 	snprintf(text, sizeof(text), "imu   %s", motion::available() ? "yes" : "none");
 	ui::line(3, text, motion::available() ? ui::GOOD : ui::DIM);
-	ui::line(4, net::haveCredentials() ? "joining wifi" : "wifi: open Setup", ui::DIM);
+	if (profile::network()) {
+		ui::line(4, net::haveCredentials() ? "joining wifi" : "wifi: open Setup", ui::DIM);
+	} else {
+		ui::line(4, "profile: no radio", ui::DIM);
+	}
 	ui::statusBar("flint " FW_VERSION);
 }
 
@@ -115,7 +120,13 @@ void setup()
 	ui::begin();
 	store::begin();
 	bootReport();
-	net::begin();
+	// A profile whose apps read no network brings no radio up. The Anchor
+	// panel is the case: its data comes down the USB cable from a desktop,
+	// because the service behind it binds loopback and never the LAN, so a
+	// radio here would be attack surface with nothing to gain by it.
+	if (profile::network()) {
+		net::begin();
+	}
 	view::begin();
 
 	// Long enough to read the heap and PSRAM lines without a serial cable.
@@ -137,9 +148,11 @@ void loop()
 	// needs to know anyway.
 	rest::loop(M5Cardputer.Keyboard.isPressed() != 0);
 
-	net::loop();
+	if (profile::network()) {
+		net::loop();
+	}
 
-	if (!probed && net::online()) {
+	if (profile::network() && !probed && net::online()) {
 		probed = true;
 		probe();
 	}

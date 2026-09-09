@@ -205,6 +205,12 @@ void line(int row, const char *text, uint16_t color, int x)
 	drawClipped(text, x, y, W - x - 3, color, BG, textdatum_t::top_left);
 }
 
+void clip(const char *text, int x, int y, int maxWidth, uint16_t color, uint16_t background,
+          textdatum_t datum)
+{
+	drawClipped(text, x, y, maxWidth, color, background, datum);
+}
+
 void lineAt(int y, const char *text, uint16_t color, textdatum_t datum)
 {
 	M5GFX &g = gfx();
@@ -547,6 +553,11 @@ void asciify(const char *src, char *out, size_t n)
 				out[at++] = '\'';
 			} else if (last == 0x9C || last == 0x9D) {
 				out[at++] = '"';
+			} else if (last == 0x93 || last == 0x94) {
+				// An en or em dash. Anchor draws one where a reading is
+				// missing, so dropping it would turn no answer into a blank,
+				// which reads as a different thing entirely.
+				out[at++] = '-';
 			}
 			src += 3;
 			continue;

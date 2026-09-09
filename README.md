@@ -1,8 +1,9 @@
 # flint
 
-Firmware for the M5Stack Cardputer ADV. Ten apps: a drum machine, a breathing
-coach, a marble maze and a glyph downpour you steer by tipping the unit, and
-six views over
+Firmware for the M5Stack Cardputer ADV. Eleven apps: a drum machine, a
+breathing coach, a marble maze and a glyph downpour you steer by tipping the
+unit, an Anchor wallet panel a desktop paints over the cable, and six views
+over
 [coral](https://0xcoral.com), [bankr](https://bankr.bot),
 [glyphbots](https://www.glyphbots.com), [voxels](https://www.voxels.com) and
 [gwei](https://gwei.ryanio.com).
@@ -17,7 +18,9 @@ screenshots and how to run it without hardware.
 | Bot | glyphbots | A GlyphBot drawn from its Unicode, the sheet behind it, and four ways to browse |
 | Womp | voxels | In-world photos, newest first, decoded straight to the panel |
 | Gas | gwei | The tip you pick, then the day it sits in: both series over 24h, and hour by hour |
+| Anchor | a desktop | An Anchor wallet panel, painted over the USB cable by the Omarchy desktop that holds the keys |
 
+- [docs/APPS.md](docs/APPS.md) how to write an app, and what the platform gives it
 - [docs/API.md](docs/API.md) the five APIs, verified shapes, rate limits
 - [sim/README.md](sim/README.md) the simulator, and how it takes screenshots
 - [docs/PLAN.md](docs/PLAN.md) what is built, and what the first unit answered
@@ -49,6 +52,15 @@ tools/fmt.sh                  # house style, --check enforces it
 tools/apicheck/check.py       # ask the five sources whether they still fit
 ```
 
+A build can ship a subset of the apps. Every view stays in the tree; the
+profile decides which ones register, so a unit can be one app rather than a
+menu, and one that reads no network brings no radio up:
+
+```bash
+pio run -e cardputer-adv-anchor -t upload   # the Anchor panel alone
+pio run -e sim-anchor -t exec               # the same profile on the desktop
+```
+
 Everything but the first line runs without a device.
 
 WiFi is typed on the device under Setup and kept in NVS, so a unit works for
@@ -68,6 +80,8 @@ Older versions read no keys.
 | `src/ui.*` | the 240x135 layout, colors, status bar |
 | `src/view.*` | view registry, menu, input, the exit convention |
 | `src/store.*` | NVS settings |
+| `src/cable.*` | the host link: newline delimited JSON over the USB C cable |
+| `src/profile.*` | which apps a build ships, and whether the spine brings up a radio |
 | `src/motion.*` | the IMU, filtered once: tilt, shake, face down |
 | `src/rest.*` | face down sleeps the panel, a key or turning it over wakes it |
 | `src/views/*.cpp` | one file per view, each registering itself |

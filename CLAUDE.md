@@ -5,6 +5,7 @@ of the sources it reads, not the name of the thing.
 `AGENTS.md` is a symlink to this file.
 
 - [README.md](README.md) hardware, build, layout
+- [docs/APPS.md](docs/APPS.md) the view contract, the seams, profiles, the simulator
 - [docs/API.md](docs/API.md) the five sources, verified shapes, rate limits, CA roots
 - [docs/ROADMAP.md](docs/ROADMAP.md) phases
 - [docs/PLAN.md](docs/PLAN.md) what is built, and what the first unit answered
@@ -39,6 +40,14 @@ compiles both targets on a push and probes the sources on a schedule.
   NVS; gitignored `include/secrets.h` is a dev-unit fallback only.
 - **Never enable USB HID.** These units get given away. Serial only.
 - **Give every view an exit.**
+- **A profile decides which apps a build ships**, never a deletion. `src/profile.cpp`
+  holds the table; a view never mentions a profile and a profile never edits a
+  view. A profile that reads no network brings no radio up.
+- **An app whose data comes from a desktop reads `cable::`, not `Serial`.** The
+  simulator swaps that file for a replayed capture, the same way it swaps
+  `net.cpp`, which is what lets such a view be looked at with nothing plugged
+  in. Anchor is the case: its data service binds loopback, so no unit could
+  hold a credential for it and none should try.
 - **`Keyboard.isChange()` is consuming.** It compares the key count against
   the last time anybody asked and updates it while answering, so the first
   caller in a loop pass is the only one told about a press. `view::loop` is
