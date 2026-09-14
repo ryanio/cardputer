@@ -284,15 +284,25 @@ void menuFrame(bool force)
 	if (!force && now - framedAt < FRAME_MS) {
 		return;
 	}
-	// Without the sprite there is nothing to animate into, and a slide drawn
-	// straight onto the panel is a flicker per frame. Better to arrive.
-	if (strip == nullptr) {
-		position = (float)selected;
-	}
 	const float target = (float)selected;
 	const bool moving = fabsf(target - position) > SETTLED;
 	if (!moving && !force) {
 		return;
+	}
+	// Without the sprite there is nothing to animate into, and a slide drawn
+	// straight onto the panel is a flicker per frame. Better to arrive.
+	//
+	// This snap has to happen AFTER the check above, not before it. Before it,
+	// it set position to target and so made `moving` false on the very pass
+	// that was meant to carry the move, and the function returned without
+	// painting anything. `selected` still moved, so the card under the cursor
+	// was not the card on screen: pressing enter opened something the panel
+	// had never shown, and the wrap past the last card looked like the menu
+	// had frozen. The sprite is 42KB and the boot probe holds a TLS session
+	// open while the menu is up, so failing to get it is an ordinary Tuesday
+	// on the unit rather than a corner.
+	if (strip == nullptr) {
+		position = target;
 	}
 	framedAt = now;
 
