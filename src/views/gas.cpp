@@ -53,14 +53,18 @@ constexpr size_t ENTRY_MAX = 10;
 // the API publishes no bands and inventing four constants would date badly.
 struct Band {
 	const char *name;
-	uint16_t color;
+	// Where the colour lives, not what it was. The palette moves at runtime, so
+	// a table of values compiled in here would band a themed screen in flint's
+	// own coral and green forever. An address is still a constant expression,
+	// which is what keeps this table in flash rather than built at boot.
+	const uint16_t *color;
 	int upTo;  // percentile of the last 24 hours, inclusive
 };
 constexpr Band BANDS[] = {
-    {"Chill", ui::GOOD, 25},
-    {"Busy", ui::WARN, 50},
-    {"Chaos", ui::CORAL, 75},
-    {"Whale", ui::BAD, 100},
+    {"Chill", &ui::GOOD, 25},
+    {"Busy", &ui::WARN, 50},
+    {"Chaos", &ui::CORAL, 75},
+    {"Whale", &ui::BAD, 100},
 };
 
 struct Tier {
@@ -162,6 +166,12 @@ const Band &band()
 		}
 	}
 	return BANDS[0];
+}
+
+// The band's colour as it is right now, read through the table's pointer.
+uint16_t bandColor()
+{
+	return *band().color;
 }
 
 // Right aligned Font0, which is six pixels a character, so this is arithmetic.
@@ -410,7 +420,7 @@ void drawSparkline(int top, int height)
 	// The page above it leads with the tip, so the line under it is the tip.
 	series(true, lo, hi);
 	plotAlarm(top, height, lo, hi);
-	plot(tipAt, top, height, lo, hi, band().color, true);
+	plot(tipAt, top, height, lo, hi, bandColor(), true);
 }
 
 void smallCentre(int y, const char *text, uint16_t color)
@@ -436,7 +446,7 @@ void drawSpeeds(int y)
 		if (i == speed) {
 			g.fillRoundRect(x - 4, y - 2, width + 8, 12, 3, ui::PANEL);
 		}
-		ui::small(x, y, text, i == speed ? band().color : ui::DIM);
+		ui::small(x, y, text, i == speed ? bandColor() : ui::DIM);
 	}
 }
 
@@ -453,7 +463,7 @@ void drawNow()
 	// so this is the only figure on the screen anybody gets to choose.
 	const Tier &t = tiers[speed < tierCount ? speed : 0];
 	gweiText(t.tip, tip, sizeof(tip));
-	ui::bigNumber(tip, band().color, "gwei tip", 12);
+	ui::bigNumber(tip, bandColor(), "gwei tip", 12);
 
 	// What it is a tip for, and what it costs, on one row.
 	snprintf(text, sizeof(text), "%s, %s", t.label, t.eta);
@@ -488,7 +498,7 @@ void drawNow()
 		gweiText(tipHigh, number, sizeof(number));
 		smallRight(237, 114, number, ui::DIM);
 		snprintf(text, sizeof(text), "%s%s, %d%% of 24h", band().name, armed ? " armed" : "", p);
-		smallCentre(114, text, band().color);
+		smallCentre(114, text, bandColor());
 	} else {
 		snprintf(text, sizeof(text), "block %ld", block);
 		smallCentre(114, text, ui::RULE);
@@ -532,7 +542,7 @@ void drawDay()
 	g.drawFastHLine(0, TOP + TALL, ui::W, ui::RULE);
 	plotAlarm(TOP, TALL, lo, hi);
 	plot(gwei, TOP, TALL, lo, hi, ui::DIM, false);
-	plot(tipAt, TOP, TALL, lo, hi, band().color, true);
+	plot(tipAt, TOP, TALL, lo, hi, bandColor(), true);
 
 	// A legend, and the two numbers the lines end on.
 	gweiText(baseFee, number, sizeof(number));
@@ -543,13 +553,13 @@ void drawDay()
 	const Tier &t = tiers[speed < tierCount ? speed : 0];
 	gweiText(t.tip, number, sizeof(number));
 	snprintf(text, sizeof(text), "tip %s", number);
-	g.fillRect(123, 17, 8, 2, band().color);
-	ui::small(134, 14, text, band().color);
+	g.fillRect(123, 17, 8, 2, bandColor());
+	ui::small(134, 14, text, bandColor());
 
 	ui::small(3, 112, "24h ago", ui::RULE);
 	const int p = percentile();
 	snprintf(text, sizeof(text), "%s, %d%% of the day", band().name, p);
-	smallCentre(112, text, band().color);
+	smallCentre(112, text, bandColor());
 	smallRight(237, 112, "now", ui::RULE);
 }
 

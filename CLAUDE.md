@@ -45,11 +45,18 @@ compiles both targets on a push and probes the sources on a schedule.
   view. A profile that reads no network brings no radio up. A build outside
   this tree declares its profile in flags instead: see `src/profile.cpp`.
 - **An app can live in another repository.** `flint.ini` is the half flint
-  owns, `view::appBegin` is where such an app starts what it owns, and
-  `view::View::art` is how it draws a menu icon that is not in the atlas.
-  Anchor is the case, in `ryanio/anchor`. Read `docs/APPS.md` before changing
-  any of the three: they are somebody else's build interface now, and a rename
-  here is a red build there.
+  owns, `view::appBegin` is where such an app starts what it owns,
+  `view::View::art` is how it draws a menu icon that is not in the atlas, and
+  `ui::setPalette` is how it colours the chrome around it as well as its own
+  screen. Anchor is the case, in `ryanio/anchor`. Read `docs/APPS.md` before
+  changing any of the four: they are somebody else's build interface now, and a
+  rename here is a red build there.
+- **The ten colour names are variables, not constants.** `ui::CORAL` and the
+  other nine are what `ui::setPalette` moves, so a table that copies one into a
+  `constexpr` of its own is a colour frozen at compile time and a view that
+  ignores the palette forever. `src/views/gas.cpp` holds the address instead,
+  which is still a constant expression. Reading one is a load, so a draw loop
+  can keep using them as it always did.
 - **An app whose data comes from a desktop brings its own transport**, and
   swaps it for a replayed capture in the simulator the same way `net.cpp` is
   swapped, which is what lets such a view be looked at with nothing plugged in.

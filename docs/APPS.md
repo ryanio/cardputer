@@ -73,6 +73,7 @@ Rules the loop enforces so a view cannot get them wrong:
 | Seam | Header | What it is |
 |---|---|---|
 | Drawing | `ui.h` | the 240x135 layout, rows, cards, big numbers, icons, a glyph atlas, text trimming, ASCII folding |
+| Colour | `ui.h` | the ten names every screen draws with, and `setPalette` to move all ten |
 | Settings | `store.h` | typed key value pairs in NVS. Take a prefix, write on change |
 | Input | `view.h` | one `Key` per pass, with the arrows already decoded |
 | Motion | `motion.h` | tilt and shake, on settled axes. Never read `M5.Imu` directly |
@@ -131,7 +132,7 @@ exists is not technical: somebody who installs Anchor should not find ten
 unrelated flint apps on the unit, and somebody reading flint should not find
 Anchor's wire protocol in it. Each repository holds what it owns.
 
-Three things make it work, and none of them is Anchor shaped.
+Four things make it work, and none of them is Anchor shaped.
 
 **1. flint.ini.** The board, the libraries and the flags live there rather than
 in `platformio.ini`, so a project that vendors flint as a submodule gets them
@@ -150,6 +151,32 @@ draw needs no hook at all. An app that owns a transport, a fixture or a store
 prefix needs somewhere to start it and cannot edit `main.cpp`, so define this
 and `view::begin` calls it once, after every view has registered and before the
 first one opens. It is weak: a build with no app pack links exactly as before.
+
+**4. `ui::setPalette`.** An app that themes only its own screen is a themed
+panel sitting inside somebody else's chrome: the menu it was opened from, the
+status bar above it and any other view in the build stay flint's coral on black
+whatever the app is wearing. So the ten colours are a palette rather than ten
+constants, and an app pack can move all ten at once:
+
+```cpp
+ui::Palette p;            // flint's own scheme, or ui::palette() for what is up now
+p.bg = ui::rgb565(28, 20, 40);
+p.accent = ui::rgb565(126, 226, 168);   // drawn as ui::CORAL
+ui::setPalette(p);                      // menu, status bar and every view follow
+```
+
+Set it whole, not a colour at a time: a screen half in your scheme and half in
+flint's reads as a bug in whichever half the reader was not expecting. Call it
+from `appBegin` for a scheme the app knows at boot, or from `tick` whenever the
+app learns a new one; `setPalette` asks for the repaint itself, and drops a
+palette equal to the current one so an app told its theme in every message it
+receives does not repaint on every message.
+
+Where the colours came from is not flint's business and nothing here asks. The
+names themselves do not change: a view still writes `ui::CORAL`, which is a
+variable now rather than a constant, so it is a load in a draw loop and not a
+call, and a build that never calls `setPalette` draws exactly what flint drew
+before the palette existed.
 
 An app pack also has no id in the generated icon atlas, so it carries its own
 art. `view::View::art` takes an `icons::Icon` directly, and the same generator

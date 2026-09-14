@@ -178,17 +178,29 @@ void drawCard(lgfx::LovyanGFX &g, int i, float away)
 
 // Neighbours first, so the card in the middle keeps its edges. The strip runs
 // round: past the last card the first one is already leaning in, which is the
-// whole reason to draw four slots for ten views. Fewer than four views would
-// mean drawing the same card twice in one frame, so that case stops at the
-// ends instead.
+// whole reason to draw more slots than fit on screen at once.
 void paintStrip(lgfx::LovyanGFX &g)
 {
 	const int total = count();
-	const bool round = total >= 4;
+	// The number of slots is the thing to vary, not whether the strip runs
+	// round. It was four always, with wrapping switched off below four views
+	// because a fourth slot would draw the same card twice in one frame. That
+	// much is true, and turning off the wrap was the wrong half to give up:
+	// `selected` and `position` wrap regardless, so a three view build moved the
+	// selection past the last card and left the strip sitting at the end with
+	// the wrong card in the middle. An Anchor unit carries Anchor, Maze and
+	// Calm, which is exactly three, and that is what made it visible.
+	//
+	// So draw as many slots as there are cards, up to four. Three views get
+	// three slots and wrap correctly. Two or one still stop at the ends,
+	// because a strip that runs round with one card on it is a card that never
+	// moves.
+	const int slots = total >= 4 ? 4 : total;
+	const bool round = total >= 3;
 	const int first = (int)floorf(position) - 1;
 	g.fillRect(0, 0, ui::W, STRIP_H, ui::BG);
 	for (int pass = 0; pass < 2; pass++) {
-		for (int i = first; i <= first + 3; i++) {
+		for (int i = first; i < first + slots; i++) {
 			if (!round && (i < 0 || i >= total)) {
 				continue;
 			}

@@ -2,9 +2,11 @@
 
 #include <ctype.h>
 #include <math.h>
+#include <string.h>
 
 #include "glyphs.h"
 #include "net.h"
+#include "view.h"
 
 namespace ui {
 
@@ -12,9 +14,20 @@ static_assert(GLYPH_CELL == glyphs::CELL,
               "ui::GLYPH_CELL and the generated atlas disagree. Regenerate with "
               "tools/glyphs/generate.py, or change the constant to match it.");
 
+static_assert(sizeof(Palette) == 10 * sizeof(uint16_t),
+              "ui::Palette has padding in it, so setPalette cannot tell two palettes apart with "
+              "memcmp. Keep every member a uint16_t, or compare the fields one at a time.");
+
 namespace {
 
 constexpr uint8_t BRIGHTNESS = 110;
+
+// flint's own scheme, kept as the struct so that a default constructed Palette
+// and the ten variables below cannot drift apart. constexpr is what makes those
+// ten constant initialised: another translation unit is allowed to build a table
+// out of ui::BG at static init time, and initialising these dynamically would
+// turn that into an order of initialisation race that only shows on one target.
+constexpr Palette DEFAULTS{};
 
 uint8_t spinnerFrame = 0;
 
@@ -63,6 +76,59 @@ uint16_t radioColor()
 }
 
 }  // namespace
+
+uint16_t BG = DEFAULTS.bg;
+uint16_t FG = DEFAULTS.fg;
+uint16_t DIM = DEFAULTS.dim;
+uint16_t RULE = DEFAULTS.rule;
+uint16_t BAR = DEFAULTS.bar;
+uint16_t PANEL = DEFAULTS.panel;
+uint16_t CORAL = DEFAULTS.accent;
+uint16_t GOOD = DEFAULTS.good;
+uint16_t WARN = DEFAULTS.warn;
+uint16_t BAD = DEFAULTS.bad;
+
+Palette palette()
+{
+	// Built from the ten variables rather than from a copy kept beside them,
+	// so there is one answer to what colour the screen is and it is the one the
+	// screen was drawn with.
+	Palette p;
+	p.bg = BG;
+	p.fg = FG;
+	p.dim = DIM;
+	p.rule = RULE;
+	p.bar = BAR;
+	p.panel = PANEL;
+	p.accent = CORAL;
+	p.good = GOOD;
+	p.warn = WARN;
+	p.bad = BAD;
+	return p;
+}
+
+void setPalette(const Palette &p)
+{
+	const Palette now = palette();
+	if (memcmp(&now, &p, sizeof(Palette)) == 0) {
+		return;
+	}
+	BG = p.bg;
+	FG = p.fg;
+	DIM = p.dim;
+	RULE = p.rule;
+	BAR = p.bar;
+	PANEL = p.panel;
+	CORAL = p.accent;
+	GOOD = p.good;
+	WARN = p.warn;
+	BAD = p.bad;
+	// Whatever is on the panel was drawn in the old colours, and nothing else is
+	// going to ask for it again: a view repaints when its own data changes, and
+	// the menu when it moves. Without this the new scheme arrives a card and a
+	// row at a time, which looks like a seam that half works.
+	view::repaint();
+}
 
 M5GFX &gfx()
 {

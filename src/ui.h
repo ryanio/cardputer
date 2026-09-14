@@ -33,16 +33,66 @@ constexpr uint16_t rgb565(uint8_t r, uint8_t g, uint8_t b)
 	return (uint16_t)(((r & 0xF8) << 8) | ((g & 0xFC) << 3) | (b >> 3));
 }
 
-constexpr uint16_t BG = rgb565(0, 0, 0);
-constexpr uint16_t FG = rgb565(255, 255, 255);
-constexpr uint16_t DIM = rgb565(128, 128, 128);
-constexpr uint16_t RULE = rgb565(58, 58, 58);
-constexpr uint16_t BAR = rgb565(16, 24, 32);
-constexpr uint16_t PANEL = rgb565(22, 22, 28);
-constexpr uint16_t CORAL = rgb565(255, 127, 80);
-constexpr uint16_t GOOD = rgb565(61, 220, 132);
-constexpr uint16_t WARN = rgb565(255, 176, 32);
-constexpr uint16_t BAD = rgb565(255, 64, 64);
+// The ten colours the whole panel is drawn from, as one struct. A palette is
+// set whole rather than a colour at a time, because a build that set four of
+// them would be a screen half in somebody's scheme and half in flint's, which
+// looks like a bug in whichever half you were not expecting.
+//
+// Default constructed it is flint's own scheme, so a caller that wants one
+// colour changed starts from `ui::Palette p;`, or from palette() to keep what
+// is on screen now, and edits the field it cares about.
+struct Palette {
+	uint16_t bg = rgb565(0, 0, 0);
+	uint16_t fg = rgb565(255, 255, 255);
+	uint16_t dim = rgb565(128, 128, 128);
+	uint16_t rule = rgb565(58, 58, 58);
+	uint16_t bar = rgb565(16, 24, 32);    // the status bar's ground
+	uint16_t panel = rgb565(22, 22, 28);  // a card nobody has selected
+	// Drawn as ui::CORAL: the selected card, a title, a spinner. The field is
+	// named for the job rather than for the colour, because an app pack setting
+	// a scheme of its own is not shipping a coral.
+	uint16_t accent = rgb565(255, 127, 80);
+	uint16_t good = rgb565(61, 220, 132);
+	uint16_t warn = rgb565(255, 176, 32);
+	uint16_t bad = rgb565(255, 64, 64);
+};
+
+// The same ten under the names every view already draws with. They are
+// variables rather than constants so that setPalette can move them, and reading
+// one is a load rather than a call, which is what lets a view keep them inside
+// a per pixel loop the way they were used when they were constexpr.
+//
+// A build that never calls setPalette holds exactly the values above, so flint
+// on its own draws what it always drew.
+extern uint16_t BG;
+extern uint16_t FG;
+extern uint16_t DIM;
+extern uint16_t RULE;
+extern uint16_t BAR;
+extern uint16_t PANEL;
+extern uint16_t CORAL;  // Palette::accent
+extern uint16_t GOOD;
+extern uint16_t WARN;
+extern uint16_t BAD;
+
+// What those ten hold right now.
+Palette palette();
+
+// Point them somewhere else. The menu, the status bar and every view follow,
+// because they all read the names above rather than colours of their own.
+//
+// This is a seam, like flint.ini and view::appBegin: where an app pack got a
+// palette, and whether it came off a cable, a settings screen or a constant in
+// its own tree, is not flint's business and nothing here asks. See
+// docs/APPS.md.
+//
+// Asks for a repaint, because a palette set while a view is on screen otherwise
+// reaches only the parts something else happens to redraw, and a screen in two
+// schemes at once reads as a seam that half works. A palette equal to the
+// current one is dropped rather than drawn: an app fed its theme by a transport
+// that repeats it in every message would otherwise ask for a repaint every
+// message, which is a flicker rather than a theme.
+void setPalette(const Palette &p);
 
 M5GFX &gfx();
 
