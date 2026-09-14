@@ -546,11 +546,9 @@ void begin()
 	activeIndex = -1;
 	dirty = true;
 	Serial.printf("view: %d views registered, profile %s\n", count(), profile::name());
-	// An app pack's own setup, once every view has registered. Weak, so a
-	// build with no app pack in it has nothing to call. See view.h.
-	if (appBegin != nullptr) {
-		appBegin();
-	}
+	// An app pack's own setup, once every view has registered. The default
+	// below does nothing, so a build with no app pack calls it and moves on.
+	appBegin();
 	// A profile with one app in it is an appliance, not a menu. Opening it here
 	// costs the exit convention nothing: backtick still comes back out, to a
 	// menu holding the one card.
@@ -607,6 +605,10 @@ void loop()
 		}
 	}
 }
+
+// The default app pack hook: nothing to start, because there is no pack. Weak,
+// so a pack defining a real one replaces it at link time. See view.h.
+__attribute__((weak)) void appBegin() {}
 
 void open(int index)
 {

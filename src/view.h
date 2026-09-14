@@ -121,7 +121,18 @@ void loop();
 // weak: a build with no app pack in it links exactly as before.
 //
 // Anchor is the case it was added for. See docs/APPS.md.
-void appBegin() __attribute__((weak));
+//
+// A weak DEFINITION rather than a weak declaration, and that distinction is the
+// whole reason this comment exists. A weak declaration with nothing defining it
+// resolves to zero on ELF, which is every device build, so the old null check
+// worked there. Mach O does not do that, so the simulator stopped linking on a
+// Mac entirely: `pio run -e sim` failed on an undefined `view::appBegin`, which
+// took the one way to look at a view without a unit with it.
+//
+// `src/view.cpp` defines an empty one, weakly. A pack that defines a real one
+// overrides it, on both linkers, and a build with no pack calls a function that
+// does nothing.
+void appBegin();
 
 void open(int index);
 void back();
