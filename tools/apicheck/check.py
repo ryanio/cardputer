@@ -286,7 +286,7 @@ def score_sane(data):
     if not isinstance(score, NUM) or not 0 <= score <= 100:
         return "score is %r" % score
     if not data.get("explanation", {}).get("caveats"):
-        return "no caveats, and CLAUDE.md says every score shows them"
+        return "no caveats, and AGENTS.md says every score shows them"
 
 
 @rule("a called token still says who called it, when, and at what cap")
@@ -312,7 +312,7 @@ def token_carries_score(data):
         return ("score.score is %r. The feed reads a score out of every token body rather "
                 "than asking /score, which self rate limits" % score.get("score"))
     if not score.get("explanation", {}).get("caveats"):
-        return "no caveats, and CLAUDE.md says every score shows them"
+        return "no caveats, and AGENTS.md says every score shows them"
 
 
 @rule("the daily round hides nothing the device needs to play offline")

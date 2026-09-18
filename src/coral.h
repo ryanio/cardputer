@@ -5,7 +5,7 @@
 
 // Coral's read of a token, and the two screens it is always shown through.
 //
-// This exists because CLAUDE.md makes one rule about it: anything showing a
+// This exists because AGENTS.md makes one rule about it: anything showing a
 // Coral score shows its caveats and the Coral name. A rule with two
 // implementations is a rule that will be half kept, so both views that show a
 // score go through here and the caveat is drawn by the same function that

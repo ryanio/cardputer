@@ -10,7 +10,7 @@
 //
 // Both calls block for as long as the request takes, which on this device is
 // up to a few seconds for a TLS handshake. Call them from a view's tick, not
-// from a key handler, and respect the poll windows in CLAUDE.md: gwei refreshes
+// from a key handler, and respect the poll windows in AGENTS.md: gwei refreshes
 // at most every 30s, the Coral round is one fetch per ET day, and /score is
 // request and response with a spinner, never a poll.
 namespace net {

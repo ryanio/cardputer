@@ -29,7 +29,7 @@ screenshots and how to run it without hardware.
 - [sim/README.md](sim/README.md) the simulator, and how it takes screenshots
 - [docs/PLAN.md](docs/PLAN.md) what is built, and what the first unit answered
 - [docs/ROADMAP.md](docs/ROADMAP.md) build order
-- [CLAUDE.md](CLAUDE.md) rules
+- [AGENTS.md](AGENTS.md) rules
 
 The first unit ran on 2026-08-18: no PSRAM, TLS fits with 186KB to spare, and
 a 144KB photo decodes to the panel in 2.6 seconds without ever existing in RAM.

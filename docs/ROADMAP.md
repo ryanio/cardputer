@@ -1,7 +1,7 @@
 # Roadmap
 
 Arduino + PlatformIO on three Cardputer ADVs. Endpoints in [API.md](API.md),
-rules in [../CLAUDE.md](../CLAUDE.md).
+rules in [../AGENTS.md](../AGENTS.md).
 
 The ADV has hardware the original lacked: a BMI270 IMU, an ES8311 codec driving
 a real 1W speaker, a decent MEMS mic, and a 1750mAh battery. Phases 3 and 5 are
