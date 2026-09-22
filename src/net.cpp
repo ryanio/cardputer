@@ -6,6 +6,8 @@
 #include <time.h>
 
 #include "ca_roots.h"
+#include "net_lifecycle.h"
+#include "net_profiles.h"
 #include "store.h"
 #include "version.h"
 
@@ -27,7 +29,7 @@ namespace net {
 namespace {
 
 constexpr uint32_t JOIN_TIMEOUT_MS = 20000;
-constexpr uint32_t RETRY_MS = 15000;
+constexpr uint32_t CANDIDATE_FAILURE_MS = 5000;
 constexpr uint32_t CONNECT_TIMEOUT_MS = 8000;
 constexpr uint32_t READ_TIMEOUT_MS = 12000;
 constexpr int HANDSHAKE_TIMEOUT_S = 12;
@@ -43,26 +45,31 @@ constexpr time_t CLOCK_SANE = 1735689600;  // 2025 01 01
 
 Wifi st = Wifi::Off;
 uint32_t joinStarted = 0;
-uint32_t retryAt = 0;
+uint32_t candidateFailedAt = 0;
 bool clockOk = false;
-
-// Keys in NVS. store.h reserves the sys prefix for the spine.
-constexpr const char *SSID_KEY = "sys.ssid";
-constexpr const char *PASS_KEY = "sys.pass";
+net_lifecycle::Backoff retry;
+net_lifecycle::Revision connectionRevision;
+net_profiles::Profiles profiles;
 
 String netSsid;
 String netPass;
 bool fromStore = false;
+bool candidate = false;
+String previousSsid;
+String previousPass;
+bool previousFromStore = false;
 
-// NVS first, so a unit answers to whoever set it up last.
-void loadCredentials()
+void loadPreferred()
 {
-	netSsid = store::getString(SSID_KEY, "");
-	netPass = store::getString(PASS_KEY, "");
-	fromStore = netSsid.length() > 0;
-	if (!fromStore) {
+	const net_profiles::Entry *preferred = profiles.at(0);
+	if (preferred != nullptr) {
+		netSsid = preferred->ssid;
+		netPass = preferred->password;
+		fromStore = true;
+	} else {
 		netSsid = WIFI_SSID;
 		netPass = WIFI_PASSWORD;
+		fromStore = false;
 	}
 }
 
@@ -128,15 +135,24 @@ private:
 
 void join()
 {
+	connectionRevision.advance();
 	st = Wifi::Joining;
 	joinStarted = millis();
 	WiFi.begin(netSsid.c_str(), netPass.c_str());
-	Serial.printf("net: joining \"%s\" (%s)\n", netSsid.c_str(),
-	              fromStore ? "typed on the device" : "built in");
+	Serial.printf("net: joining %s network\n", candidate   ? "candidate"
+	                                           : fromStore ? "saved"
+	                                                       : "built in");
 }
 
 void onOnline()
 {
+	retry.reset();
+	if (candidate) {
+		fromStore = profiles.remember(netSsid, netPass);
+		candidate = false;
+	} else if (fromStore) {
+		profiles.remember(netSsid, netPass);
+	}
 	Serial.printf("net: online as %s, rssi %d dBm, heap %u free\n",
 	              WiFi.localIP().toString().c_str(), (int)WiFi.RSSI(), (unsigned)ESP.getFreeHeap());
 	configTzTime(TZ_ET, "pool.ntp.org", "time.nist.gov", "time.google.com");
@@ -204,13 +220,14 @@ void report(const char *url, const Result &r)
 
 void begin()
 {
-	loadCredentials();
+	profiles.load();
+	loadPreferred();
 
 	// The radio comes up either way. Scanning has to work on a device that has
 	// never been told a network, because that is the one that needs Setup.
 	WiFi.persistent(false);
 	WiFi.mode(WIFI_STA);
-	WiFi.setAutoReconnect(true);
+	WiFi.setAutoReconnect(false);
 	WiFi.setSleep(true);
 
 	if (netSsid.isEmpty()) {
@@ -235,21 +252,31 @@ void loop()
 				onOnline();
 			} else if (millis() - joinStarted > JOIN_TIMEOUT_MS) {
 				st = Wifi::Failed;
-				retryAt = millis() + RETRY_MS;
 				WiFi.disconnect();
-				Serial.println("net: join failed, retrying shortly");
+				connectionRevision.advance();
+				if (candidate) {
+					candidateFailedAt = millis();
+					Serial.println("net: candidate join failed, saved profiles unchanged");
+				} else {
+					const uint32_t wait = retry.fail(millis());
+					Serial.printf("net: join failed, retrying in %u ms\n", (unsigned)wait);
+				}
 			}
 			break;
 		case Wifi::Failed:
-			if ((int32_t)(millis() - retryAt) >= 0) {
+			if (candidate && millis() - candidateFailedAt >= CANDIDATE_FAILURE_MS) {
+				cancelCandidate();
+			} else if (!candidate && retry.ready(millis())) {
 				join();
 			}
 			break;
 		case Wifi::Online:
 			if (!linked) {
-				Serial.println("net: link dropped, rejoining");
-				st = Wifi::Joining;
-				joinStarted = millis();
+				WiFi.disconnect();
+				connectionRevision.advance();
+				st = Wifi::Failed;
+				const uint32_t wait = retry.fail(millis());
+				Serial.printf("net: link dropped, retrying in %u ms\n", (unsigned)wait);
 			}
 			break;
 		default:
@@ -272,6 +299,8 @@ void reconnect()
 		return;
 	}
 	WiFi.disconnect();
+	connectionRevision.advance();
+	retry.reset();
 	join();
 }
 
@@ -283,6 +312,11 @@ Wifi state()
 bool online()
 {
 	return st == Wifi::Online;
+}
+
+uint32_t revision()
+{
+	return connectionRevision.get();
 }
 
 const char *ssid()
@@ -300,30 +334,103 @@ bool credentialsAreStored()
 	return fromStore;
 }
 
+bool candidatePending()
+{
+	return candidate;
+}
+
 bool saveCredentials(const char *ssid, const char *password)
 {
 	if (ssid == nullptr || strlen(ssid) == 0) {
 		return false;
 	}
-	const bool ok = store::setString(SSID_KEY, String(ssid)) &&
-	                store::setString(PASS_KEY, String(password == nullptr ? "" : password));
-	loadCredentials();
+	if (!candidate) {
+		previousSsid = netSsid;
+		previousPass = netPass;
+		previousFromStore = fromStore;
+	}
+	netSsid = ssid;
+	netPass = password == nullptr ? "" : password;
+	fromStore = false;
+	candidate = true;
 	WiFi.disconnect();
+	connectionRevision.advance();
+	retry.reset();
 	join();
-	return ok;
+	return true;
+}
+
+void cancelCandidate()
+{
+	if (!candidate) {
+		return;
+	}
+	WiFi.disconnect();
+	connectionRevision.advance();
+	candidate = false;
+	netSsid = previousSsid;
+	netPass = previousPass;
+	fromStore = previousFromStore;
+	retry.reset();
+	if (netSsid.isEmpty()) {
+		st = Wifi::Off;
+		return;
+	}
+	join();
+}
+
+int profileCount()
+{
+	return profiles.count();
+}
+
+String profileSsid(int index)
+{
+	const net_profiles::Entry *entry = profiles.at(index);
+	return entry == nullptr ? String("") : entry->ssid;
+}
+
+int profileIndex(const char *ssid)
+{
+	return profiles.find(ssid);
+}
+
+bool selectProfile(int index)
+{
+	const net_profiles::Entry *entry = profiles.at(index);
+	if (entry == nullptr) {
+		return false;
+	}
+	if (candidate) {
+		candidate = false;
+	}
+	netSsid = entry->ssid;
+	netPass = entry->password;
+	fromStore = true;
+	WiFi.disconnect();
+	connectionRevision.advance();
+	retry.reset();
+	join();
+	return true;
 }
 
 void forgetCredentials()
 {
-	store::remove(SSID_KEY);
-	store::remove(PASS_KEY);
-	loadCredentials();
+	if (candidate) {
+		cancelCandidate();
+	}
+	if (!fromStore || !profiles.forget(netSsid.c_str())) {
+		return;
+	}
+	loadPreferred();
 	WiFi.disconnect(true);
+	connectionRevision.advance();
+	retry.reset();
 	if (netSsid.isEmpty()) {
 		st = Wifi::Off;
 		Serial.println("net: network forgotten");
 	} else {
-		Serial.println("net: network forgotten, falling back to the built in one");
+		Serial.println("net: network forgotten, joining another profile");
 		join();
 	}
 }

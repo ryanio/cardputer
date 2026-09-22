@@ -1,9 +1,16 @@
 // Coral on the Cardputer ADV: four views over gwei, glyphbots, coral and
 // voxels. See docs/ROADMAP.md for what lands when.
 
-#include <ArduinoJson.h>
 #include <M5Cardputer.h>
 #include <WiFi.h>
+
+#ifndef FLINT_BOOT_PROBE
+#define FLINT_BOOT_PROBE 0
+#endif
+
+#if FLINT_BOOT_PROBE
+#include <ArduinoJson.h>
+#endif
 
 #include "motion.h"
 #include "net.h"
@@ -16,13 +23,14 @@
 
 namespace {
 
-// One request at boot against the smallest payload of the four sources. It
-// answers the question the rest of the firmware rests on: whether a TLS
-// handshake fits in 320KB beside the display buffer. gwei refreshes at most
-// every 30s and this runs once per boot, so it costs the server nothing.
+#if FLINT_BOOT_PROBE
+// An explicit diagnostic build can make one request after association to
+// measure TLS memory. Normal operation leaves this off so joining WiFi never
+// blocks the interface on an unrelated HTTPS request.
 constexpr const char *PROBE_URL = "https://gwei.ryanio.com/api/gas";
 
 bool probed = false;
+#endif
 
 void bootReport()
 {
@@ -85,6 +93,7 @@ void bootCard()
 	ui::statusBar("flint " FW_VERSION);
 }
 
+#if FLINT_BOOT_PROBE
 void probe()
 {
 	// Only one field is read, so the filter keeps the rest of the payload out
@@ -108,6 +117,7 @@ void probe()
 	snprintf(text, sizeof(text), "net %s", net::statusText(r.status));
 	view::note(text);
 }
+#endif
 
 }  // namespace
 
@@ -152,10 +162,12 @@ void loop()
 		net::loop();
 	}
 
+#if FLINT_BOOT_PROBE
 	if (profile::network() && !probed && net::online()) {
 		probed = true;
 		probe();
 	}
+#endif
 
 	view::loop();
 	delay(5);

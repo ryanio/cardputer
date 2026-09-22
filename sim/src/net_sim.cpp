@@ -5,13 +5,14 @@
 
 #include "fixtures.h"
 #include "net.h"
+#include "net_lifecycle.h"
+#include "net_profiles.h"
 #include "net_sim.h"
 #include "store.h"
 
 // The network, simulated. Credentials go through store like they do on the
-// device, so Setup behaves the same: what you type is remembered, forgetting
-// it works, and a passphrase under the WPA2 minimum fails the way a wrong one
-// does.
+// device, so Setup behaves the same: a candidate is remembered after it joins,
+// forgetting works, and the fixtures reject a wrong passphrase.
 //
 // Fetches answer from the captures in sim/fixtures, matched by URL. A URL with
 // no fixture fails rather than inventing a body, so a view's error state gets
@@ -21,20 +22,24 @@ namespace net {
 
 namespace {
 
-constexpr const char *SSID_KEY = "sys.ssid";
-constexpr const char *PASS_KEY = "sys.pass";
 constexpr uint32_t JOIN_MS = 1400;
 constexpr uint32_t SCAN_MS = 900;
+constexpr uint32_t CANDIDATE_FAILURE_MS = 2500;
 
 struct FakeNetwork {
 	const char *ssid;
 	int32_t rssi;
 	bool open;
+	const char *password;
 };
 
 const FakeNetwork NETWORKS[] = {
-    {"parcel-of-rogues", -41, false}, {"Voxels Guest", -58, true}, {"reef", -63, false},
-    {"BT-HUB-8891", -71, false},      {"eduroam", -77, false},     {"nowhere-fast", -84, false},
+    {"parcel-of-rogues", -41, false, "correct horse"},
+    {"Voxels Guest", -58, true, ""},
+    {"reef", -63, false, "reef-pass"},
+    {"BT-HUB-8891", -71, false, "cardputer"},
+    {"eduroam", -77, false, "education"},
+    {"nowhere-fast", -84, false, "still wrong"},
 };
 constexpr int NETWORK_COUNT = sizeof(NETWORKS) / sizeof(NETWORKS[0]);
 
@@ -44,27 +49,40 @@ Wifi st = Wifi::Off;
 String netSsid;
 String netPass;
 bool fromStore = false;
+bool candidate = false;
+String previousSsid;
+String previousPass;
+bool previousFromStore = false;
 uint32_t joinAt = 0;
+uint32_t candidateFailedAt = 0;
 uint32_t scanDoneAt = 0;
 bool scanning = false;
+net_lifecycle::Backoff retry;
+net_lifecycle::Revision connectionRevision;
+net_profiles::Profiles profiles;
 
-void loadCredentials()
+void loadPreferred()
 {
-	netSsid = store::getString(SSID_KEY, "");
-	netPass = store::getString(PASS_KEY, "");
-	fromStore = !netSsid.isEmpty();
+	const net_profiles::Entry *preferred = profiles.at(0);
+	if (preferred == nullptr) {
+		netSsid = "";
+		netPass = "";
+		fromStore = false;
+		return;
+	}
+	netSsid = preferred->ssid;
+	netPass = preferred->password;
+	fromStore = true;
 }
 
 bool passphraseWorks()
 {
 	for (int i = 0; i < NETWORK_COUNT; i++) {
-		if (netSsid == NETWORKS[i].ssid && NETWORKS[i].open) {
-			return true;
+		if (netSsid == NETWORKS[i].ssid) {
+			return NETWORKS[i].open || netPass == NETWORKS[i].password;
 		}
 	}
-	// WPA2 wants eight characters. Anything shorter is the wrong passphrase,
-	// which gives the join failure path something to fail on.
-	return netPass.length() >= 8;
+	return false;
 }
 
 // The manifest's * stands for any run of characters, and nothing else is
@@ -162,7 +180,8 @@ void simLatency(uint32_t ms)
 
 void begin()
 {
-	loadCredentials();
+	profiles.load();
+	loadPreferred();
 #ifdef __EMSCRIPTEN__
 	// The browser demo has no NVS to remember anything, so a visitor who
 	// pressed Bankr would meet "needs wifi" and a passphrase screen before
@@ -179,10 +198,12 @@ void begin()
 		Serial.println("net: no network set, waiting for one from Setup");
 		return;
 	}
+	connectionRevision.advance();
 	st = Wifi::Joining;
 	joinAt = millis() + JOIN_MS;
-	Serial.printf("net: joining \"%s\" (%s)\n", netSsid.c_str(),
-	              fromStore ? "typed on the device" : "built in");
+	Serial.printf("net: joining %s network\n", candidate   ? "candidate"
+	                                           : fromStore ? "saved"
+	                                                       : "built in");
 }
 
 void loop()
@@ -190,11 +211,32 @@ void loop()
 	if (st == Wifi::Joining && millis() >= joinAt) {
 		if (passphraseWorks()) {
 			st = Wifi::Online;
+			retry.reset();
+			if (candidate) {
+				fromStore = profiles.remember(netSsid, netPass);
+				candidate = false;
+			} else if (fromStore) {
+				profiles.remember(netSsid, netPass);
+			}
 			Serial.println("net: online as 192.168.1.50, rssi -47 dBm");
 		} else {
 			st = Wifi::Failed;
-			Serial.println("net: join failed, the passphrase was not accepted");
+			connectionRevision.advance();
+			if (candidate) {
+				candidateFailedAt = millis();
+				Serial.println("net: candidate join failed, saved profiles unchanged");
+			} else {
+				const uint32_t wait = retry.fail(millis());
+				Serial.printf("net: join failed, retrying in %u ms\n", (unsigned)wait);
+			}
 		}
+	} else if (st == Wifi::Failed && candidate &&
+	           millis() - candidateFailedAt >= CANDIDATE_FAILURE_MS) {
+		cancelCandidate();
+	} else if (st == Wifi::Failed && !candidate && retry.ready(millis())) {
+		connectionRevision.advance();
+		st = Wifi::Joining;
+		joinAt = millis() + JOIN_MS;
 	}
 }
 
@@ -203,6 +245,8 @@ void reconnect()
 	if (netSsid.isEmpty()) {
 		return;
 	}
+	connectionRevision.advance();
+	retry.reset();
 	st = Wifi::Joining;
 	joinAt = millis() + JOIN_MS;
 }
@@ -215,6 +259,11 @@ Wifi state()
 bool online()
 {
 	return st == Wifi::Online;
+}
+
+uint32_t revision()
+{
+	return connectionRevision.get();
 }
 
 const char *ssid()
@@ -247,24 +296,97 @@ bool credentialsAreStored()
 	return fromStore;
 }
 
+bool candidatePending()
+{
+	return candidate;
+}
+
 bool saveCredentials(const char *ssid, const char *password)
 {
 	if (ssid == nullptr || strlen(ssid) == 0) {
 		return false;
 	}
-	store::setString(SSID_KEY, String(ssid));
-	store::setString(PASS_KEY, String(password == nullptr ? "" : password));
-	loadCredentials();
+	if (!candidate) {
+		previousSsid = netSsid;
+		previousPass = netPass;
+		previousFromStore = fromStore;
+	}
+	netSsid = ssid;
+	netPass = password == nullptr ? "" : password;
+	fromStore = false;
+	candidate = true;
+	reconnect();
+	return true;
+}
+
+void cancelCandidate()
+{
+	if (!candidate) {
+		return;
+	}
+	connectionRevision.advance();
+	candidate = false;
+	netSsid = previousSsid;
+	netPass = previousPass;
+	fromStore = previousFromStore;
+	retry.reset();
+	if (netSsid.isEmpty()) {
+		st = Wifi::Off;
+		return;
+	}
+	connectionRevision.advance();
+	st = Wifi::Joining;
+	joinAt = millis() + JOIN_MS;
+}
+
+int profileCount()
+{
+	return profiles.count();
+}
+
+String profileSsid(int index)
+{
+	const net_profiles::Entry *entry = profiles.at(index);
+	return entry == nullptr ? String("") : entry->ssid;
+}
+
+int profileIndex(const char *ssid)
+{
+	return profiles.find(ssid);
+}
+
+bool selectProfile(int index)
+{
+	const net_profiles::Entry *entry = profiles.at(index);
+	if (entry == nullptr) {
+		return false;
+	}
+	candidate = false;
+	netSsid = entry->ssid;
+	netPass = entry->password;
+	fromStore = true;
 	reconnect();
 	return true;
 }
 
 void forgetCredentials()
 {
-	store::remove(SSID_KEY);
-	store::remove(PASS_KEY);
-	loadCredentials();
-	st = netSsid.isEmpty() ? Wifi::Off : Wifi::Joining;
+	if (candidate) {
+		cancelCandidate();
+	}
+	if (!fromStore || !profiles.forget(netSsid.c_str())) {
+		return;
+	}
+	loadPreferred();
+	connectionRevision.advance();
+	retry.reset();
+	if (netSsid.isEmpty()) {
+		st = Wifi::Off;
+	} else {
+		connectionRevision.advance();
+		st = Wifi::Joining;
+		joinAt = millis() + JOIN_MS;
+	}
 	Serial.println("net: network forgotten");
 }
 

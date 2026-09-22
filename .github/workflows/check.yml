@@ -15,6 +15,18 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  native:
+    name: network state regressions
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: lifecycle and profile tests
+        run: |
+          c++ -std=c++17 -Isrc test/net_lifecycle_test.cpp -o /tmp/flint-net-lifecycle-test
+          /tmp/flint-net-lifecycle-test
+          c++ -std=c++17 -Isim/include -Isrc test/net_profiles_test.cpp -o /tmp/flint-net-profiles-test
+          /tmp/flint-net-profiles-test
+
   build:
     name: every build compiles
     runs-on: ubuntu-latest

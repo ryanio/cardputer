@@ -69,8 +69,8 @@ compiles both targets on a push and probes the sources on a schedule.
   device, and the simulator's shim now consumes too so this cannot hide there.
 - **The menu is a carousel and it draws between repaints.** It is the only
   screen that does. The 42KB sprite behind the slide is held while it moves and
-  handed back a second after it stops, because the boot probe opens a TLS
-  session while the menu is on screen.
+  handed back a second after it stops. Network apps still need that memory for
+  TLS, even though normal builds no longer make an automatic boot request.
 - **Read motion through `motion::`, never `M5.Imu` directly.** The axes are
   settled now (flat and screen up a unit reads 0, 0, +1g, which is what the
   constants at the top of `src/motion.cpp` assume), and keeping every view on

@@ -65,10 +65,17 @@ another repository ships one screen and no radio without editing anything here.
 
 Everything but the flashing line runs without a device.
 
-WiFi is typed on the device under Setup and kept in NVS, so a unit works for
-whoever holds it. For a dev unit that joins on first boot,
+WiFi is typed on the device under Setup, which remembers up to four networks.
+A new passphrase reaches NVS only after the radio associates, so a failed or
+cancelled attempt does not replace a working profile. For a dev unit that joins on first boot,
 `cp include/secrets.h.example include/secrets.h`; anything typed on the device
 wins over it.
+
+Normal builds do not make an automatic HTTPS request at boot. To repeat the
+old TLS memory diagnostic, compile with `-DFLINT_BOOT_PROBE=1`. That probe is
+synchronous and intended only for an observed diagnostic build. Association
+means the unit has joined WiFi and received an address. It does not prove that
+the internet or any particular service is reachable.
 
 M5Cardputer 1.1.1 is the first release that drives the ADV's TCA8418 keyboard.
 Older versions read no keys.

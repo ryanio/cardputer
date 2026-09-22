@@ -3,9 +3,8 @@
 #include "../version.h"
 #include "../view.h"
 
-// WiFi typed on the device, so a unit works for whoever holds it. Nothing here
-// reaches the compiled fallback in include/secrets.h: what gets typed lands in
-// NVS and wins from then on.
+// WiFi typed on the device, so a unit works for whoever holds it. A candidate
+// reaches NVS only after association and then wins over the compiled fallback.
 namespace {
 
 enum class Screen : uint8_t { Status, Picking, Typing, Joining };
@@ -22,8 +21,8 @@ constexpr int SPIN_PICKING_Y = 76;
 constexpr int SPIN_JOINING_Y = 84;
 
 constexpr const char *ACTIONS[] = {
-    "scan for networks",
-    "type a network name",
+    "change network",
+    "type another network",
     "forget this network",
 };
 constexpr int ACTION_COUNT = sizeof(ACTIONS) / sizeof(ACTIONS[0]);
@@ -34,6 +33,11 @@ int pick = 0;
 int pickTop = 0;
 int listed = 0;
 int order[MAX_LISTED];
+struct Choice {
+	int profile = -1;
+	int scan = -1;
+};
+Choice choices[MAX_LISTED];
 bool scanning = false;
 bool typingSsid = false;
 bool reveal = false;  // a passphrase is drawn as dots until tab peeks at it
@@ -46,7 +50,7 @@ const char *stateText()
 {
 	switch (net::state()) {
 		case net::Wifi::Online:
-			return "online";
+			return "wifi connected";
 		case net::Wifi::Joining:
 			return "joining";
 		case net::Wifi::Failed:
@@ -96,20 +100,36 @@ void collectScan()
 	}
 	scanning = false;
 	listed = 0;
+	for (int i = 0; i < net::profileCount() && listed < MAX_LISTED; i++) {
+		choices[listed++].profile = i;
+	}
 	if (n > 0) {
-		for (int i = 0; i < n && listed < MAX_LISTED; i++) {
+		int ordered = 0;
+		for (int i = 0; i < n && ordered < MAX_LISTED; i++) {
 			if (net::scanSsid(i).isEmpty()) {
 				continue;
 			}
-			int slot = listed++;
+			int slot = ordered++;
 			while (slot > 0 && net::scanRssi(order[slot - 1]) < net::scanRssi(i)) {
 				order[slot] = order[slot - 1];
 				slot--;
 			}
 			order[slot] = i;
 		}
+		for (int i = 0; i < ordered && listed < MAX_LISTED; i++) {
+			const int scan = order[i];
+			if (net::profileIndex(net::scanSsid(scan).c_str()) >= 0) {
+				continue;
+			}
+			choices[listed++] = {.profile = -1, .scan = scan};
+		}
 	}
 	view::repaint();
+}
+
+String choiceSsid(const Choice &choice)
+{
+	return choice.profile >= 0 ? net::profileSsid(choice.profile) : net::scanSsid(choice.scan);
 }
 
 void beginTyping(const String &ssid, bool forSsid)
@@ -142,8 +162,7 @@ void drawStatus()
 	ui::line(0, text);
 
 	if (net::online()) {
-		snprintf(text, sizeof(text), "%s  %s  %d dBm", stateText(), net::ip().toString().c_str(),
-		         (int)net::rssi());
+		snprintf(text, sizeof(text), "%s  %s", stateText(), net::ip().toString().c_str());
 	} else {
 		const char *where = !net::haveCredentials()       ? "no network saved yet"
 		                    : net::credentialsAreStored() ? "saved on this unit"
@@ -197,10 +216,19 @@ void drawPicking()
 			break;
 		}
 		const bool on = i == pick;
+		const bool saved = choices[i].profile >= 0;
+		const int scan = choices[i].scan;
 		snprintf(text, sizeof(text), "%s%s%s", on ? "> " : "  ",
-		         net::scanOpen(order[i]) ? "" : "* ", net::scanSsid(order[i]).c_str());
+		         saved                 ? "+ "
+		         : net::scanOpen(scan) ? ""
+		                               : "* ",
+		         choiceSsid(choices[i]).c_str());
 		ui::line(row, text, on ? ui::CORAL : ui::FG);
-		snprintf(text, sizeof(text), "%d", (int)net::scanRssi(order[i]));
+		if (saved) {
+			snprintf(text, sizeof(text), "saved");
+		} else {
+			snprintf(text, sizeof(text), "%d", (int)net::scanRssi(scan));
+		}
 		ui::lineAt(ui::TITLE_H + row * ui::LINE_H, text, ui::DIM, textdatum_t::top_right);
 	}
 	ui::lineAt(ui::TITLE_H + ROWS * ui::LINE_H, "enter picks   del goes back", ui::DIM);
@@ -233,7 +261,7 @@ void drawTyping()
 	snprintf(text, sizeof(text), "%s_", shown);
 	ui::line(1, text);
 
-	ui::line(3, "enter saves and joins", ui::DIM);
+	ui::line(3, "enter tries this network", ui::DIM);
 	ui::line(4, "del erases   esc cancels", ui::DIM);
 	if (!typingSsid) {
 		ui::line(5,
@@ -259,7 +287,9 @@ void drawJoining()
 	if (net::online()) {
 		snprintf(text, sizeof(text), "%s", net::ip().toString().c_str());
 		ui::line(2, text, ui::GOOD);
-		ui::line(4, "saved on this unit", ui::DIM);
+		ui::line(
+		    4, net::credentialsAreStored() ? "associated and saved" : "associated for this session",
+		    ui::DIM);
 	} else {
 		ui::line(2, "check the passphrase", ui::DIM);
 		ui::line(4, "del goes back", ui::DIM);
@@ -287,6 +317,7 @@ void draw()
 void enter()
 {
 	screen = Screen::Status;
+	seenState = net::state();
 	action = 0;
 	entry = "";
 	reveal = false;
@@ -294,6 +325,9 @@ void enter()
 
 void leave()
 {
+	if (net::candidatePending()) {
+		net::cancelCandidate();
+	}
 	net::scanClear();
 	scanning = false;
 	entry = "";
@@ -311,6 +345,11 @@ void tick()
 			lastSpin = millis();
 			ui::spinner(SPIN_X, SPIN_PICKING_Y);
 		}
+		return;
+	}
+	if (screen == Screen::Status && net::state() != seenState) {
+		seenState = net::state();
+		view::repaint();
 		return;
 	}
 	if (screen == Screen::Joining) {
@@ -364,10 +403,18 @@ bool pickingKey(const view::Key &k)
 	} else if (k.down && listed > 0) {
 		pick = (pick + 1) % listed;
 	} else if ((k.enter || k.right) && listed > 0) {
-		const String name = net::scanSsid(order[pick]);
-		if (net::scanOpen(order[pick])) {
+		const Choice &choice = choices[pick];
+		if (choice.profile >= 0) {
+			net::scanClear();
+			net::selectProfile(choice.profile);
+			seenState = net::state();
+			screen = Screen::Joining;
+			view::repaint();
+		} else if (net::scanOpen(choice.scan)) {
+			const String name = net::scanSsid(choice.scan);
 			joinWith(name, "");
 		} else {
+			const String name = net::scanSsid(choice.scan);
 			beginTyping(name, false);
 		}
 		return true;
@@ -433,6 +480,9 @@ bool key(const view::Key &k)
 			return typingKey(k);
 		case Screen::Joining:
 			if (k.del || k.enter || k.left) {
+				if (net::candidatePending()) {
+					net::cancelCandidate();
+				}
 				toStatus();
 				return true;
 			}

@@ -310,9 +310,9 @@ void menuFrame(bool force)
 	// painting anything. `selected` still moved, so the card under the cursor
 	// was not the card on screen: pressing enter opened something the panel
 	// had never shown, and the wrap past the last card looked like the menu
-	// had frozen. The sprite is 42KB and the boot probe holds a TLS session
-	// open while the menu is up, so failing to get it is an ordinary Tuesday
-	// on the unit rather than a corner.
+	// had frozen. The sprite is 42KB and network apps need that memory for TLS,
+	// so failing to get it is an ordinary Tuesday on the unit rather than a
+	// corner.
 	if (strip == nullptr) {
 		position = target;
 	}

@@ -89,6 +89,13 @@ Anchor repository, not here. flint learned two things from hosting it before it
 moved out, and both are in this file: `view::appBegin`, and the fact that a
 transport is exactly the sort of thing an app pack should own.
 
+`net::online()` means the radio is associated and has an address. It does not
+claim that the internet or a service is reachable. `net::revision()` changes
+whenever an association is cleared or a join begins, including a reconnect to
+the same network name. A worker that outlives the UI pass that scheduled it
+captures the revision and discards its result when the value changes before
+publication.
+
 ## Profiles: which apps a build ships
 
 Every view stays in the tree. A profile decides which ones register, so one

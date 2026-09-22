@@ -55,6 +55,11 @@ void reconnect();
 Wifi state();
 bool online();
 
+// Changes whenever a join starts or the active connection is cleared. An app
+// can capture this before starting work and discard a result whose revision no
+// longer matches, including a reconnect to the same network name.
+uint32_t revision();
+
 // The network the device joins, empty when none is set yet.
 const char *ssid();
 
@@ -64,7 +69,18 @@ const char *ssid();
 // give away should have none compiled in at all.
 bool haveCredentials();
 bool credentialsAreStored();  // false means they came from secrets.h
+bool candidatePending();
+
+// Starts a candidate join without writing it to NVS. Association promotes it
+// into the four remembered profiles. A failed or cancelled candidate leaves
+// every remembered profile unchanged.
 bool saveCredentials(const char *ssid, const char *password);
+void cancelCandidate();
+
+int profileCount();
+String profileSsid(int index);
+int profileIndex(const char *ssid);
+bool selectProfile(int index);
 void forgetCredentials();
 
 // Async scan, so the view keeps drawing while it runs. scanCount returns -1

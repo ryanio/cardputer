@@ -46,7 +46,7 @@ bool enabled(const view::View *v);
 // it rather than opening a menu with one card in it.
 bool single();
 
-// Whether the spine joins WiFi and runs its boot probe.
+// Whether the spine joins WiFi for views that fetch their own data.
 //
 // Not every app reads the network, and a radio that nothing uses is attack
 // surface with no upside. The Anchor panel is the case that made this a flag:

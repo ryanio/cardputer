@@ -55,9 +55,11 @@ start audio until the page has been clicked, which the Start button covers.
 instead of a speaker, which is how a tone gets checked without ears.
 
 Simulated: the keyboard comes from SDL, the battery is a number, the IMU is
-the mouse, and the network answers from `net_sim.cpp` with a fixed list of access points. A
-passphrase under eight characters fails, so the join failure path has something
-to fail on.
+the mouse, and the network answers from `net_sim.cpp` with a fixed list of access points. The
+protected fixtures accept one exact passphrase each, so a plausible but wrong
+passphrase exercises the same candidate failure and saved profile fallback as
+the device. `parcel-of-rogues` accepts `correct horse`; `reef` accepts
+`reef-pass`; the guest network is open.
 
 ## Fetches
 
