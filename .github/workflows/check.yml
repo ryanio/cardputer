@@ -38,7 +38,11 @@ jobs:
       - name: firmware
         run: pio run
       - name: simulator
-        run: pio run -e sim
+        run: |
+          pio run -e sim
+          timeout 15s env SDL_VIDEODRIVER=dummy .pio/build/sim/program \
+            --shot "$RUNNER_TEMP/flint" --quit-after 1000
+          test -s "$RUNNER_TEMP/flint-00.ppm"
 
   format:
     name: the code matches .clang-format

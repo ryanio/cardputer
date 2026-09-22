@@ -11,8 +11,15 @@ namespace {
 int userFunction(bool *running)
 {
 	simSetup();
-	while (*running) {
-		simLoop();
+	while (*running && simLoop()) {
+	}
+	if (*running) {
+		// Ask the main thread to close SDL, then return before it tears the
+		// window down. Calling exit here runs global destructors while the
+		// main thread is still rendering.
+		SDL_Event quit{};
+		quit.type = SDL_QUIT;
+		SDL_PushEvent(&quit);
 	}
 	return 0;
 }

@@ -26,7 +26,10 @@ uint8_t pixels[ui::W * ui::H * 3];
 
 void frame()
 {
-	simLoop();
+	if (!simLoop()) {
+		emscripten_cancel_main_loop();
+		return;
+	}
 	lgfx::Panel_sdl::loop();
 
 	M5Cardputer.Display.readRectRGB(0, 0, ui::W, ui::H, pixels);

@@ -31,6 +31,8 @@ without anyone looking at a window. `\n` is enter, `\b` is backspace.
 .pio/build/sim/program --orbit 5 --shake --keys "9\n" --shot /tmp/frame
 ```
 
+CI takes the first frame headlessly and requires the simulator to return normally.
+
 `--tilt x,y` pins the lean where a screenshot wants it, right and down
 positive and 1 the whole way over. `--orbit 5` rolls the lean all the way round
 every five seconds, which keeps anything that falls or rolls moving on its own,

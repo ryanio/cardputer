@@ -157,7 +157,7 @@ void simSetup()
 	view::repaint();
 }
 
-void simLoop()
+bool simLoop()
 {
 	M5Cardputer.update();
 	motion::update();
@@ -175,8 +175,9 @@ void simLoop()
 
 	if (quitAfter != 0 && millis() > quitAfter) {
 		Serial.println("sim: done");
-		exit(0);
+		return false;
 	}
+	return true;
 }
 
 void simArgs(int argc, char **argv)

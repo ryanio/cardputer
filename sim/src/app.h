@@ -5,7 +5,8 @@
 // spawn the thread the SDL entry point wants.
 void simArgs(int argc, char **argv);
 void simSetup();
-void simLoop();
+// False means an automated run completed and its platform loop should stop.
+bool simLoop();
 
 // Pressing a key from outside, for the guided tour, for scripted tests, and
 // for the buttons under the canvas on the web.
