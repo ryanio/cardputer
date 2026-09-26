@@ -7,6 +7,7 @@ of the sources it reads, not the name of the thing.
 - [README.md](README.md) hardware, build, layout
 - [docs/APPS.md](docs/APPS.md) the view contract, the seams, profiles, the simulator
 - [docs/API.md](docs/API.md) the five sources, verified shapes, rate limits, CA roots
+- [docs/KEYBOARD.md](docs/KEYBOARD.md) what the ADV's keys print, and how a hint names one
 - [docs/ROADMAP.md](docs/ROADMAP.md) phases
 - [docs/PLAN.md](docs/PLAN.md) what is built, and what the first unit answered
 
@@ -40,6 +41,8 @@ compiles both targets on a push and probes the sources on a schedule.
   NVS; gitignored `include/secrets.h` is a dev-unit fallback only.
 - **Never enable USB HID.** These units get given away. Serial only.
 - **Give every view an exit.**
+- **A hint names a key by what the key prints**, in brackets, and `ui` draws it as a
+  keycap: `[ok]`, never enter. `docs/KEYBOARD.md` has every legend.
 - **A profile decides which apps a build ships**, never a deletion. `src/profile.cpp`
   holds the table; a view never mentions a profile and a profile never edits a
   view. A profile that reads no network brings no radio up. A build outside

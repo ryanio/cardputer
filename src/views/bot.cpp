@@ -474,7 +474,7 @@ void drawSheet()
 
 	if (!haveStory) {
 		ui::small(3, 56, "left and right page the sheet", ui::DIM);
-		ui::small(3, 66, "b browses the collection", ui::DIM);
+		ui::small(3, 66, "[B] browses the collection", ui::DIM);
 		return;
 	}
 
@@ -548,7 +548,7 @@ void drawBrowse()
 		ui::small(87, y, list[i].text, color);
 	}
 
-	ui::small(3, 112, "enter opens   left right reorder", ui::DIM);
+	ui::small(3, 112, "[ok] opens   left right reorder", ui::DIM);
 }
 
 void drawGoto()
@@ -557,9 +557,9 @@ void drawGoto()
 	page("Which bot");
 	snprintf(text, sizeof(text), "%s_", entry);
 	ui::line(1, text);
-	snprintf(text, sizeof(text), "1 to %d, enter opens it", MAX_ID);
+	snprintf(text, sizeof(text), "1 to %d, [ok] opens it", MAX_ID);
 	ui::small(3, 76, text, ui::DIM);
-	ui::small(3, 88, "del erases, r random, b browses", ui::DIM);
+	ui::small(3, 88, "[del] erases, [R] random, [B] browses", ui::DIM);
 }
 
 void draw()
@@ -578,12 +578,12 @@ void draw()
 		char text[40];
 		snprintf(text, sizeof(text), "bot %d", pending);
 		ui::message(text, net::statusText(status), ui::WARN);
-		ui::lineAt(108, "r is a random one, b browses", ui::DIM, textdatum_t::top_center);
+		ui::lineAt(108, "[R] is a random one, [B] browses", ui::DIM, textdatum_t::top_center);
 		return;
 	}
 	if (state == State::Idle) {
 		ui::clearAll(ui::BG);
-		ui::message("glyphbots", net::online() ? "r opens one, b browses" : "needs wifi");
+		ui::message("glyphbots", net::online() ? "[R] opens one, [B] browses" : "needs wifi");
 		return;
 	}
 

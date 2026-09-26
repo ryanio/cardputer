@@ -210,16 +210,16 @@ void drawPicking()
 	if (scanFailed) {
 		ui::title("Networks");
 		ui::line(1, "  the scan did not run", ui::WARN);
-		ui::line(3, "  enter scans again", ui::DIM);
-		ui::line(4, "  del goes back", ui::DIM);
+		ui::line(3, "  [ok] scans again", ui::DIM);
+		ui::line(4, "  [del] goes back", ui::DIM);
 		return;
 	}
 
 	if (listed == 0) {
 		ui::title("Networks");
 		ui::line(1, "  nothing found", ui::DIM);
-		ui::line(3, "  enter scans again", ui::DIM);
-		ui::line(4, "  del goes back", ui::DIM);
+		ui::line(3, "  [ok] scans again", ui::DIM);
+		ui::line(4, "  [del] goes back", ui::DIM);
 		return;
 	}
 
@@ -253,7 +253,7 @@ void drawPicking()
 		}
 		ui::lineAt(ui::TITLE_H + row * ui::LINE_H, text, ui::DIM, textdatum_t::top_right);
 	}
-	ui::lineAt(ui::TITLE_H + ROWS * ui::LINE_H, "enter picks   del goes back", ui::DIM);
+	ui::lineAt(ui::TITLE_H + ROWS * ui::LINE_H, "[ok] picks   [del] goes back", ui::DIM);
 }
 
 void drawTyping()
@@ -283,13 +283,12 @@ void drawTyping()
 	snprintf(text, sizeof(text), "%s_", shown);
 	ui::line(1, text);
 
-	ui::line(3, "enter tries this network", ui::DIM);
-	ui::line(4, "del erases   esc cancels", ui::DIM);
+	ui::line(3, "[ok] tries this network", ui::DIM);
+	ui::line(4, "[del] erases   [esc] cancels", ui::DIM);
 	if (!typingSsid) {
-		ui::line(5,
-		         reveal ? "tab hides it   fn esc for a backtick"
-		                : "tab shows it   fn esc for a backtick",
-		         ui::DIM);
+		ui::line(
+		    5, reveal ? "[tab] hides it  [fn][esc] backtick" : "[tab] shows it  [fn][esc] backtick",
+		    ui::DIM);
 	}
 }
 
@@ -314,7 +313,7 @@ void drawJoining()
 		    ui::DIM);
 	} else {
 		ui::line(2, "check the passphrase", ui::DIM);
-		ui::line(4, "del goes back", ui::DIM);
+		ui::line(4, "[del] goes back", ui::DIM);
 	}
 }
 

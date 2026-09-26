@@ -43,10 +43,127 @@ int rowY(int row)
 
 // Fits text into a width by dropping characters and ending in a period, which
 // reads better than a hard cut on a screen this narrow.
+// A key written as [ok] in any text drawn here is drawn as a keycap: its name inside a one pixel
+// rounded border. A hint then reads as a key to go and find on the keyboard rather than as another
+// word in the sentence, which is what "enter scans again" in plain text failed to do.
+constexpr int KEYCAP_PAD = 3;    // between the border and the name, each side
+constexpr int KEYCAP_SPACE = 1;  // outside the border, each side
+constexpr size_t SEGMENT_MAX = 48;
+
+bool hasKeycaps(const char *text)
+{
+	const char *open = strchr(text, '[');
+	return open != nullptr && strchr(open, ']') != nullptr;
+}
+
+// Cuts the next run off text: a keycap name when text starts with a closed bracket, plain text up to
+// the next bracket otherwise. Returns false at the end.
+bool nextSegment(const char *&text, char *out, bool &keycap)
+{
+	if (*text == '\0') {
+		return false;
+	}
+	const char *close = *text == '[' ? strchr(text, ']') : nullptr;
+	const char *from = close != nullptr ? text + 1 : text;
+	const char *to = close;
+	if (to == nullptr) {
+		const char *open = strchr(text + 1, '[');
+		to = open != nullptr ? open : text + strlen(text);
+	}
+	size_t n = (size_t)(to - from);
+	if (n > SEGMENT_MAX - 1) {
+		n = SEGMENT_MAX - 1;
+	}
+	memcpy(out, from, n);
+	out[n] = '\0';
+	keycap = close != nullptr;
+	text = close != nullptr ? close + 1 : to;
+	return true;
+}
+
+int keycapTextWidth(M5GFX &g, const char *text)
+{
+	int width = 0;
+	char segment[SEGMENT_MAX];
+	bool keycap = false;
+	while (nextSegment(text, segment, keycap)) {
+		width += g.textWidth(segment) + (keycap ? 2 * (KEYCAP_PAD + KEYCAP_SPACE) : 0);
+	}
+	return width;
+}
+
+// The same text with the brackets taken out, for when the keycaps do not fit.
+void plainText(const char *text, char *out, size_t n)
+{
+	size_t at = 0;
+	for (; *text != '\0' && at + 1 < n; text++) {
+		if (*text != '[' && *text != ']') {
+			out[at++] = *text;
+		}
+	}
+	out[at] = '\0';
+}
+
+// The box stays inside the band its text is drawn in, because each row clears only its own band
+// and a border reaching into the next one would be left behind. On the 16 px font that band is a
+// 15 px row with the text a pixel down inside it. On the 8 px font the box starts two pixels above
+// where the text would have been, and the text moves up one, which centres it in an 11 px box.
+bool smallFont(M5GFX &g)
+{
+	return g.fontHeight() < 12;
+}
+
+void drawKeycapText(M5GFX &g, const char *text, int left, int y, uint16_t color,
+                    uint16_t background)
+{
+	const int height = smallFont(g) ? 11 : LINE_H;
+	y -= smallFont(g) ? 2 : 0;
+	const textdatum_t datum = g.getTextDatum();
+	g.setTextDatum(textdatum_t::top_left);
+	g.setTextColor(color, background);
+	char segment[SEGMENT_MAX];
+	bool keycap = false;
+	int x = left;
+	while (nextSegment(text, segment, keycap)) {
+		const int w = g.textWidth(segment);
+		if (keycap) {
+			const int boxW = w + 2 * KEYCAP_PAD;
+			g.drawRoundRect(x + KEYCAP_SPACE, y, boxW, height, 3, color);
+			g.drawString(segment, x + KEYCAP_SPACE + KEYCAP_PAD, y + 1);
+			x += boxW + 2 * KEYCAP_SPACE;
+		} else {
+			g.drawString(segment, x, y + 1);
+			x += w;
+		}
+	}
+	g.setTextDatum(datum);
+}
+
+int leftFor(int x, int width, textdatum_t datum)
+{
+	if (datum == textdatum_t::top_center) {
+		return x - width / 2;
+	}
+	if (datum == textdatum_t::top_right) {
+		return x - width;
+	}
+	return x;
+}
+
 void drawClipped(const char *text, int x, int y, int maxWidth, uint16_t color, uint16_t background,
                  textdatum_t datum)
 {
 	M5GFX &g = gfx();
+	char plain[SEGMENT_MAX * 2];
+	if (hasKeycaps(text)) {
+		const int width = keycapTextWidth(g, text);
+		if (width <= maxWidth) {
+			drawKeycapText(g, text, leftFor(x, width, datum), y, color, background);
+			return;
+		}
+		plainText(text, plain, sizeof(plain));
+		text = plain;
+	}
 	g.setTextColor(color, background);
 	g.setTextDatum(datum);
 	if (g.textWidth(text) <= maxWidth) {
@@ -275,6 +392,11 @@ void clip(const char *text, int x, int y, int maxWidth, uint16_t color, uint16_t
           textdatum_t datum)
 {
 	drawClipped(text, x, y, maxWidth, color, background, datum);
+}
+
+void text(const char *text, int x, int y, uint16_t color, textdatum_t datum)
+{
+	drawClipped(text, x, y, W, color, BG, datum);
 }
 
 void lineAt(int y, const char *text, uint16_t color, textdatum_t datum)
@@ -515,6 +637,15 @@ void statusBar(const char *source, const char *note)
 	if (note != nullptr && note[0] != '\0') {
 		const int left = 3 + g.textWidth(source == nullptr ? "" : source) + 6;
 		const int width = dotX - 5 - left;
+		char plain[96];
+		if (width > 20 && hasKeycaps(note)) {
+			if (keycapTextWidth(g, note) <= width) {
+				drawKeycapText(g, note, left, top + 2, FG, BAR);
+				return;
+			}
+			plainText(note, plain, sizeof(plain));
+			note = plain;
+		}
 		if (width > 20) {
 			g.setTextColor(FG, BAR);
 			g.setTextDatum(textdatum_t::top_left);
@@ -533,6 +664,17 @@ void small(int x, int y, const char *text, uint16_t color)
 	if (room <= 0) {
 		return;
 	}
+	M5GFX &g = gfx();
+	g.setFont(&fonts::Font0);
+	char plain[96];
+	if (hasKeycaps(text)) {
+		if (x + keycapTextWidth(g, text) <= W - 3) {
+			drawKeycapText(g, text, x, y, color, BG);
+			return;
+		}
+		plainText(text, plain, sizeof(plain));
+		text = plain;
+	}
 	char cut[48];
 	if ((int)strlen(text) > room) {
 		const int keep = room - 1 < (int)sizeof(cut) - 2 ? room - 1 : (int)sizeof(cut) - 2;
@@ -541,9 +683,6 @@ void small(int x, int y, const char *text, uint16_t color)
 		cut[keep + 1] = '\0';
 		text = cut;
 	}
-
-	M5GFX &g = gfx();
-	g.setFont(&fonts::Font0);
 	g.setTextColor(color, BG);
 	g.setTextDatum(textdatum_t::top_left);
 	g.drawString(text, x, y);

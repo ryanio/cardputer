@@ -317,11 +317,11 @@ void drawTitle()
 	g.drawString("stuck in a corner? it rattles", ui::W / 2, 72);
 
 	g.setTextColor(ui::FG, ui::BG);
-	g.drawString("enter starts", ui::W / 2, 92);
+	ui::text("[ok] starts", ui::W / 2, 92, ui::FG, textdatum_t::top_center);
 
 	g.setTextColor(ui::DIM, ui::BG);
 	g.setTextDatum(textdatum_t::top_left);
-	g.drawString("esc backs out", 4, ui::H - 9);
+	ui::text("[esc] backs out", 4, ui::H - 9, ui::DIM);
 	g.setTextDatum(textdatum_t::top_right);
 	g.drawString("TILT", ui::W - 4, ui::H - 9);
 }
@@ -355,7 +355,7 @@ void drawWon()
 		g.drawString(text, ui::W / 2, 72);
 	}
 	g.setTextColor(ui::FG, ui::BG);
-	g.drawString("enter plays again", ui::W / 2, 92);
+	ui::text("[ok] plays again", ui::W / 2, 92, ui::FG, textdatum_t::top_center);
 
 	g.setTextColor(ui::DIM, ui::BG);
 	g.setTextDatum(textdatum_t::top_right);

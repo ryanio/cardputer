@@ -166,11 +166,11 @@ void drawList()
 	}
 	if (listState == State::Failed) {
 		ui::message("no leaderboard", net::statusText(listStatus), ui::WARN);
-		ui::lineAt(105, "r tries again", ui::DIM, textdatum_t::top_center);
+		ui::lineAt(105, "[R] tries again", ui::DIM, textdatum_t::top_center);
 		return;
 	}
 	if (listState == State::Empty) {
-		ui::message("bankr", net::online() ? "r loads the leaderboard" : "needs wifi");
+		ui::message("bankr", net::online() ? "[R] loads the leaderboard" : "needs wifi");
 		return;
 	}
 
@@ -235,7 +235,7 @@ void drawDetail()
 	}
 
 	if (a.hasToken) {
-		ui::line(6, "enter asks Coral about it", ui::CORAL);
+		ui::line(6, "[ok] asks Coral about it", ui::CORAL);
 	} else {
 		ui::line(6, "no token, so nothing to score", ui::DIM);
 	}
@@ -253,7 +253,7 @@ void drawScore()
 	}
 	if (scoreState == State::Failed) {
 		ui::message("Coral had no answer", net::statusText(scoreStatus), ui::WARN);
-		ui::lineAt(105, "enter asks again", ui::DIM, textdatum_t::top_center);
+		ui::lineAt(105, "[ok] asks again", ui::DIM, textdatum_t::top_center);
 		return;
 	}
 
@@ -295,7 +295,7 @@ void enter()
 		want(Job::Profiles);
 	} else {
 		listState = State::Ready;
-		view::note("enter opens, r refreshes");
+		view::note("[ok] opens, [R] refreshes");
 	}
 }
 
@@ -323,7 +323,7 @@ void tick()
 	if (running == Job::Profiles) {
 		fetchProfiles();
 		if (listState == State::Ready) {
-			view::note("enter opens, r refreshes");
+			view::note("[ok] opens, [R] refreshes");
 		}
 	} else {
 		fetchScore();

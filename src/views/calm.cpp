@@ -313,7 +313,7 @@ void drawFrame()
 	g.setTextColor(ui::DIM, ui::BG);
 	g.setTextDatum(textdatum_t::top_left);
 	// The corner label owns the right edge, so the line has to stop short of it.
-	g.drawString(running ? LINES[line] : "arrows pick   enter starts", 4, ui::H - 9);
+	ui::text(running ? LINES[line] : "arrows pick   [ok] starts", 4, ui::H - 9, ui::DIM);
 	g.setTextDatum(textdatum_t::top_right);
 	g.drawString("CALM", ui::W - 4, ui::H - 9);
 

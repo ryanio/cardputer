@@ -132,6 +132,15 @@ int rows();
 
 // Free placement inside the body, for the eight row layout and for anything
 // the row grid does not fit.
+// Any text drawn through this file may name a key as [ok], [del] or [R], and the name is drawn
+// as a keycap: inside a small rounded border. When the keycaps do not fit, the brackets are dropped
+// and the text is cut as usual.
+//
+// text() draws in whatever font is set, at x and y by datum, for a view that draws its own lines
+// with the canvas rather than through line() or small().
+void text(const char *text, int x, int y, uint16_t color,
+          textdatum_t datum = textdatum_t::top_left);
+
 void lineAt(int y, const char *text, uint16_t color = FG,
             textdatum_t datum = textdatum_t::top_left);
 

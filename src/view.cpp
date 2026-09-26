@@ -233,9 +233,9 @@ void drawRows(int i)
 	g.drawString(v->source, ui::W / 2, SOURCE_Y);
 
 	g.setTextDatum(textdatum_t::top_left);
-	g.drawString("enter opens", 4, FOOT_Y);
+	ui::text("[ok] opens", 4, FOOT_Y, ui::DIM);
 	g.setTextDatum(textdatum_t::top_right);
-	g.drawString("esc backs out", ui::W - 4, FOOT_Y);
+	ui::text("[esc] backs out", ui::W - 4, FOOT_Y, ui::DIM, textdatum_t::top_right);
 
 	// One dot a view, which is the only thing on screen that says how many
 	// there are. Past twenty they would run into the hints, and a count of

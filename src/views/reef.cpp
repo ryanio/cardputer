@@ -1110,13 +1110,13 @@ void drawCard()
 		}
 	}
 
-	ui::small(3, 113, "arrows move and rank, enter reads", ui::DIM);
+	ui::small(3, 113, "arrows move and rank, [ok] reads", ui::DIM);
 }
 
 void drawFeed()
 {
 	if (tokenCount == 0) {
-		ui::message("no corpus yet", "enter asks Coral for one", ui::CORAL);
+		ui::message("no corpus yet", "[ok] asks Coral for one", ui::CORAL);
 		drawTabs(nullptr);
 		return;
 	}
@@ -1226,7 +1226,7 @@ void drawCalls()
 		row++;
 	}
 
-	ui::small(3, 114, "counted on this device, del goes back", ui::DIM);
+	ui::small(3, 114, "counted on this device, [del] goes back", ui::DIM);
 }
 
 // The guess, and the dial a wrist turns it on.
@@ -1304,10 +1304,10 @@ void drawHome()
 	ui::small(3, 92, MODE_NOTE[mode][1], ui::DIM);
 
 	if (streak > 0) {
-		snprintf(text, sizeof(text), "streak %d, inside %d keeps it, tab leaves", streak,
+		snprintf(text, sizeof(text), "streak %d, inside %d keeps it, [tab] leaves", streak,
 		         STREAK_BAND);
 	} else {
-		snprintf(text, sizeof(text), "inside %d starts a streak, tab leaves", STREAK_BAND);
+		snprintf(text, sizeof(text), "inside %d starts a streak, [tab] leaves", STREAK_BAND);
 	}
 	ui::small(3, 105, text, ui::DIM);
 }
@@ -1321,7 +1321,7 @@ void drawTicker()
 	ui::line(1, text);
 	ui::small(3, 76, "Coral resolves it to a token, so", ui::DIM);
 	ui::small(3, 86, "nobody types a contract address.", ui::DIM);
-	ui::small(3, 106, "enter looks it up, del erases", ui::DIM);
+	ui::small(3, 106, "[ok] looks it up, [del] erases", ui::DIM);
 }
 
 void drawClues()
@@ -1350,9 +1350,10 @@ void drawClues()
 	// One line that stays true either way, because the number under it moves
 	// with the wrist and the line is not redrawn while it does.
 	if (motion::available()) {
-		ui::small(3, 98, "tilt or type it, enter reveals", ui::DIM);
+		ui::small(3, 98, "tilt or type it, [ok] reveals", ui::DIM);
 	} else {
-		ui::small(3, 98, guess >= 0 ? "enter reveals what Coral said" : "type 0 to 100, del erases",
+		ui::small(3, 98,
+		          guess >= 0 ? "[ok] reveals what Coral said" : "type 0 to 100, [del] erases",
 		          ui::DIM);
 	}
 }
@@ -1411,7 +1412,7 @@ void draw()
 	}
 	if (state == State::Failed) {
 		ui::message("Coral had no answer", net::statusText(status), ui::WARN);
-		ui::lineAt(105, "del goes back", ui::DIM, textdatum_t::top_center);
+		ui::lineAt(105, "[del] goes back", ui::DIM, textdatum_t::top_center);
 		return;
 	}
 

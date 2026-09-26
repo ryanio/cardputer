@@ -731,7 +731,7 @@ void drawAlarm()
 		snprintf(text, sizeof(text), "%s", net::statusText(status));
 	}
 	ui::small(3, 96, text, ui::DIM);
-	ui::small(3, 110, "enter arms, del goes back, 0 is off", ui::DIM);
+	ui::small(3, 110, "[ok] arms, [del] goes back, [0] is off", ui::DIM);
 }
 
 void draw()
