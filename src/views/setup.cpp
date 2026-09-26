@@ -39,6 +39,7 @@ struct Choice {
 };
 Choice choices[MAX_LISTED];
 bool scanning = false;
+bool scanFailed = false;
 bool typingSsid = false;
 bool reveal = false;  // a passphrase is drawn as dots until tab peeks at it
 String targetSsid;
@@ -99,6 +100,7 @@ void collectScan()
 		return;
 	}
 	scanning = false;
+	scanFailed = n == SCAN_FAILED;
 	listed = 0;
 	for (int i = 0; i < net::profileCount() && listed < MAX_LISTED; i++) {
 		choices[listed++].profile = i;
@@ -116,12 +118,21 @@ void collectScan()
 			}
 			order[slot] = i;
 		}
+		// Strongest first, so the first access point with a name is the one kept. A mesh or a dual
+		// band router answers once per radio and used to list the same name two or three times.
 		for (int i = 0; i < ordered && listed < MAX_LISTED; i++) {
 			const int scan = order[i];
-			if (net::profileIndex(net::scanSsid(scan).c_str()) >= 0) {
+			const String ssid = net::scanSsid(scan);
+			if (net::profileIndex(ssid.c_str()) >= 0) {
 				continue;
 			}
-			choices[listed++] = {.profile = -1, .scan = scan};
+			bool seen = false;
+			for (int j = 0; j < i && !seen; j++) {
+				seen = net::scanSsid(order[j]) == ssid;
+			}
+			if (!seen) {
+				choices[listed++] = {.profile = -1, .scan = scan};
+			}
 		}
 	}
 	view::repaint();
@@ -157,8 +168,11 @@ void drawStatus()
 	ui::clearBody();
 	ui::title("Setup");
 
+	// The saved name is only "wifi" while the unit is actually on it. Out of range of it, this line
+	// read "wifi  <name>" in white above "joining", which looked like being connected to it.
 	const char *name = net::ssid();
-	snprintf(text, sizeof(text), "wifi  %s", name[0] == '\0' ? "none set" : name);
+	snprintf(text, sizeof(text), "%s  %s", net::online() ? "wifi" : "saved",
+	         name[0] == '\0' ? "none set" : name);
 	ui::line(0, text);
 
 	if (net::online()) {
@@ -190,6 +204,14 @@ void drawPicking()
 		ui::title("Networks");
 		ui::line(1, "  looking around", ui::DIM);
 		ui::spinner(SPIN_X, SPIN_PICKING_Y);
+		return;
+	}
+
+	if (scanFailed) {
+		ui::title("Networks");
+		ui::line(1, "  the scan did not run", ui::WARN);
+		ui::line(3, "  enter scans again", ui::DIM);
+		ui::line(4, "  del goes back", ui::DIM);
 		return;
 	}
 

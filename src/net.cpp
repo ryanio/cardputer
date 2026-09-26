@@ -55,6 +55,35 @@ String netSsid;
 String netPass;
 bool fromStore = false;
 bool candidate = false;
+
+// A scan and a join cannot share the radio. The IDF refuses to start a scan while the station is
+// connecting, and a connect started mid scan aborts the scan, which Arduino then reports as a scan
+// that finished with nothing. Out of range of the saved network the retry loop is connecting for
+// most of every cycle, so a rescan in Setup came back empty until one happened to land between
+// attempts. So a scan request stops a join in progress, the retry loop waits while a scan is wanted
+// or running, and the join resumes as soon as the scan is over.
+constexpr uint32_t SCAN_START_WINDOW_MS = 3000;
+bool scanWanted = false;
+uint32_t scanWantedAt = 0;
+bool scanGaveUp = false;
+bool rejoinAfterScan = false;
+
+bool scanBusy()
+{
+	return scanWanted || WiFi.scanComplete() == WIFI_SCAN_RUNNING;
+}
+
+void tryStartScan()
+{
+	WiFi.scanDelete();
+	if (WiFi.scanNetworks(true, true) == WIFI_SCAN_RUNNING) {
+		scanWanted = false;
+	} else if (millis() - scanWantedAt >= SCAN_START_WINDOW_MS) {
+		scanWanted = false;
+		scanGaveUp = true;
+		Serial.println("net: scan would not start");
+	}
+}
 String previousSsid;
 String previousPass;
 bool previousFromStore = false;
@@ -240,6 +269,9 @@ void begin()
 
 void loop()
 {
+	if (scanWanted) {
+		tryStartScan();
+	}
 	if (st == Wifi::Off) {
 		return;
 	}
@@ -266,7 +298,8 @@ void loop()
 		case Wifi::Failed:
 			if (candidate && millis() - candidateFailedAt >= CANDIDATE_FAILURE_MS) {
 				cancelCandidate();
-			} else if (!candidate && retry.ready(millis())) {
+			} else if (!candidate && !scanBusy() && (rejoinAfterScan || retry.ready(millis()))) {
+				rejoinAfterScan = false;
 				join();
 			}
 			break;
@@ -437,15 +470,31 @@ void forgetCredentials()
 
 bool scanStart()
 {
-	if (WiFi.scanComplete() == WIFI_SCAN_RUNNING) {
-		return false;
+	if (scanBusy()) {
+		return true;
 	}
-	WiFi.scanDelete();
-	return WiFi.scanNetworks(true, true) == WIFI_SCAN_RUNNING;
+	if (st == Wifi::Joining && !candidate) {
+		WiFi.disconnect();
+		connectionRevision.advance();
+		st = Wifi::Failed;
+		rejoinAfterScan = true;
+		Serial.println("net: join paused for a scan");
+	}
+	scanWanted = true;
+	scanWantedAt = millis();
+	scanGaveUp = false;
+	tryStartScan();
+	return true;
 }
 
 int scanCount()
 {
+	if (scanWanted) {
+		return WIFI_SCAN_RUNNING;
+	}
+	if (scanGaveUp) {
+		return WIFI_SCAN_FAILED;
+	}
 	return WiFi.scanComplete();
 }
 
